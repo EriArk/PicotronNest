@@ -1,0 +1,27 @@
+# Local proprietary Picotron packages, extracted runtimes and device evidence
+.local/
+dev-runtime/
+*.apk
+*.aab
+*.apks
+
+# Imported / downloaded runtime archives; only commit deliberately reviewed fixtures
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.7z
+
+# Generated Android / Java build artifacts
+.gradle/
+build/
+**/build/
+.idea/
+*.iml
+*.class
+*.dex
+*.log
+
+# OS/editor debris
+.DS_Store
+Thumbs.db

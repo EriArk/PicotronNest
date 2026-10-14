@@ -30,3 +30,7 @@ Do not upgrade a status because code compiles, ADB starts an activity, a process
 Inventory the owner's legally obtained Raspberry Pi 64-bit Picotron package in a private local workspace; identify ELF/ABI, dynamic dependencies, launch requirements and SDL behavior without adding proprietary files to Git. Then perform the minimal headless/visible probe before designing a large Android UI.
 
 References: [official manual](https://www.lexaloffle.com/dl/docs/picotron_manual.html), [roadmap](https://www.lexaloffle.com/picotron.php?page=roadmap), [PikoNest](https://github.com/EriArk/PikoNest).
+
+## 2026-10-14 — owner archive inspected (metadata only)
+
+A user-supplied combined PICO-8/Picotron ZIP was inspected outside the repository. Its embedded `picotron_0.3.0d2_raspi.zip` is 7,605,966 bytes (SHA-256 `ba84788f0b043d75cf4be53a8df80f2c192f3a847e4d1023acbeb82124cbae75`), and contains a little-endian ELF64 AArch64 `picotron/picotron` plus `picotron.dat`. Details: [OWNER_RUNTIME_INVENTORY](OWNER_RUNTIME_INVENTORY.md). **The commercial archive has not been committed, and the ELF has not been launched or dependency-tested.** This establishes a concrete candidate for P0 without upgrading P0 or P1 acceptance.

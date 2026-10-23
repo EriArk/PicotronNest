@@ -14,7 +14,8 @@ public final class MainActivity extends Activity {
         TextView text = new TextView(this);
         text.setText("PicotronNest execution probe\nResults are saved in app-private storage.");
         text.setPadding(24, 48, 24, 24);
-        setContentView(text);
+        setContentView(BuildConfig.DESKTOP ? new DesktopView(this) : text);
+        if (BuildConfig.DESKTOP) getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         if (saved != null || !RUNNING.compareAndSet(false, true)) return;
         android.content.Context app = getApplicationContext();
         new Thread(() -> {

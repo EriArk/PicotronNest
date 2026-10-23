@@ -21,6 +21,7 @@ Observed contract:
 | Window | 1024x768, flags 4101 |
 | Renderer | Requested flags 4; SDL reports `software` |
 | Texture | 480x270, ARGB8888, streaming access 1 |
+| Valid texture update | Pitch 1920 bytes, return 0 |
 | Presentation | External `SDL_UpdateTexture` and `SDL_RenderPresent` |
 | Window surface calls | No external `SDL_GetWindowSurface` or `SDL_UpdateWindowSurface` calls in the recorded session |
 | Capture | `SDL_RenderReadPixels` before present, full 1024x768 output, RGBA32, packed stride 4096 |
@@ -87,3 +88,36 @@ Receive live complete frames in the Android Activity, preserving color channels
 and aspect ratio. Then route a correctly transformed pointer event through SDL
 and verify a real desktop action and repeat launch. Broad physical-input,
 audio, alternate-mode and enforcing ARM64 acceptance remain open.
+
+## P1b.1 — Android frame display, 2026-10-23
+
+Lab version 0.0.5 streams complete RGBA frames through one abstract Unix socket
+named with the session UUID. Android checks the peer UID and records its real
+PID; the collector requires that PID to equal the observed Picotron PID. There
+are no network permissions or external frame files in the live path. Native
+sends have a one-second timeout; partial sends fail the stream. Android validates
+dimensions, exact payload length and increasing sequence numbers, with a
+five-second receive timeout. Diagnostic snapshots from P1a remain separate.
+
+The native sender samples at most once per 100 ms. Java reuses bounded byte/int
+buffers and one Bitmap per size; the synchronized store prevents mutation while
+Canvas draws. There is no accumulated UI-frame queue. RGBA is explicitly converted
+to Java ARGB; nearest-neighbor drawing fits the full captured window without
+stretching. Picotron's own letterboxing remains part of that frame. The last
+frame is visibly labeled as ended after the process closes its stream.
+
+Retroid result: **67 frames received**, last sequence **467**, sequence **467**
+drawn by Android, peer/official PID **20623**, 1024x768 output. The boot sequence
+and the actual desktop were observed in private ADB screenshots of the lab;
+the desktop screenshot was taken after exit and is labeled accordingly.
+The process exited 0 and the final app-UID census contained only the host.
+
+APK SHA-256: `624dbb0b058b58a79479d7a6c2edd31109f05c1f3dd8185691788cae3c0a9b47`.
+Private evidence: `a13b92c8-56c8-411e-ac0b-f6ccb1a7f172.json`.
+A subsequent cold launch also passed process/stream collection:
+`86c572b3-8621-4157-8671-5f5ca45bf88d.json`. Its screenshot showed a different
+foreground application and is explicitly excluded from Picotron visual proof.
+
+Host Java checks cover red/blue/alpha channel order, portrait/landscape aspect
+fit, stale sequence rejection and invalid dimensions. Pointer, text, audio,
+alternate modes and physical-owner acceptance remain open.

@@ -12,7 +12,7 @@ This checklist defines **proof needed**, not features currently present. Start e
 
 ## A1 — Actual desktop output
 
-- [ ] A1.1 Real Picotron desktop is visible on physical Android hardware.
+- [x] A1.1 Scoped P1b.1 PASS: original desktop displayed by the lab on physical Retroid, verified via private ADB screenshot and frame/process evidence. Owner review remains open. [Evidence](P1_DESKTOP.md).
 - [ ] A1.2 Frame output is correct (colors, aspect, crop, orientation, no tearing/stale overlays).
 - [ ] A1.3 Normal 480x270 and another supported mode are tested; changing mode or resizing does not corrupt frame mapping.
 - [ ] A1.4 Pixel-perfect/integer and fit scaling, where implemented, do not stretch the original ratio.

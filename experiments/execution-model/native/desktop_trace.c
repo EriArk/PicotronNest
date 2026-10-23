@@ -6,10 +6,33 @@
 #include <stdlib.h>
 #include <time.h>
 #include <unistd.h>
+#include <sys/socket.h>
+#include <sys/un.h>
+#include <sys/time.h>
+#include <stddef.h>
+#include <errno.h>
+#include <string.h>
 
 static unsigned frames, updates, surfaces;
 static Uint64 started;
 static int quit_sent;
+static int frame_socket = -1;
+static unsigned streamed;
+static Uint64 last_stream;
+static unsigned char *frame_pixels;
+static size_t frame_capacity;
+
+static int send_all(const void *data, size_t length) {
+    const unsigned char *p = data;
+    while (length) {
+        ssize_t n = send(frame_socket, p, length, MSG_NOSIGNAL);
+        if (n < 0 && errno == EINTR) continue;
+        if (n <= 0) return -1;
+        p += n;
+        length -= (size_t)n;
+    }
+    return 0;
+}
 
 static void *symbol(const char *name) {
     void *p = dlsym(RTLD_NEXT, name);
@@ -27,10 +50,27 @@ __attribute__((constructor)) static void begin(void) {
     started = now_ms();
     setvbuf(stdout, NULL, _IOLBF, 0);
     printf("PICONEST_TRACE_LOADED pid=%ld uid=%ld\n", (long)getpid(), (long)getuid());
+    const char *name = getenv("PICONEST_FRAME_SOCKET");
+    if (name) {
+        struct sockaddr_un address = {0};
+        size_t length = strlen(name);
+        if (length == 0 || length > sizeof(address.sun_path) - 2) _exit(75);
+        address.sun_family = AF_UNIX;
+        memcpy(address.sun_path + 1, name, length);
+        frame_socket = socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0);
+        struct timeval timeout = {.tv_sec = 1, .tv_usec = 0};
+        if (frame_socket < 0 || setsockopt(frame_socket, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout)) ||
+            connect(frame_socket, (struct sockaddr *)&address,
+                    (socklen_t)(offsetof(struct sockaddr_un, sun_path) + 1 + length))) _exit(76);
+        puts("PICONEST_FRAME_CONNECTED");
+    }
 }
 
 __attribute__((destructor)) static void finish(void) {
     printf("PICONEST_TRACE_DONE frames=%u updates=%u surfaces=%u quit=%d\n", frames, updates, surfaces, quit_sent);
+    printf("PICONEST_STREAM_DONE frames=%u\n", streamed);
+    if (frame_socket >= 0) close(frame_socket);
+    free(frame_pixels);
 }
 
 int SDL_Init(Uint32 flags) {
@@ -99,20 +139,36 @@ void SDL_RenderPresent(SDL_Renderer *renderer) {
     if (frames == 1 || (w > 0 && h > 0 && !logged_valid))
         printf("PICONEST_PRESENT width=%d height=%d\n", w, h);
     if (w > 0 && h > 0) logged_valid = 1;
-    if ((frames == 60 || frames == 180) && w > 0 && h > 0 && w <= 2048 && h <= 2048) {
+    int snapshot = frames == 60 || frames == 180;
+    int stream = frame_socket >= 0 && now_ms() - last_stream >= 100;
+    if ((snapshot || stream) && w > 0 && h > 0 && w <= 2048 && h <= 2048) {
         size_t size = (size_t)w * (size_t)h * 4;
-        unsigned char *pixels = malloc(size);
-        if (pixels && SDL_RenderReadPixels(renderer, NULL, SDL_PIXELFORMAT_RGBA32, pixels, w * 4) == 0) {
-            FILE *out = fopen("/probe/frame.tmp", "wb");
+        if (size > frame_capacity) {
+            unsigned char *next = realloc(frame_pixels, size);
+            if (!next) _exit(77);
+            frame_pixels = next;
+            frame_capacity = size;
+        }
+        if (SDL_RenderReadPixels(renderer, NULL, SDL_PIXELFORMAT_RGBA32, frame_pixels, w * 4) == 0) {
+            unsigned header[4] = {0x504e4631, (unsigned)w, (unsigned)h, frames};
+            if (stream) {
+                if (send_all(header, sizeof(header)) || send_all(frame_pixels, size)) {
+                    puts("PICONEST_FRAME_SEND_FAILED");
+                    close(frame_socket);
+                    frame_socket = -1;
+                } else {
+                    ++streamed;
+                    last_stream = now_ms();
+                }
+            }
+            FILE *out = snapshot ? fopen("/probe/frame.tmp", "wb") : NULL;
             if (out) {
-                unsigned header[4] = {0x504e4631, (unsigned)w, (unsigned)h, frames};
-                int ok = fwrite(header, sizeof(header), 1, out) == 1 && fwrite(pixels, size, 1, out) == 1;
+                int ok = fwrite(header, sizeof(header), 1, out) == 1 && fwrite(frame_pixels, size, 1, out) == 1;
                 if (fclose(out)) ok = 0;
                 if (ok && rename("/probe/frame.tmp", "/probe/frame.rgba") == 0)
                     printf("PICONEST_FRAME_CAPTURE sequence=%u width=%d height=%d pitch=%d format=RGBA32\n", frames, w, h, w * 4);
             }
         }
-        free(pixels);
     }
     real(renderer);
 }

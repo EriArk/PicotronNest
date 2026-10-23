@@ -68,6 +68,13 @@ def validate(report, build, census):
             require(uid == report['host_uid'] and pid > 0 and pid not in children and pid != report['host_pid'],
                     'desktop process identity invalid')
             children.add(pid)
+            if build.get('desktop_live'):
+                live = report.get('desktop_frames', {})
+                require('error' not in live and live.get('frames', 0) >= 10, 'live frame receiver failed')
+                require(live.get('peer_pid') == pid, 'frame socket peer is not the observed Picotron process')
+                require(0 < live.get('drawn_sequence', 0) <= live.get('sequence', 0), 'no Android frame draw evidence')
+                require(0 < live.get('width', 0) <= 2048 and 0 < live.get('height', 0) <= 2048, 'invalid live dimensions')
+                require('PICONEST_FRAME_SEND_FAILED' not in output, 'frame sender failed')
             require('PICONEST_PRESENT ' in output and 'PICONEST_FRAME_CAPTURE ' in output, 'no actual captured presentation')
             require('PICONEST_TRACE_QUIT' in output and 'PICONEST_TRACE_DONE' in output, 'desktop shutdown not observed')
             continue

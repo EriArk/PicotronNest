@@ -26,10 +26,12 @@ owner's Raspberry Pi package is ARM64. An owned diagnostic fixture has run with
 target API 36 on Android, followed by an owned Linux guest through packaged
 PRoot. **The official user-imported Picotron now runs an owned headless Lua
 probe on Retroid Pocket Classic (Android 14)**, with repeat-launch and exit
-evidence. Its desktop has not yet been displayed. See the
+evidence. Its original desktop frames now also display in the Android lab;
+interactive input is still in progress. See the
 [P0a inspection](docs/P0_STATIC_INSPECTION.md),
 [P0b.2 Linux guest findings](docs/P0_LINUX_LOADER.md) and
-[P0c headless evidence](docs/P0_HEADLESS.md). The first two hard gates are:
+[P0c headless evidence](docs/P0_HEADLESS.md) and
+[desktop experiments](docs/P1_DESKTOP.md). The first two hard gates are:
 
 1. **P0 — run the official Picotron ARM64 binary** within an app-owned Android/Linux compatibility environment. Scoped headless proof exists on Retroid.
 2. **P1 — show the real, interactive Picotron desktop** on an Android screen.

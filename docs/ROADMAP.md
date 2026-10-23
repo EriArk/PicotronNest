@@ -20,7 +20,7 @@ Runtime updates and the persistent user home have separate lifetimes.
 | P0a — Inspect owner package | Reproducible static inspector; exact hashes, ELF/loader/dependencies, import hints; hostile ZIP regression fixtures | Experimented: [inspection record](P0_STATIC_INSPECTION.md) |
 | P0b — Prepare isolated execution | Pin and review open-source loader/userland/SDL dependencies; resolve transitive closure; create a separate PicotronNest lab namespace and disposable home; document modern-target strategy | Scoped headless closure verified: PRoot + glibc + minimal SDL2; enforcing ARM64 compatibility remains open |
 | P0c — Prove process execution | Owned headless probe using the package's documented syntax; capture actual Picotron PID, stdout/stderr, exit and repeat-launch evidence on ARM64 Android | Device-verified on Retroid: [P0c evidence](P0_HEADLESS.md) |
-| P1a — Trace actual presentation | Observe which SDL calls present frames and record dimensions, stride, format and ownership | Planned |
+| P1a — Trace actual presentation | Observe which SDL calls present frames and record dimensions, stride, format and ownership | Verified on Retroid: [trace and captured desktop](P1_DESKTOP.md) |
 | P1b — Show and interact | Original live desktop on Android, one correctly mapped pointer click, shutdown and restart | Planned |
 
 P0a is not completion of P0. P0b must not borrow an installed PikoNest app's

@@ -7,11 +7,24 @@ import json
 from pathlib import Path
 import re
 import subprocess
+import struct
 
 PACKAGE = 'art.picotronnest.executionlab'
 ROOT = Path(__file__).resolve().parents[2]
 CASE_NAMES = ['packaged_identity', 'private_direct', 'private_system_linker',
               'packaged_ptrace', 'owned_timeout']
+
+
+def validate_frame(raw):
+    if len(raw) < 16:
+        raise ValueError('Short frame header')
+    magic, width, height, sequence = struct.unpack_from('<4I', raw)
+    if magic != 0x504e4631 or not (0 < width <= 2048 and 0 < height <= 2048) or sequence == 0:
+        raise ValueError('Invalid frame header')
+    if len(raw) != 16 + width * height * 4:
+        raise ValueError('Frame payload length mismatch')
+    return {'width': width, 'height': height, 'stride': width * 4, 'format': 'RGBA32',
+            'sequence': sequence, 'sha256': hashlib.sha256(raw).hexdigest()}
 
 
 def validate(report, build, census):
@@ -29,7 +42,7 @@ def validate(report, build, census):
     cases = report.get('cases', [])
     expected_names = list(CASE_NAMES)
     if 'linux_components' in build:
-        require(report.get('schema') == (3 if headless else 2), 'Linux report schema missing')
+        require(report.get('schema') == (4 if build.get('desktop_probe') else (3 if headless else 2)), 'Linux report schema missing')
         components = build['linux_components']
         require(report.get('linux_components') == components['packages'], 'native component manifest mismatch')
         require(report.get('linux_guest_sha256') == components['guests'][matches[0]], 'guest hash mismatch')
@@ -39,10 +52,25 @@ def validate(report, build, census):
         require(report.get('headless_components') == build['headless_components'], 'headless closure mismatch')
         require(report.get('runtime_contract') == build['runtime_contract'], 'owner runtime contract mismatch')
         expected_names += ['picotron_headless_1', 'picotron_headless_2']
+    if build.get('desktop_probe'):
+        expected_names += ['picotron_desktop_trace']
     require([case.get('name') for case in cases] == expected_names, 'missing, duplicate or reordered cases')
     children = set()
     for case in cases:
         name = case['name']
+        if name == 'picotron_desktop_trace':
+            require(case.get('outcome') == 'EXITED' and case.get('exit_code') == 0, 'desktop termination failed')
+            require(case.get('output_truncated') is False and 'read_error' not in case, 'desktop output unreliable')
+            output = case.get('output', '')
+            identity = re.search(r'^PICONEST_TRACE_LOADED pid=(\d+) uid=(\d+)$', output, re.M)
+            require(identity is not None, 'desktop process observer not loaded')
+            pid, uid = map(int, identity.groups())
+            require(uid == report['host_uid'] and pid > 0 and pid not in children and pid != report['host_pid'],
+                    'desktop process identity invalid')
+            children.add(pid)
+            require('PICONEST_PRESENT ' in output and 'PICONEST_FRAME_CAPTURE ' in output, 'no actual captured presentation')
+            require('PICONEST_TRACE_QUIT' in output and 'PICONEST_TRACE_DONE' in output, 'desktop shutdown not observed')
+            continue
         if name.startswith('picotron_headless_'):
             require(case.get('outcome') == 'EXITED' and case.get('exit_code') == 0, 'Picotron termination failed')
             require(case.get('output_truncated') is False and 'read_error' not in case, 'Picotron output unreliable')
@@ -122,7 +150,8 @@ def main():
         return subprocess.run(['adb', '-s', args.serial, *parts], capture_output=True, check=check, timeout=20)
 
     build = json.loads(args.build.read_text(encoding='utf-8'))
-    report_path = 'files/' + ('headless-probes' if 'headless_components' in build else 'execution-probes') + '/latest.json'
+    journal = 'desktop-probes' if build.get('desktop_probe') else ('headless-probes' if 'headless_components' in build else 'execution-probes')
+    report_path = 'files/' + journal + '/latest.json'
     raw = adb('exec-out', 'run-as', PACKAGE, 'cat', report_path).stdout
     if len(raw) > 65536:
         raise SystemExit('Oversize report')
@@ -149,6 +178,11 @@ def main():
     session = report['session']
     if not re.fullmatch(r'[0-9a-f-]{36}', session):
         raise SystemExit('Invalid session identifier')
+    if build.get('desktop_probe'):
+        frame = adb('exec-out', 'run-as', PACKAGE, 'cat',
+                    'files/desktop-probes/' + session + '/headless-root/probe/frame.rgba').stdout
+        evidence['captured_frame'] = validate_frame(frame)
+        (folder / (session + '.rgba')).write_bytes(frame)
     destination = folder / (session + '.json')
     destination.write_text(json.dumps(evidence, indent=2) + '\n', encoding='utf-8')
     print(f'Evidence verified: {report["model"]}, API {report["api"]}, target 36, {abi}')

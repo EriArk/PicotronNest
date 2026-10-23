@@ -1,16 +1,21 @@
 # Project status
 
-**2026-10-23 — P0c official Picotron headless execution verified on Retroid.**
+**2026-10-23 — P1a real desktop presentation traced and privately captured on Retroid.**
 
 PicotronNest is an Android wrapper for the **official, user-imported Picotron runtime**.
 The repository contains a bounded archive inspector and a temporary target-36
 Android execution lab. Its owned Linux guest has now run through packaged
 PRoot on Retroid and an Android emulator. The official owner-imported ARM64
 Picotron now also executes an owned Lua probe on Retroid. There is no product
-launcher, video bridge or product APK; the desktop has not been displayed.
+launcher or product APK. Original desktop pixels have been captured and inspected;
+live display in the Android Activity is the next gate.
 
 ## Latest evidence
 
+- P1a: the official desktop uses a 480x270 ARGB8888 streaming texture and SDL's
+  software renderer, presenting a 1024x768 window. Complete RGBA frames were
+  captured before present and visually inspected locally. SDL_QUIT ends the
+  probe normally with no leftover children. [Desktop trace](P1_DESKTOP.md).
 - P0c: the unchanged owner Picotron 0.3.0d2 runs twice through packaged PRoot,
   glibc 2.36 and a source-built minimal SDL2 2.32.10. Both launches print distinct
   current-session Lua markers and exit 0. Retroid Pocket Classic, Android 14/API
@@ -64,8 +69,8 @@ launcher, video bridge or product APK; the desktop has not been displayed.
 
 ## Current milestone
 
-**P0 headless execution: device-verified in the scoped Retroid experiment. Next:
-P1a SDL presentation tracing**, followed by the visible interactive desktop.
+**P1a presentation tracing: device-verified in the scoped Retroid experiment.
+Next: P1b live Android display**, followed by minimal interaction.
 Consult [the experiment plan](RUNTIME_SPIKE.md), [roadmap](ROADMAP.md) and [acceptance](ACCEPTANCE.md).
 
 ## Status vocabulary
@@ -79,9 +84,8 @@ Do not upgrade a status because code compiles, ADB starts an activity, a process
 
 ## Next action
 
-Trace the actual SDL window/renderer/surface path from the official desktop:
-dimensions, stride, format and ownership. Use those observations to build the
-smallest real-frame display bridge. Keep enforcing ARM64 Android execution as
+Build the smallest live display bridge from the observed complete SDL frames.
+Then route a correctly transformed pointer click. Keep enforcing ARM64 Android execution as
 an explicit compatibility gap; the Retroid headless result does not close it.
 
 References: [official manual](https://www.lexaloffle.com/dl/docs/picotron_manual.html), [roadmap](https://www.lexaloffle.com/picotron.php?page=roadmap), [PikoNest](https://github.com/EriArk/PikoNest).

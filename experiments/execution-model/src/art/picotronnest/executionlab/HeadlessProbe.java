@@ -75,6 +75,13 @@ final class HeadlessProbe {
         }
         report.put("headless_components", components).put("runtime_contract", contract)
               .put("picotron_execution", "ATTEMPTED");
+        if (BuildConfig.DESKTOP) {
+            String[] command = {"/system/bin/timeout", "-k", "2", "15",
+                    new File(nativeDir, "libproot.so").getPath(), "--kill-on-exit",
+                    "-r", root.getPath(), "-b", "/proc", "-b", "/dev/null", "-b", "/dev/urandom",
+                    "-w", "/runtime", "/lib/ld-linux-aarch64.so.1", "--library-path", "/lib", "/probe/desktop-exec"};
+            cases.put(runner.runWithEnvironment("picotron_desktop_trace", 20000, env, command));
+        }
     }
 
     private JSONObject jsonAsset(String name) throws Exception {

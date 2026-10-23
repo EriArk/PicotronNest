@@ -28,7 +28,8 @@ final class ExecutionProbe {
     ExecutionProbe(Context app) { this.app = app; }
 
     void run() {
-        File root = new File(app.getFilesDir(), BuildConfig.HEADLESS ? "headless-probes" : "execution-probes");
+        File root = new File(app.getFilesDir(), BuildConfig.DESKTOP ? "desktop-probes" :
+                (BuildConfig.HEADLESS ? "headless-probes" : "execution-probes"));
         try {
             mkdir(root);
             try (FileOutputStream guard = new FileOutputStream(new File(root, "probe.lock"), true);
@@ -85,7 +86,7 @@ final class ExecutionProbe {
             new LinuxProbe(app, this).run(session, token, report, cases);
         }
         if (BuildConfig.HEADLESS) {
-            report.put("schema", 3);
+            report.put("schema", BuildConfig.DESKTOP ? 4 : 3);
             new HeadlessProbe(app, this).run(session, token, report, cases);
         }
         report.put("phase", "COMPLETE");

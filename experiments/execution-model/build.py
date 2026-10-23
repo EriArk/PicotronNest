@@ -30,7 +30,10 @@ def main():
     parser.add_argument('--jdk', type=Path, default=Path(r'C:\Program Files\Android\Android Studio\jbr'))
     parser.add_argument('--linux-loader', action='store_true', help='Include the pinned PRoot guest probe')
     parser.add_argument('--headless', action='store_true', help='Include the ARM64 glibc/SDL probe; runtime is imported separately')
+    parser.add_argument('--desktop-base', type=Path, help='Build the desktop observer using a verified headless APK and sibling build.json')
     args = parser.parse_args()
+    if args.desktop_base:
+        args.headless = True
     if args.headless:
         args.linux_loader = True
     ndk_version = '28.2.13676358'
@@ -50,6 +53,8 @@ def main():
     if args.headless:
         recorded_sources += [HERE / n for n in ['prepare_headless.py', 'headless.lock.json',
                                                'runtime-contract.json', 'native/headless_exec.c']]
+    if args.desktop_base:
+        recorded_sources += [HERE / n for n in ('prepare_desktop.py', 'native/desktop_exec.c', 'native/desktop_trace.c')]
     source_hashes = {str(p.relative_to(ROOT)).replace('\\', '/'): digest(p) for p in recorded_sources}
     work = ROOT / '.local/execution-model/builds' / uuid.uuid4().hex
     artifacts = ROOT / '.local/execution-model/artifacts'
@@ -63,8 +68,12 @@ def main():
         extra_files, components = prepare(work / 'proot')
         components['guests'] = {}
         if args.headless:
-            from prepare_headless import prepare as prepare_headless
-            added, headless = prepare_headless(work / 'headless', llvm)
+            if args.desktop_base:
+                from prepare_desktop import prepare as prepare_desktop
+                added, headless = prepare_desktop(work / 'headless', llvm, args.desktop_base.resolve())
+            else:
+                from prepare_headless import prepare as prepare_headless
+                added, headless = prepare_headless(work / 'headless', llvm)
             extra_files.update(added)
             extra_files['assets/runtime-contract.json'] = HERE / 'runtime-contract.json'
         for name, file in extra_files.items():
@@ -99,7 +108,8 @@ def main():
     config = work / 'BuildConfig.java'
     config.write_text('package art.picotronnest.executionlab; final class BuildConfig {'
                       'static final boolean LINUX_LOADER = ' + str(args.linux_loader).lower() + ';'
-                      'static final boolean HEADLESS = ' + str(args.headless).lower() + ';}', encoding='utf-8')
+                      'static final boolean HEADLESS = ' + str(args.headless).lower() + ';'
+                      'static final boolean DESKTOP = ' + str(bool(args.desktop_base)).lower() + ';}', encoding='utf-8')
     run(javac, '--release', '8', '-encoding', 'UTF-8', '-Xlint:all,-options', '-Werror', '-classpath', android,
         '-d', work / 'classes', *sources, config)
     run(jar, '--create', '--file', work / 'classes.jar', '-C', work / 'classes', '.')
@@ -109,7 +119,7 @@ def main():
     manifest = HERE / 'AndroidManifest.xml'
     if args.linux_loader:
         manifest = work / 'AndroidManifest.xml'
-        version = '3' if args.headless else '2'
+        version = '4' if args.desktop_base else ('3' if args.headless else '2')
         manifest.write_text((HERE / 'AndroidManifest.xml').read_text().replace('versionCode="1"', 'versionCode="' + version + '"')
                             .replace('versionName="0.0.1"', 'versionName="0.0.' + version + '"'), encoding='utf-8')
     run(build_tools / 'aapt.exe', 'package', '-f', '-M', manifest,
@@ -157,6 +167,8 @@ def main():
     if headless:
         metadata['headless_components'] = headless
         metadata['runtime_contract'] = json.loads((HERE / 'runtime-contract.json').read_text(encoding='utf-8'))
+    if args.desktop_base:
+        metadata['desktop_probe'] = True
     (artifacts / 'build.json').write_text(json.dumps(metadata, indent=2) + '\n', encoding='utf-8')
     print(json.dumps(metadata, indent=2))
     print(f'Local APK: {apk}')

@@ -2,6 +2,10 @@ package art.picotronnest.executionlab;
 
 import android.net.LocalServerSocket;
 import android.net.LocalSocket;
+import android.system.ErrnoException;
+import android.system.Os;
+import android.system.OsConstants;
+import android.system.StructPollfd;
 import java.io.IOException;
 import java.io.InputStream;
 import org.json.JSONObject;
@@ -14,6 +18,7 @@ final class FrameReceiver implements AutoCloseable {
     private volatile String failure;
     private volatile int received, lastSequence, peerPid, width, height;
     private volatile PointerSender pointer;
+    private volatile boolean closing;
 
     FrameReceiver(String name) throws IOException {
         server = new LocalServerSocket(name);
@@ -24,7 +29,13 @@ final class FrameReceiver implements AutoCloseable {
 
     private void receive() {
         try {
+            // A bounded readiness wait also allows close before any guest connects.
+            StructPollfd ready = new StructPollfd();
+            ready.fd = server.getFileDescriptor(); ready.events = (short)OsConstants.POLLIN;
+            while (!closing && Os.poll(new StructPollfd[]{ready}, 100) == 0) { }
+            if (closing) return;
             client = server.accept();
+            if (closing) return;
             if (client.getPeerCredentials().getUid() != android.os.Process.myUid())
                 throw new IOException("frame peer UID mismatch");
             peerPid = client.getPeerCredentials().getPid();
@@ -33,13 +44,13 @@ final class FrameReceiver implements AutoCloseable {
             DesktopView.pointer(pointer);
             InputStream input = client.getInputStream();
             FrameStream stream = new FrameStream();
-            while (stream.next(input)) {
+            while (!closing && stream.next(input)) {
                 width = stream.width(); height = stream.height();
                 DesktopView.frame(width, height, stream.sequence(), stream.pixels());
                 lastSequence = stream.sequence();
                 received++;
             }
-        } catch (IOException error) { failure = error.toString(); }
+        } catch (IOException | ErrnoException error) { if (!closing) failure = error.toString(); }
         finally {
             DesktopView.pointer(null);
             if (pointer != null) pointer.close();
@@ -67,9 +78,24 @@ final class FrameReceiver implements AutoCloseable {
     }
 
     @Override public void close() throws IOException {
-        server.close();
-        LocalSocket socket = client;
-        if (socket != null) socket.close();
+        closing = true;
         if (pointer != null) pointer.close();
+        LocalSocket socket = client;
+        if (socket != null) {
+            // shutdown wakes blocked reads/writes; close alone is not a cancellation contract.
+            try { socket.shutdownInput(); } catch (IOException alreadyClosed) { }
+            try { socket.shutdownOutput(); } catch (IOException alreadyClosed) { }
+        }
+        try {
+            worker.join(2000);
+            if (worker.isAlive()) throw new IOException("frame receiver close unconfirmed");
+            if (pointer != null) pointer.awaitClosed();
+        } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+            throw new IOException("frame close interrupted", interrupted);
+        } finally {
+            server.close();
+            if (socket != null) socket.close();
+        }
     }
 }

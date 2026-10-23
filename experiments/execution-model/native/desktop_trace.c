@@ -1,6 +1,7 @@
 /* Original SDL call observer. No copied PikoNest shim or proprietary code. */
 #define _GNU_SOURCE
 #include "SDL.h"
+#include "pointer_protocol.h"
 #include <dlfcn.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -22,9 +23,8 @@ static Uint64 last_stream;
 static unsigned char *frame_pixels;
 static size_t frame_capacity;
 static SDL_Window *trace_window;
-static int window_width, window_height, pointer_x, pointer_y;
-static Uint32 pointer_buttons, input_sequence;
-static unsigned input_packets, button_downs, button_ups;
+static int window_width, window_height;
+static PNPointer pointer;
 static unsigned char input_bytes[20];
 static size_t input_used;
 static SDL_Event pending[2];
@@ -79,7 +79,7 @@ __attribute__((destructor)) static void finish(void) {
     printf("PICONEST_TRACE_DONE frames=%u updates=%u surfaces=%u quit=%d\n", frames, updates, surfaces, quit_sent);
     printf("PICONEST_STREAM_DONE frames=%u\n", streamed);
     printf("PICONEST_INPUT_DONE packets=%u downs=%u ups=%u held=%u\n",
-           input_packets, button_downs, button_ups, pointer_buttons);
+           pointer.packets, pointer.downs, pointer.ups, pointer.buttons);
     if (frame_socket >= 0) close(frame_socket);
     free(frame_pixels);
 }
@@ -199,39 +199,33 @@ static int pointer_event(SDL_Event *event) {
         if (count <= 0) return 0;
         input_used += (size_t)count;
     }
-    Uint32 packet[5];
-    memcpy(packet, input_bytes, sizeof(packet));
+    int previous_x = pointer.x, previous_y = pointer.y;
+    Uint32 previous_buttons = pointer.buttons;
     input_used = 0;
-    if (packet[0] != 0x504e4931 || packet[1] <= input_sequence || packet[2] >= (Uint32)window_width ||
-        packet[3] >= (Uint32)window_height || packet[4] > 1 || window_width <= 0 || window_height <= 0) {
+    if (pn_pointer_apply(&pointer, input_bytes, window_width, window_height)) {
         puts("PICONEST_INPUT_INVALID");
         _exit(78);
     }
-    input_sequence = packet[1];
-    int previous_x = pointer_x, previous_y = pointer_y;
-    Uint32 previous_buttons = pointer_buttons;
-    pointer_x = (int)packet[2]; pointer_y = (int)packet[3]; pointer_buttons = packet[4];
     pending_index = 0; pending_count = 1;
     memset(pending, 0, sizeof(pending));
     pending[0].type = SDL_MOUSEMOTION;
     pending[0].motion.timestamp = SDL_GetTicks();
     pending[0].motion.windowID = trace_window ? SDL_GetWindowID(trace_window) : 0;
-    pending[0].motion.state = pointer_buttons;
-    pending[0].motion.x = pointer_x; pending[0].motion.y = pointer_y;
-    pending[0].motion.xrel = pointer_x - previous_x; pending[0].motion.yrel = pointer_y - previous_y;
-    if (previous_buttons != pointer_buttons) {
+    pending[0].motion.state = pointer.buttons;
+    pending[0].motion.x = pointer.x; pending[0].motion.y = pointer.y;
+    pending[0].motion.xrel = pointer.x - previous_x; pending[0].motion.yrel = pointer.y - previous_y;
+    if (previous_buttons != pointer.buttons) {
         pending_count = 2;
-        pending[1].type = pointer_buttons ? SDL_MOUSEBUTTONDOWN : SDL_MOUSEBUTTONUP;
+        pending[1].type = pointer.buttons ? SDL_MOUSEBUTTONDOWN : SDL_MOUSEBUTTONUP;
         pending[1].button.timestamp = SDL_GetTicks();
         pending[1].button.windowID = pending[0].motion.windowID;
         pending[1].button.button = SDL_BUTTON_LEFT;
-        pending[1].button.state = pointer_buttons ? SDL_PRESSED : SDL_RELEASED;
+        pending[1].button.state = pointer.buttons ? SDL_PRESSED : SDL_RELEASED;
         pending[1].button.clicks = 1;
-        pending[1].button.x = pointer_x; pending[1].button.y = pointer_y;
-        if (pointer_buttons) ++button_downs; else ++button_ups;
+        pending[1].button.x = pointer.x; pending[1].button.y = pointer.y;
     }
-    if (++input_packets <= 32) printf("PICONEST_POINTER seq=%u x=%d y=%d buttons=%u\n",
-                                     input_sequence, pointer_x, pointer_y, pointer_buttons);
+    if (pointer.packets <= 32) printf("PICONEST_POINTER seq=%u x=%d y=%d buttons=%u\n",
+                                     pointer.sequence, pointer.x, pointer.y, pointer.buttons);
     *event = pending[pending_index++];
     return 1;
 }
@@ -239,14 +233,14 @@ static int pointer_event(SDL_Event *event) {
 Uint32 SDL_GetMouseState(int *x, int *y) {
     Uint32 (*real)(int *, int *) = symbol("SDL_GetMouseState");
     if (frame_socket < 0) return real(x, y);
-    if (x) *x = pointer_x;
-    if (y) *y = pointer_y;
-    return pointer_buttons;
+    if (x) *x = pointer.x;
+    if (y) *y = pointer.y;
+    return pointer.buttons;
 }
 
 void SDL_WarpMouseInWindow(SDL_Window *window, int x, int y) {
     void (*real)(SDL_Window *, int, int) = symbol("SDL_WarpMouseInWindow");
-    pointer_x = x; pointer_y = y;
+    pointer.x = x; pointer.y = y;
     real(window, x, y);
 }
 

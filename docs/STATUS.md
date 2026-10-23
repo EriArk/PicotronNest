@@ -13,6 +13,11 @@ the next gate.
 
 ## Latest evidence
 
+- Owned bridge emulator checks PASS: real Android View/socket code plus a shared
+  native pointer decoder, Android 15/API 35 x86_64, SELinux Enforcing, target 36.
+  Recreation, rotation, dialog focus loss and Home/return retain one native
+  process and release held input. Resize-during-drag, partial EOF and abrupt
+  exit are checked. **No Picotron ran in these tests.** [Evidence](P1_BRIDGE_TESTS.md).
 - Host transport hardening: the shared frame reader rejects partial/invalid
   packets and supports size changes. A real localhost duplex test preserves 40
   rapid press/release pairs while frames flow in the opposite direction.
@@ -85,7 +90,8 @@ the next gate.
 ## Current milestone
 
 **P1a presentation tracing: device-verified in the scoped Retroid experiment.
-P1b live Android display has evidence; pointer code is host-tested only.**
+P1b live Android display has evidence; the pointer bridge has host/emulator
+fixture evidence, with official Picotron interaction still unverified.**
 Consult [the experiment plan](RUNTIME_SPIKE.md), [roadmap](ROADMAP.md) and [acceptance](ACCEPTANCE.md).
 
 ## Status vocabulary

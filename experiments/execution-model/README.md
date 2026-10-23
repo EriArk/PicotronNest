@@ -185,3 +185,8 @@ When the device is available, repeat the install/start/collect procedure above,
 observe a real desktop click/drag and focus-loss release, and capture matching
 private frames plus process/input evidence. Do not interact with another app.
 See [P1 evidence and remaining acceptance](../../docs/P1_DESKTOP.md).
+
+For regression work without the ARM64 runtime, the separate
+[`build_bridge_tests.py` / `run_bridge_tests.py` harness](../../docs/P1_BRIDGE_TESTS.md)
+exercises the same Android display, input and lifecycle code with an owned
+x86_64 process on an emulator. This is not official Picotron acceptance.

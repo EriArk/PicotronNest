@@ -20,10 +20,12 @@ This checklist defines **proof needed**, not features currently present. Start e
 
 ## A2 — Real usable input and audio
 
-Lab 0.0.6 implements single-touch left-button input and lifecycle release paths.
-Host tests and compilation pass; it was not installed or screen-tested because
-the owner requested no further screen tests. A2.1 and A2.5 remain NOT TESTED on
-device. Secondary click, hardware input, text/IME and audio are not implemented.
+The lab implements single-touch left-button input and lifecycle release paths.
+Host tests and [owned Android emulator fixtures](P1_BRIDGE_TESTS.md) pass.
+The updated official-runtime lab was not installed or screen-tested on Retroid
+because the owner requested no further screen tests. A2.1 and A2.5 remain NOT
+TESTED with official Picotron on hardware. Secondary click, hardware input,
+text/IME and audio are not implemented.
 
 - [ ] A2.1 Touch taps, cursor movement, drag, secondary click and pointer boundaries land at expected Picotron coordinates.
 - [ ] A2.2 Hardware mouse and keyboard work, including modifiers, key release and text entry.

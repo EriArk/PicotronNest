@@ -188,3 +188,7 @@ assets and do not prove SDL or official Picotron input behavior.
 29 lab tests pass. The desktop APK builds with warnings as errors; built-only
 SHA-256 `1c6da7b9ecd14e11dbcb9b525c347c20a5ab8bf47b0f4580aded9476b289c45e`.
 Retroid was not accessed for installation, input or screen tests.
+
+The next increment adds [owned Android emulator bridge tests](P1_BRIDGE_TESTS.md),
+including actual View/lifecycle/socket paths and the shared native decoder.
+Those fixture results do not upgrade official Picotron input acceptance.

@@ -36,6 +36,8 @@ final class DesktopView extends View {
     }
 
     static synchronized void frame(int width, int height, int next, int[] pixels) {
+        if (frame != null && (frame.getWidth() != width || frame.getHeight() != height))
+            releasePointer(); // A gesture must not span two coordinate systems.
         if (frame == null || frame.getWidth() != width || frame.getHeight() != height)
             frame = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
         frame.setPixels(pixels, 0, width, 0, 0, width, height);
@@ -87,6 +89,11 @@ final class DesktopView extends View {
     }
 
     @Override public boolean performClick() { super.performClick(); return true; }
+
+    @Override protected void onSizeChanged(int w, int h, int oldw, int oldh) {
+        super.onSizeChanged(w, h, oldw, oldh);
+        if (w != oldw || h != oldh) { synchronized (DesktopView.class) { release(); } }
+    }
 
     @Override public void onWindowFocusChanged(boolean focused) {
         super.onWindowFocusChanged(focused);

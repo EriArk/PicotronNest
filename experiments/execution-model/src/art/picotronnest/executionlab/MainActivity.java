@@ -6,7 +6,7 @@ import android.widget.TextView;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /** A diagnostic entry point, not the product frontend. */
-public final class MainActivity extends Activity {
+public class MainActivity extends Activity {
     private static final AtomicBoolean RUNNING = new AtomicBoolean();
 
     @Override protected void onPause() {
@@ -24,8 +24,11 @@ public final class MainActivity extends Activity {
         if (saved != null || !RUNNING.compareAndSet(false, true)) return;
         android.content.Context app = getApplicationContext();
         new Thread(() -> {
-            try { new ExecutionProbe(app).run(); }
+            try { runProbe(app); }
             finally { RUNNING.set(false); }
         }, "execution-probe").start();
     }
+
+    /** Test subclasses replace only the owned process, retaining the real lifecycle gate. */
+    protected void runProbe(android.content.Context app) { new ExecutionProbe(app).run(); }
 }

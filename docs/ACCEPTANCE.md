@@ -29,7 +29,8 @@ has [owned emulator-fixture evidence](KEYBOARD_SPIKE.md), including simulated
 key/device events and direct calls on the system-created IME connection; it is
 disabled in the official launcher. A [relative touchpad/stick fixture](CURSOR_SPIKE.md)
 also exercises simulated controller events and explicit primary-button drag;
-it is not attached to official Picotron. Secondary click, a complete controller
+the [D-pad/IME extension](DPAD_AND_IME.md) checks their simultaneous operation.
+Neither is attached to official Picotron. Secondary click, a complete controller
 workflow and audio are not implemented. No physical controller, hardware keyboard
 or real IME typing acceptance is claimed.
 

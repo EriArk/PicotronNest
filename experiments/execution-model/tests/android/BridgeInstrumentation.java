@@ -22,6 +22,7 @@ public final class BridgeInstrumentation extends Instrumentation {
     private boolean screenshotSaved;
     private volatile String imeDiagnostic = "";
     private final JSONArray checks = new JSONArray();
+    private final JSONObject interaction = new JSONObject();
     private void check(boolean ok, String message) {
         if (!ok) throw new AssertionError(message);
     }
@@ -155,21 +156,7 @@ public final class BridgeInstrumentation extends Instrumentation {
         await(() -> BridgeTestActivity.keyPackets >= count,"native keyboard count " + count);
         check(BridgeTestActivity.keyPackets==count && BridgeTestActivity.keyMods==mods,"key count/modifiers");
     }
-    private void keyboard() throws Exception {
-        ui(() -> BridgeTestActivity.current.desktop().requestFocus());
-        key(11,android.view.KeyEvent.KEYCODE_CTRL_LEFT,0,0,android.view.KeyEvent.META_CTRL_ON);
-        key(22,android.view.KeyEvent.KEYCODE_CTRL_LEFT,0,0,android.view.KeyEvent.META_CTRL_ON);
-        key(11,android.view.KeyEvent.KEYCODE_C,0,0,android.view.KeyEvent.META_CTRL_ON);
-        key(11,android.view.KeyEvent.KEYCODE_C,0,1,android.view.KeyEvent.META_CTRL_ON);
-        keys(3,2);
-        ui(() -> BridgeTestActivity.keyboard.onInputDeviceRemoved(11)); keys(4,2);
-        ui(() -> BridgeTestActivity.keyboard.onInputDeviceRemoved(22)); keys(5,0);
-        check(BridgeTestActivity.receivedText.isEmpty(),"shortcut leaked text");
-        checks.put("two_keyboard_sources_repeat_disconnect_modifiers_no_shortcut_text");
-        key(-1,android.view.KeyEvent.KEYCODE_A,0,0,0);
-        key(-1,android.view.KeyEvent.KEYCODE_A,1,0,0);
-        keys(8,0); check(BridgeTestActivity.receivedText.equals("a"),"hardware text duplication");
-        checks.put("physical_key_path_one_text_commit");
+    private android.view.inputmethod.InputConnection showIme() {
         android.view.inputmethod.InputConnection previousConnection=BridgeTestActivity.keyboard.latestConnection();
         ui(() -> {
             DesktopView view=BridgeTestActivity.current.desktop();
@@ -198,7 +185,24 @@ public final class BridgeInstrumentation extends Instrumentation {
         });
         await(() -> BridgeTestActivity.current.desktop().getRootWindowInsets()!=null &&
                 BridgeTestActivity.current.desktop().getRootWindowInsets().isVisible(android.view.WindowInsets.Type.ime()),"visible system keyboard " + imeDiagnostic);
-        android.view.inputmethod.InputConnection connection=BridgeTestActivity.keyboard.latestConnection();
+        return BridgeTestActivity.keyboard.latestConnection();
+    }
+    private void keyboard() throws Exception {
+        ui(() -> BridgeTestActivity.current.desktop().requestFocus());
+        key(11,android.view.KeyEvent.KEYCODE_CTRL_LEFT,0,0,android.view.KeyEvent.META_CTRL_ON);
+        key(22,android.view.KeyEvent.KEYCODE_CTRL_LEFT,0,0,android.view.KeyEvent.META_CTRL_ON);
+        key(11,android.view.KeyEvent.KEYCODE_C,0,0,android.view.KeyEvent.META_CTRL_ON);
+        key(11,android.view.KeyEvent.KEYCODE_C,0,1,android.view.KeyEvent.META_CTRL_ON);
+        keys(3,2);
+        ui(() -> BridgeTestActivity.keyboard.onInputDeviceRemoved(11)); keys(4,2);
+        ui(() -> BridgeTestActivity.keyboard.onInputDeviceRemoved(22)); keys(5,0);
+        check(BridgeTestActivity.receivedText.isEmpty(),"shortcut leaked text");
+        checks.put("two_keyboard_sources_repeat_disconnect_modifiers_no_shortcut_text");
+        key(-1,android.view.KeyEvent.KEYCODE_A,0,0,0);
+        key(-1,android.view.KeyEvent.KEYCODE_A,1,0,0);
+        keys(8,0); check(BridgeTestActivity.receivedText.equals("a"),"hardware text duplication");
+        checks.put("physical_key_path_one_text_commit");
+        android.view.inputmethod.InputConnection connection=showIme();
         String text="print(\"Привет, 世界 👋\")";
         ui(() -> {
             check(connection.setComposingText("uncommitted",1),"composition start");
@@ -271,12 +275,18 @@ public final class BridgeInstrumentation extends Instrumentation {
         });
     }
     private void gameKey(int device, int code, int action, boolean accepted) {
+        inputKey(device,code,action,android.view.InputDevice.SOURCE_GAMEPAD,accepted);
+    }
+    private void inputKey(int device, int code, int action, int source, boolean accepted) {
         ui(() -> {
             long now=SystemClock.uptimeMillis();
             android.view.KeyEvent event=new android.view.KeyEvent(now,now,action,code,0,0,device,0,0,
-                    android.view.InputDevice.SOURCE_GAMEPAD);
+                    source);
             check(BridgeTestActivity.current.desktop().dispatchKeyEvent(event)==accepted,"controller key routing");
         });
+    }
+    private void dpadKey(int code, int action, boolean accepted) {
+        inputKey(101,code,action,android.view.InputDevice.SOURCE_DPAD,accepted);
     }
     private void stick(int device, int axisX, int axisY, float x, float y, boolean accepted) {
         ui(() -> {
@@ -393,12 +403,145 @@ public final class BridgeInstrumentation extends Instrumentation {
         checks.put("disconnected_cursor_rejects_stale_overlay_control");
         checks.put("cursor_native_peer_accounting_and_clean_exit");
     }
+    private void hideIme() {
+        ui(() -> {
+            DesktopView view=BridgeTestActivity.current.desktop();
+            android.view.inputmethod.InputMethodManager ime=(android.view.inputmethod.InputMethodManager)
+                    view.getContext().getSystemService(android.content.Context.INPUT_METHOD_SERVICE);
+            ime.hideSoftInputFromWindow(view.getWindowToken(),0);
+        });
+        await(() -> BridgeTestActivity.current.desktop().getRootWindowInsets()!=null &&
+                !BridgeTestActivity.current.desktop().getRootWindowInsets().isVisible(android.view.WindowInsets.Type.ime()),"hidden system keyboard");
+        await(() -> BridgeTestActivity.current.desktop().viewportHeight()==BridgeTestActivity.current.desktop().getHeight(),"full viewport restored");
+    }
+    private void combined() throws Exception {
+        ui(() -> BridgeTestActivity.current.desktop().requestFocus()); hideIme();
+        boolean rejected=false;
+        try { CursorInput.Bindings.dpadHat(MotionEvent.AXIS_HAT_X,MotionEvent.AXIS_HAT_Y,
+                android.view.KeyEvent.KEYCODE_DPAD_UP,android.view.KeyEvent.KEYCODE_BUTTON_R1); }
+        catch (IllegalArgumentException expected) { rejected=true; }
+        check(rejected,"direction/primary binding conflict accepted");
+        checks.put("Dpad_binding_conflicts_rejected");
+        ui(() -> {
+            DesktopView view=BridgeTestActivity.current.desktop();
+            BridgeTestActivity.cursor=view.relativeCursor(CursorInput.Bindings.dpadKeys(
+                    android.view.KeyEvent.KEYCODE_DPAD_LEFT,android.view.KeyEvent.KEYCODE_DPAD_RIGHT,
+                    android.view.KeyEvent.KEYCODE_DPAD_UP,android.view.KeyEvent.KEYCODE_DPAD_DOWN,
+                    android.view.KeyEvent.KEYCODE_DPAD_CENTER,android.view.KeyEvent.KEYCODE_BUTTON_L1),24,0.2,0.25,true);
+            BridgeTestActivity.cursor.mode(RelativePointer.Mode.DPAD);
+        });
+        key(-1,android.view.KeyEvent.KEYCODE_DPAD_LEFT,0,0,0);
+        key(-1,android.view.KeyEvent.KEYCODE_DPAD_LEFT,1,0,0); keys(2,0);
+        check(BridgeTestActivity.keyScan==80 && BridgeTestActivity.packets==0,"keyboard arrow routed to cursor");
+        dpadKey(android.view.KeyEvent.KEYCODE_DPAD_RIGHT,0,true);
+        await(() -> BridgeTestActivity.x>=26,"D-pad key cursor movement");
+        stick(101,MotionEvent.AXIS_HAT_X,MotionEvent.AXIS_HAT_Y,-1,0,true);
+        await(() -> BridgeTestActivity.x>=28,"key profile ignores duplicate HAT encoding");
+        dpadKey(android.view.KeyEvent.KEYCODE_DPAD_RIGHT,1,true);
+        check(BridgeTestActivity.keyPackets==2 && BridgeTestActivity.receivedText.isEmpty(),"D-pad leaked editor key/text");
+        checks.put("physical_keyboard_arrows_and_Dpad_directions_route_separately");
+
+        int before=BridgeTestActivity.current.desktop().viewportHeight();
+        dpadKey(android.view.KeyEvent.KEYCODE_DPAD_CENTER,0,true);
+        await(() -> BridgeTestActivity.held==1,"D-pad drag before IME");
+        dpadKey(android.view.KeyEvent.KEYCODE_DPAD_RIGHT,0,true);
+        android.view.inputmethod.InputConnection connection=showIme();
+        await(() -> BridgeTestActivity.held==0,"IME opening cancels cursor drag");
+        await(() -> BridgeTestActivity.current.desktop().viewportHeight()<before,"IME reduces viewport");
+        dpadKey(android.view.KeyEvent.KEYCODE_DPAD_RIGHT,1,true);
+        dpadKey(android.view.KeyEvent.KEYCODE_DPAD_CENTER,1,true);
+        int stoppedX=BridgeTestActivity.x, stoppedY=BridgeTestActivity.y, sequence=DesktopView.drawnSequence();
+        await(() -> DesktopView.drawnSequence()>sequence+2,"IME viewport frames");
+        check(BridgeTestActivity.x==stoppedX && BridgeTestActivity.y==stoppedY,"old D-pad hold resumed after inset change");
+        ui(() -> {
+            DesktopView view=BridgeTestActivity.current.desktop();
+            int bottom=view.getRootWindowInsets().getInsets(android.view.WindowInsets.Type.ime()).bottom;
+            float[] fit=FrameProtocol.fit(48,27,view.getWidth(),view.viewportHeight());
+            check(view.viewportHeight()>0 && fit[2]+27*fit[0]<=view.getHeight()-bottom+1,"frame overlaps IME");
+            try { interaction.put("viewport_before_ime",before).put("viewport_with_ime",view.viewportHeight())
+                    .put("view_height",view.getHeight()).put("ime_bottom",bottom); }
+            catch (org.json.JSONException failure) { throw new AssertionError(failure); }
+        });
+        checks.put("IME_open_releases_drag_stops_Dpad_and_fits_complete_frame");
+
+        String text="print(\"D-pad + IME ✓\")";
+        ui(() -> check(connection.commitText(text,1) && connection.finishComposingText(),"combined Unicode commit"));
+        int keyCount=2+KeyboardProtocol.text(text).size(); keys(keyCount,0);
+        check(BridgeTestActivity.receivedText.equals(text),"combined text receipt");
+        int y=BridgeTestActivity.y;
+        dpadKey(android.view.KeyEvent.KEYCODE_DPAD_DOWN,0,true);
+        await(() -> BridgeTestActivity.y>=y+2,"D-pad cursor with visible IME");
+        dpadKey(android.view.KeyEvent.KEYCODE_DPAD_DOWN,1,true);
+        dpadKey(android.view.KeyEvent.KEYCODE_DPAD_CENTER,0,true);
+        await(() -> BridgeTestActivity.held==1,"IME-visible cursor click");
+        dpadKey(android.view.KeyEvent.KEYCODE_DPAD_CENTER,1,true);
+        await(() -> BridgeTestActivity.held==0,"IME-visible cursor release");
+        check(BridgeTestActivity.keyPackets==keyCount,"controller click leaked keyboard packet");
+        checks.put("Dpad_click_and_UTF8_commit_share_live_native_session_with_IME");
+        int drawn=DesktopView.drawnSequence(); await(() -> DesktopView.drawnSequence()>drawn+2,"combined screenshot frame");
+        waitForIdleSync(); screenshot();
+
+        dpadKey(android.view.KeyEvent.KEYCODE_DPAD_CENTER,0,true);
+        await(() -> BridgeTestActivity.held==1,"drag before IME hide");
+        dpadKey(android.view.KeyEvent.KEYCODE_DPAD_LEFT,0,true);
+        hideIme(); await(() -> BridgeTestActivity.held==0,"IME hide cancels cursor drag");
+        dpadKey(android.view.KeyEvent.KEYCODE_DPAD_LEFT,1,true);
+        dpadKey(android.view.KeyEvent.KEYCODE_DPAD_CENTER,1,true);
+        check(BridgeTestActivity.current.desktop().viewportHeight()==before,"viewport changed after keyboard hide");
+        checks.put("IME_hide_releases_and_restores_viewport");
+
+        ui(() -> BridgeTestActivity.cursor.bindings(CursorInput.Bindings.dpadHat(MotionEvent.AXIS_HAT_X,MotionEvent.AXIS_HAT_Y,
+                android.view.KeyEvent.KEYCODE_BUTTON_B,android.view.KeyEvent.KEYCODE_BUTTON_R1)));
+        int x=BridgeTestActivity.x;
+        stick(101,MotionEvent.AXIS_HAT_X,MotionEvent.AXIS_HAT_Y,-1,0,true);
+        await(() -> BridgeTestActivity.x<=x-2,"HAT cursor movement");
+        dpadKey(android.view.KeyEvent.KEYCODE_DPAD_RIGHT,0,true); // Alternate encoding is consumed, not forwarded.
+        dpadKey(android.view.KeyEvent.KEYCODE_DPAD_RIGHT,1,true);
+        stick(101,MotionEvent.AXIS_HAT_X,MotionEvent.AXIS_HAT_Y,0,0,true);
+        gameKey(101,android.view.KeyEvent.KEYCODE_BUTTON_B,0,true);
+        await(() -> BridgeTestActivity.held==1,"HAT-profile primary");
+        gameKey(101,android.view.KeyEvent.KEYCODE_BUTTON_B,1,true);
+        await(() -> BridgeTestActivity.held==0,"HAT-profile primary release");
+        check(BridgeTestActivity.keyPackets==keyCount,"HAT duplicate encoding leaked editor input");
+        checks.put("explicit_HAT_profile_and_duplicate_key_suppression");
+
+        ui(() -> BridgeTestActivity.cursor.mode(RelativePointer.Mode.DISABLED));
+        dpadKey(android.view.KeyEvent.KEYCODE_DPAD_UP,0,false);
+        dpadKey(android.view.KeyEvent.KEYCODE_DPAD_UP,1,false);
+        key(-1,android.view.KeyEvent.KEYCODE_DPAD_UP,0,0,0);
+        key(-1,android.view.KeyEvent.KEYCODE_DPAD_UP,1,0,0); keyCount+=2; keys(keyCount,0);
+        check(BridgeTestActivity.keyScan==82,"physical arrow blocked in disabled cursor mode");
+        checks.put("disabled_controller_pass_through_preserves_physical_keyboard");
+
+        ui(() -> BridgeTestActivity.cursor.mode(RelativePointer.Mode.DPAD));
+        gameKey(101,android.view.KeyEvent.KEYCODE_BUTTON_B,0,true);
+        await(() -> BridgeTestActivity.held==1,"combined held pointer");
+        key(-1,android.view.KeyEvent.KEYCODE_CTRL_LEFT,0,0,android.view.KeyEvent.META_CTRL_ON); keys(++keyCount,2);
+        AlertDialog[] dialog=new AlertDialog[1];
+        ui(() -> { dialog[0]=new AlertDialog.Builder(BridgeTestActivity.current).setMessage("Combined focus check").create(); dialog[0].show(); });
+        keys(++keyCount,0); await(() -> BridgeTestActivity.held==0,"combined focus pointer release");
+        ui(() -> check(!connection.commitText("STALE",1),"stale combined IME accepted text"));
+        ui(() -> dialog[0].dismiss());
+        await(() -> BridgeTestActivity.current.hasWindowFocus(),"combined focus return");
+        check(BridgeTestActivity.receivedText.equals(text),"stale combined text sent");
+        checks.put("shared_focus_release_and_stale_IME_rejection");
+        BridgeTestActivity.command('Q');
+        await(() -> BridgeTestActivity.result!=null || BridgeTestActivity.error!=null,"combined process exit");
+        check(BridgeTestActivity.error==null && BridgeTestActivity.exitCode==0,"combined fixture exit");
+        JSONObject result=BridgeTestActivity.result;
+        check(!result.has("error") && !result.has("pointer_error") && !result.has("keyboard_error")
+                && result.getInt("pointer_packets")==BridgeTestActivity.packets && result.getInt("keyboard_packets")==keyCount
+                && result.getInt("peer_pid")==BridgeTestActivity.nativePid && result.getInt("keyboard_peer_pid")==BridgeTestActivity.nativePid
+                && BridgeTestActivity.downs==BridgeTestActivity.ups && BridgeTestActivity.keyDowns==BridgeTestActivity.keyUps,
+                "combined native transport accounting");
+        checks.put("same_authenticated_native_peer_balanced_pointer_keyboard_and_clean_exit");
+    }
     @Override public void onStart() {
         JSONObject report = new JSONObject(); Bundle bundle = new Bundle();
         try {
             check(session != null && session.matches("[a-f0-9-]{36}"), "missing session UUID");
-            BridgeTestActivity.keyboardTest=mode.equals("keyboard");
-            BridgeTestActivity.cursorTest=mode.equals("cursor");
+            BridgeTestActivity.keyboardTest=mode.equals("keyboard") || mode.equals("combined");
+            BridgeTestActivity.cursorTest=mode.equals("cursor") || mode.equals("combined");
             report.put("session", session).put("mode", mode).put("host_pid", android.os.Process.myPid()).put("host_uid", android.os.Process.myUid())
                     .put("official_runtime", "NOT TESTED");
             // Cancellation before a client connects must terminate the waiting receiver.
@@ -423,6 +566,7 @@ public final class BridgeInstrumentation extends Instrumentation {
             if (mode.equals("normal")) normal();
             else if (mode.equals("keyboard")) keyboard();
             else if (mode.equals("cursor")) cursor();
+            else if (mode.equals("combined")) combined();
             else {
                 check(mode.equals("abrupt") || mode.equals("partial"), "unknown test mode");
                 touch(MotionEvent.ACTION_DOWN, 3, 4, 48, 27);
@@ -446,7 +590,7 @@ public final class BridgeInstrumentation extends Instrumentation {
             report.put("outcome", "PASS");
         } catch (Throwable failure) {
             try { report.put("outcome", "FAIL").put("failure", failure.toString()); } catch (Exception ignored) { }
-            if ((mode.equals("keyboard") || mode.equals("cursor")) && BridgeTestActivity.current!=null && BridgeTestActivity.current.hasWindowFocus()) {
+            if ((mode.equals("keyboard") || mode.equals("cursor") || mode.equals("combined")) && BridgeTestActivity.current!=null && BridgeTestActivity.current.hasWindowFocus()) {
                 try { screenshot(); } catch (Exception ignored) { }
             }
         } finally {
@@ -460,6 +604,7 @@ public final class BridgeInstrumentation extends Instrumentation {
                         .put("native_pid", BridgeTestActivity.nativePid).put("exit_code", BridgeTestActivity.exitCode)
                         .put("stream", BridgeTestActivity.result).put("native_output", BridgeTestActivity.transcript);
                 if (screenshotSaved) report.put("screenshot",mode+"-preview.png");
+                if (interaction.length()>0) report.put("interaction",interaction);
                 File file = new File(getTargetContext().getFilesDir(), "bridge-" + mode + ".json");
                 try (Writer out = new OutputStreamWriter(new FileOutputStream(file), "UTF-8")) { out.write(report.toString(2)); }
                 bundle.putString("stream", report.toString());

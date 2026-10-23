@@ -67,3 +67,6 @@ without enabling an unverified path in official Picotron.
 The [relative touchpad/stick fixture](CURSOR_SPIKE.md) similarly exercises explicit
 drag ownership, remapped controls and cancellation without selecting product
 defaults or claiming physical-controller support.
+The subsequent [D-pad/IME experiment](DPAD_AND_IME.md) checks key and HAT profiles,
+separates keyboard arrows from controller directions, and keeps the owned frame
+above the docked IME. Physical controller/IME interaction is still untested.

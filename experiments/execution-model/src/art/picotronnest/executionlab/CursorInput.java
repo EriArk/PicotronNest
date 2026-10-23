@@ -16,11 +16,37 @@ import android.view.View;
 final class CursorInput implements InputManager.InputDeviceListener, AutoCloseable {
     static final int TOUCH_SOURCE = Integer.MIN_VALUE;
     static final class Bindings {
+        private static final int[] STANDARD_DPAD={KeyEvent.KEYCODE_DPAD_LEFT,KeyEvent.KEYCODE_DPAD_RIGHT,
+                KeyEvent.KEYCODE_DPAD_UP,KeyEvent.KEYCODE_DPAD_DOWN};
         final int axisX, axisY, primary, precision;
+        final boolean dpad;
+        private final int[] directionKeys;
         Bindings(int axisX, int axisY, int primary, int precision) {
-            if (axisX < 0 || axisY < 0 || axisX == axisY || primary <= 0 || precision <= 0 || primary == precision)
+            this(axisX,axisY,primary,precision,false,null);
+        }
+        private Bindings(int axisX, int axisY, int primary, int precision, boolean dpad, int[] keys) {
+            if ((keys==null && (axisX < 0 || axisY < 0 || axisX == axisY))
+                    || primary <= 0 || precision <= 0 || primary == precision)
                 throw new IllegalArgumentException("cursor bindings");
+            int[] reserved=keys!=null ? keys : dpad ? STANDARD_DPAD : null;
+            if (reserved!=null) {
+                java.util.HashSet<Integer> unique=new java.util.HashSet<>();
+                unique.add(primary); unique.add(precision);
+                for (int key:reserved) if (key<=0 || !unique.add(key)) throw new IllegalArgumentException("overlapping D-pad bindings");
+            }
             this.axisX=axisX; this.axisY=axisY; this.primary=primary; this.precision=precision;
+            this.dpad=dpad; directionKeys=keys==null ? null : keys.clone();
+        }
+        static Bindings dpadKeys(int left, int right, int up, int down, int primary, int precision) {
+            return new Bindings(-1,-1,primary,precision,true,new int[]{left,right,up,down});
+        }
+        static Bindings dpadHat(int axisX, int axisY, int primary, int precision) {
+            return new Bindings(axisX,axisY,primary,precision,true,null);
+        }
+        int direction(int code) {
+            int[] keys=directionKeys==null ? STANDARD_DPAD : directionKeys;
+            for (int i=0;i<keys.length;i++) if (keys[i]==code) return 1<<i;
+            return 0;
         }
     }
     private final View view;
@@ -97,10 +123,20 @@ final class CursorInput implements InputManager.InputDeviceListener, AutoCloseab
         return false;
     }
     synchronized boolean key(KeyEvent event) {
-        if (closed || state.mode()!=RelativePointer.Mode.STICK
-                || !(event.isFromSource(InputDevice.SOURCE_GAMEPAD) || event.isFromSource(InputDevice.SOURCE_JOYSTICK))
+        if (closed || (state.mode()!=RelativePointer.Mode.STICK && state.mode()!=RelativePointer.Mode.DPAD)
+                || (state.mode()==RelativePointer.Mode.DPAD)!=bindings.dpad
+                || !(event.isFromSource(InputDevice.SOURCE_GAMEPAD) || event.isFromSource(InputDevice.SOURCE_JOYSTICK)
+                    || event.isFromSource(InputDevice.SOURCE_DPAD))
                 || event.getAction()!=KeyEvent.ACTION_DOWN && event.getAction()!=KeyEvent.ACTION_UP) return false;
         boolean down=event.getAction()==KeyEvent.ACTION_DOWN;
+        int direction=bindings.dpad ? bindings.direction(event.getKeyCode()) : 0;
+        if (direction!=0) {
+            // An explicitly selected hat profile consumes duplicate direction keys without moving twice.
+            if (bindings.directionKeys==null) return true;
+            boolean accepted=state.direction(event.getDeviceId(),direction,down);
+            if (accepted) animate();
+            return accepted;
+        }
         if (event.getKeyCode()==bindings.primary) return state.button(event.getDeviceId(),down);
         if (event.getKeyCode()==bindings.precision) { state.precision(event.getDeviceId(),down); return true; }
         return false;
@@ -116,12 +152,20 @@ final class CursorInput implements InputManager.InputDeviceListener, AutoCloseab
         return Math.max(-1,Math.min(1,raw/(raw<0 ? -range.getMin() : range.getMax())));
     }
     synchronized boolean motion(MotionEvent event) {
-        if (closed || state.mode()!=RelativePointer.Mode.STICK || event.getActionMasked()!=MotionEvent.ACTION_MOVE
+        if (closed || (state.mode()!=RelativePointer.Mode.STICK && state.mode()!=RelativePointer.Mode.DPAD)
+                || (state.mode()==RelativePointer.Mode.DPAD)!=bindings.dpad || event.getActionMasked()!=MotionEvent.ACTION_MOVE
                 || !event.isFromSource(InputDevice.SOURCE_JOYSTICK)) return false;
-        boolean accepted=state.stick(event.getDeviceId(),axis(event,bindings.axisX),axis(event,bindings.axisY));
-        if (accepted) { if (!scheduled) lastTick=System.nanoTime(); schedule(); }
+        // Key-based D-pad profiles deliberately ignore a second representation of directions.
+        if (bindings.dpad && bindings.directionKeys!=null) return true;
+        float x=axis(event,bindings.axisX), y=axis(event,bindings.axisY);
+        if (!Float.isFinite(x) || !Float.isFinite(y)) return false;
+        int mask=(x<=-0.5f ? RelativePointer.LEFT : x>=0.5f ? RelativePointer.RIGHT : 0)
+                | (y<=-0.5f ? RelativePointer.UP : y>=0.5f ? RelativePointer.DOWN : 0);
+        boolean accepted=bindings.dpad ? state.dpad(event.getDeviceId(),mask) : state.stick(event.getDeviceId(),x,y);
+        if (accepted) animate();
         return accepted;
     }
+    private void animate() { if (!scheduled) lastTick=System.nanoTime(); schedule(); }
     private void schedule() {
         if (!closed && state.moving() && !scheduled) { scheduled=true; view.postOnAnimation(animation); }
     }

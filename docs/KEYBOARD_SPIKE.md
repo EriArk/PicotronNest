@@ -33,6 +33,9 @@ These are synthetic, owned test strings; no user's typed text is collected.
 
 ## Integration boundary
 
+The later [D-pad/IME fixture](DPAD_AND_IME.md) exercises the keyboard and cursor
+simultaneously, with controller-source filtering and an IME-aware viewport.
+
 Android key mapping, a limited IME connection and an owned native decoder now
 have emulator evidence below. The official Picotron launcher does not attach a keyboard channel. A
 passing fixture must not be relabeled as successful SDL or Picotron consumption.

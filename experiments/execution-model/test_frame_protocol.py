@@ -18,6 +18,9 @@ class FrameProtocolHost(unittest.TestCase):
     def test_relative_cursor_ownership_and_timing(self):
         self.run_java('RelativePointerHostTest')
 
+    def test_dpad_state_and_source_ownership(self):
+        self.run_java('DpadHostTest')
+
     def run_java(self, test):
         here = Path(__file__).resolve().parent
         jdk = Path(os.environ.get('JAVA_HOME', r'C:\Program Files\Android\Android Studio\jbr')) / 'bin'

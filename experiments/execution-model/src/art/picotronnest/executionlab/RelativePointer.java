@@ -5,7 +5,8 @@ import java.util.Set;
 
 /** Bounded relative cursor experiment. Coordinates are always framebuffer pixels. */
 final class RelativePointer {
-    enum Mode { DISABLED, TOUCHPAD, STICK }
+    enum Mode { DISABLED, TOUCHPAD, STICK, DPAD }
+    static final int LEFT=1, RIGHT=2, UP=4, DOWN=8;
     private final PointerState.Sink sink;
     private final double speed, deadzone, precisionScale;
     private final Set<Integer> precise = new HashSet<>();
@@ -13,6 +14,7 @@ final class RelativePointer {
     private int width, height;
     private double x, y, velocityX, velocityY;
     private Integer owner, driver;
+    private int directions;
 
     RelativePointer(PointerState.Sink sink, double speed, double deadzone, double precisionScale) {
         if (!Double.isFinite(speed) || speed <= 0 || speed > 10000
@@ -65,11 +67,11 @@ final class RelativePointer {
         return true;
     }
     void precision(int source, boolean down) {
-        if (mode != Mode.STICK) return;
+        if (mode != Mode.STICK && mode != Mode.DPAD) return;
         if (down) precise.add(source); else precise.remove(source);
     }
     void tick(double seconds) {
-        if (mode != Mode.STICK || driver == null || !moving() || !Double.isFinite(seconds) || seconds <= 0) return;
+        if ((mode != Mode.STICK && mode != Mode.DPAD) || driver == null || !moving() || !Double.isFinite(seconds) || seconds <= 0) return;
         double distance = speed * Math.min(seconds, 0.05) * (precise.contains(driver) ? precisionScale : 1);
         move(velocityX * distance, velocityY * distance);
     }
@@ -80,7 +82,24 @@ final class RelativePointer {
         y = Math.max(0, Math.min(height - 1, y + dy));
         if (previousX != x() || previousY != y()) publish();
     }
-    private void stop() { driver = null; velocityX = velocityY = 0; }
+    boolean direction(int source, int bit, boolean down) {
+        if (mode!=Mode.DPAD || !accepts(source) || (bit!=LEFT && bit!=RIGHT && bit!=UP && bit!=DOWN)) return false;
+        // A released key from a displaced source cannot change the current driver.
+        if (!down && (driver==null || driver!=source)) return true;
+        int previous=driver!=null && driver==source ? directions : 0;
+        return dpad(source,down ? previous|bit : previous&~bit);
+    }
+    boolean dpad(int source, int mask) {
+        if (mode!=Mode.DPAD || !accepts(source) || mask<0 || mask>15) return false;
+        if (mask==0 && (driver==null || driver!=source)) return true;
+        driver=source; directions=mask;
+        int dx=((mask&RIGHT)!=0 ? 1 : 0)-((mask&LEFT)!=0 ? 1 : 0);
+        int dy=((mask&DOWN)!=0 ? 1 : 0)-((mask&UP)!=0 ? 1 : 0);
+        double length=Math.hypot(dx,dy);
+        velocityX=length==0 ? 0 : dx/length; velocityY=length==0 ? 0 : dy/length;
+        return true;
+    }
+    private void stop() { driver = null; directions=0; velocityX = velocityY = 0; }
     void remove(int source) {
         if (owner != null && owner == source) { owner = null; publish(); }
         if (driver != null && driver == source) stop();

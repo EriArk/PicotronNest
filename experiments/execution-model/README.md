@@ -192,8 +192,10 @@ exercises the same Android display, input and lifecycle code with an owned
 x86_64 process on an emulator. This is not official Picotron acceptance.
 Its default run covers normal lifecycle/input, abrupt exit, partial-frame exit,
 the [limited keyboard/Unicode fixture](../../docs/KEYBOARD_SPIKE.md) and the
-[relative touchpad/stick cursor](../../docs/CURSOR_SPIKE.md).
-Use `--mode keyboard` or `--mode cursor` for focused checks. The collector retains
-actual labeled emulator screenshots as `keyboard.png` and `cursor.png` beside
+[relative touchpad/stick cursor](../../docs/CURSOR_SPIKE.md), plus
+[D-pad with simultaneous IME](../../docs/DPAD_AND_IME.md).
+Use `--mode keyboard`, `--mode cursor` or `--mode combined` for focused checks.
+The collector retains actual labeled emulator screenshots as `keyboard.png`,
+`cursor.png` and `combined.png` beside
 their private JSON reports. The official launcher attaches neither experimental
 adapter.

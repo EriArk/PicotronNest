@@ -69,6 +69,11 @@ stopped without clearing data. Retroid and unrelated apps were not manipulated.
 
 ## Fixes and limits
 
+The [D-pad/IME increment](DPAD_AND_IME.md) passes all six scenarios on one APK in
+session `7245e501-c9da-4198-b8ae-35a60199bd11`. It records source-aware keyboard
+routing, docked-IME viewport changes, shared native pointer/text evidence and the
+actual screenshot. The older records below retain their original build scope.
+
 The [relative cursor increment](CURSOR_SPIKE.md) subsequently passes all five
 scenarios on its final APK in session `b36014f4-71e7-41a3-8958-a96a279c7d3d`.
 That record includes the new pointer ownership/profile checks, native counters,

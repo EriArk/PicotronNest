@@ -13,6 +13,11 @@ the next gate.
 
 ## Latest evidence
 
+- D-pad and simultaneous IME fixture: key/HAT profiles, keyboard/controller
+  routing and shared focus cleanup pass on the API 35 x86_64 emulator. The frame
+  and cursor fit above docked Gboard; opening/hiding it releases pointer capture.
+  Six bridge scenarios, 32 lab tests and 9 archive tests pass. Official Picotron
+  and physical controller/IME behavior remain untested. [Evidence](DPAD_AND_IME.md).
 - Relative touchpad/stick fixture: fractional cursor motion, explicit primary
   drag ownership, remapped axes/buttons, precision and cancellation pass on the
   Android 15/API 35 x86_64 emulator. Seven down/up pairs reach the native receiver;

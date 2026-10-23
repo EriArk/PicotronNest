@@ -30,6 +30,10 @@ final class KeyboardInput implements InputManager.InputDeviceListener {
     private boolean active() { return connected && writer.failure() == null; }
     synchronized boolean event(KeyEvent event) {
         if (!active() || event.getAction() != KeyEvent.ACTION_DOWN && event.getAction() != KeyEvent.ACTION_UP) return false;
+        // Controller navigation must not silently become editor arrow keys when cursor mode is disabled.
+        if (event.isFromSource(android.view.InputDevice.SOURCE_GAMEPAD)
+                || event.isFromSource(android.view.InputDevice.SOURCE_JOYSTICK)
+                || event.isFromSource(android.view.InputDevice.SOURCE_DPAD)) return false;
         int scan = scan(event.getKeyCode());
         if (scan == 0) return false;
         boolean down = event.getAction() == KeyEvent.ACTION_DOWN;

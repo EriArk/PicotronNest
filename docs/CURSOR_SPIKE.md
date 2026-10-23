@@ -128,7 +128,10 @@ original-resolution view confirmed that the controls and cursor were present.
 
 ## Remaining limits
 
-No secondary button, wheel, D-pad fallback, acceleration curve, profile storage,
+The later [D-pad and simultaneous IME experiment](DPAD_AND_IME.md) adds a bounded
+fallback and shared-viewport check; it does not upgrade physical-device acceptance.
+
+No secondary button, wheel, acceleration curve, profile storage,
 automatic profile selection, Android hardware mouse adapter or controller-only
 keyboard/menu/exit workflow. The fixture's diagnostic controls are not product UI.
 The adapter is scoped to its attached View and closes on detach; restoration of

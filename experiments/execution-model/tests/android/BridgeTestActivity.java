@@ -35,7 +35,7 @@ public final class BridgeTestActivity extends MainActivity {
         label.setTextColor(android.graphics.Color.YELLOW);
         label.setBackgroundColor(android.graphics.Color.BLACK);
         View header=label;
-        if (cursorTest) {
+        if (cursorTest && !keyboardTest) {
             android.widget.LinearLayout controls=new android.widget.LinearLayout(this);
             controls.setOrientation(android.widget.LinearLayout.VERTICAL);
             controls.addView(label);
@@ -74,6 +74,7 @@ public final class BridgeTestActivity extends MainActivity {
         label.setText("OWNED BRIDGE FIXTURE — NO PICOTRON\n" + (cursorTest
                 ? "Relative cursor: " + (cursor==null ? "preparing" : cursor.mode())
                     + "\nNative receipt: x=" + x + " y=" + y + " held=" + held
+                    + (keyboardTest ? "\nNative UTF-8: " + receivedText : "")
                 : "Native UTF-8 receipt:\n" + receivedText));
     }
     DesktopView desktop() {

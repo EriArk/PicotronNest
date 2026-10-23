@@ -30,7 +30,10 @@ key/device events and direct calls on the system-created IME connection; it is
 disabled in the official launcher. A [relative touchpad/stick fixture](CURSOR_SPIKE.md)
 also exercises simulated controller events and explicit primary-button drag;
 the [D-pad/IME extension](DPAD_AND_IME.md) checks their simultaneous operation.
-Neither is attached to official Picotron. Secondary click, a complete controller
+The [saved-profile fixture](CURSOR_PROFILES.md) checks settings restoration and
+release across Activity recreation/rotation, plus disk loading in a fresh host
+process. This does not prove persistence of the Picotron runtime or user home.
+These experimental adapters are not attached to official Picotron. Secondary click, a complete controller
 workflow and audio are not implemented. No physical controller, hardware keyboard
 or real IME typing acceptance is claimed.
 

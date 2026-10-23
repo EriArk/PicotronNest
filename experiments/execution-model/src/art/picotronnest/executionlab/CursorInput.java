@@ -43,6 +43,13 @@ final class CursorInput implements InputManager.InputDeviceListener, AutoCloseab
         static Bindings dpadHat(int axisX, int axisY, int primary, int precision) {
             return new Bindings(axisX,axisY,primary,precision,true,null);
         }
+        static Bindings profile(CursorProfile profile) {
+            if (profile.kind==CursorProfile.DPAD_KEYS) return dpadKeys(profile.control(2),profile.control(3),
+                    profile.control(4),profile.control(5),profile.control(6),profile.control(7));
+            if (profile.kind==CursorProfile.DPAD_HAT) return dpadHat(profile.control(0),profile.control(1),
+                    profile.control(6),profile.control(7));
+            return new Bindings(profile.control(0),profile.control(1),profile.control(6),profile.control(7));
+        }
         int direction(int code) {
             int[] keys=directionKeys==null ? STANDARD_DPAD : directionKeys;
             for (int i=0;i<keys.length;i++) if (keys[i]==code) return 1<<i;

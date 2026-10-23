@@ -193,9 +193,11 @@ x86_64 process on an emulator. This is not official Picotron acceptance.
 Its default run covers normal lifecycle/input, abrupt exit, partial-frame exit,
 the [limited keyboard/Unicode fixture](../../docs/KEYBOARD_SPIKE.md) and the
 [relative touchpad/stick cursor](../../docs/CURSOR_SPIKE.md), plus
-[D-pad with simultaneous IME](../../docs/DPAD_AND_IME.md).
-Use `--mode keyboard`, `--mode cursor` or `--mode combined` for focused checks.
+[D-pad with simultaneous IME](../../docs/DPAD_AND_IME.md) and two
+[saved-profile restoration scenarios](../../docs/CURSOR_PROFILES.md).
+Use `--mode keyboard`, `--mode cursor`, `--mode combined` or `--mode profile`
+for focused checks; `profile` includes a second process reading the saved file.
 The collector retains actual labeled emulator screenshots as `keyboard.png`,
-`cursor.png` and `combined.png` beside
+`cursor.png`, `combined.png`, `profile.png` and `profile-read.png` beside
 their private JSON reports. The official launcher attaches neither experimental
 adapter.

@@ -56,7 +56,8 @@ py -3 -B -m unittest discover -s experiments/execution-model -p 'test_*.py'
 py -3 -B -u experiments/execution-model/run_bridge_tests.py --serial emulator-5554 --mode combined
 ```
 
-The default runner now executes six scenarios, including `combined`. It retains
+This increment ran six scenarios, including `combined`. The current runner also
+includes the later [saved-profile checks](CURSOR_PROFILES.md). It retains
 `combined.json`, a native transcript, build/device hashes, UID census and an actual
 `combined.png` under ignored `.local/bridge-tests/evidence/<session>/`. Inspect
 screenshots at original resolution when a reduced viewer preview looks incomplete.
@@ -117,6 +118,7 @@ nor the relative cursor. No APK release or proprietary material was published.
 ## Remaining work
 
 Physical controllers (including real key-vs-HAT reporting), controller navigation
-of the IME itself, configurable acceleration, saved profiles, host menu/exit,
+of the IME itself, configurable acceleration, product profile selection, host menu/exit,
 secondary click/wheel and real Picotron event consumption remain open. The next
 hardware gate is still the [official-runtime pointer procedure](RETROID_INPUT_CHECK.md).
+Settings persistence now has separate [owned-fixture evidence](CURSOR_PROFILES.md).

@@ -1,6 +1,6 @@
 # Project status
 
-**2026-10-23 — Original desktop frames displayed in the Android lab on Retroid.**
+**2026-10-24 — Saved cursor profiles verified in the emulator; Retroid input gate remains open.**
 
 PicotronNest is an Android wrapper for the **official, user-imported Picotron runtime**.
 The repository contains a bounded archive inspector and a temporary target-36
@@ -13,6 +13,14 @@ the next gate.
 
 ## Latest evidence
 
+- Saved cursor profile fixture: settings survive Activity recreation/rotation
+  with one native process, and a new host process loads them from disk.
+  Interrupted staging, rollback, unsupported records and stale input are checked
+  on the API 35 x86_64 emulator. 33 lab and nine archive tests pass; all eight
+  bridge scenarios pass on the final APK across collections. An IME visibility
+  timeout and its passing rerun are retained in the evidence.
+  Retroid remains untouched; official input acceptance is open.
+  [Evidence and limits](CURSOR_PROFILES.md).
 - D-pad and simultaneous IME fixture: key/HAT profiles, keyboard/controller
   routing and shared focus cleanup pass on the API 35 x86_64 emulator. The frame
   and cursor fit above docked Gboard; opening/hiding it releases pointer capture.

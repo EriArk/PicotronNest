@@ -17,11 +17,14 @@ final class RelativePointer {
     private int directions;
 
     RelativePointer(PointerState.Sink sink, double speed, double deadzone, double precisionScale) {
+        validateSettings(speed,deadzone,precisionScale);
+        this.sink = sink; this.speed = speed; this.deadzone = deadzone; this.precisionScale = precisionScale;
+    }
+    static void validateSettings(double speed, double deadzone, double precisionScale) {
         if (!Double.isFinite(speed) || speed <= 0 || speed > 10000
                 || !Double.isFinite(deadzone) || deadzone < 0 || deadzone >= 1
                 || !Double.isFinite(precisionScale) || precisionScale <= 0 || precisionScale > 1)
             throw new IllegalArgumentException("invalid cursor profile");
-        this.sink = sink; this.speed = speed; this.deadzone = deadzone; this.precisionScale = precisionScale;
     }
     Mode mode() { return mode; }
     int x() { return (int)Math.round(x); }

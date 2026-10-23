@@ -45,7 +45,8 @@ public final class BridgeInstrumentation extends Instrumentation {
     private void packets(int count, int x, int y, int held) {
         await(() -> BridgeTestActivity.packets >= count, "native input count " + count);
         check(BridgeTestActivity.packets == count && BridgeTestActivity.x == x && BridgeTestActivity.y == y
-                && BridgeTestActivity.held == held, "native coordinates/button mismatch");
+                && BridgeTestActivity.held == held, "native coordinates/button mismatch: expected " + count+":"+x+","+y+","+held
+                + " actual " + BridgeTestActivity.packets+":"+BridgeTestActivity.x+","+BridgeTestActivity.y+","+BridgeTestActivity.held);
     }
     @Override public void onCreate(Bundle arguments) {
         super.onCreate(arguments); mode = arguments.getString("mode", "normal");
@@ -102,39 +103,41 @@ public final class BridgeInstrumentation extends Instrumentation {
         await(() -> BridgeTestActivity.current != beforeRotation && BridgeTestActivity.current.getResources()
                 .getConfiguration().orientation != orientation, "rotation recreation");
         packets(53, 10, 11, 0); checks.put("rotation_release");
-        touch(MotionEvent.ACTION_DOWN, 12, 13, 48, 27);
-        try (android.os.ParcelFileDescriptor shell = getUiAutomation().executeShellCommand("input keyevent KEYCODE_HOME")) {
-            try (InputStream stream = new android.os.ParcelFileDescriptor.AutoCloseInputStream(shell)) {
-                while (stream.read() != -1) { }
-            }
-        }
-        packets(55, 12, 13, 0);
-        getTargetContext().startActivity(activityIntent().addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT));
-        await(() -> BridgeTestActivity.current.hasWindowFocus(), "return from Home");
-        check(BridgeTestActivity.launches == 1 && BridgeTestActivity.nativePid == pid, "Home return duplicated process");
-        checks.put("Home_return_same_process_and_release");
-
+        // Isolate native resolution changes from asynchronous Home/return window transitions.
         int previous = DesktopView.drawnSequence();
         touch(MotionEvent.ACTION_DOWN, 46, 25, 48, 27);
-        packets(56, 46, 25, 1);
+        packets(54, 46, 25, 1);
         BridgeTestActivity.command('R');
-        await(() -> DesktopView.drawnSequence() > previous + 3, "resized frames not drawn");
-        packets(57, 26, 25, 0); checks.put("resize_cancels_old_coordinate_capture");
+        await(() -> DesktopView.frameSize(27,48) && DesktopView.drawnSequence() > previous + 3, "resized frames not drawn");
+        packets(55, 26, 25, 0); checks.put("resize_cancels_old_coordinate_capture");
         touch(MotionEvent.ACTION_DOWN, 20, 40, 27, 48);
         touch(MotionEvent.ACTION_UP, 20, 40, 27, 48);
-        packets(59, 20, 40, 0); checks.put("native_resize_and_inverse_mapping");
+        packets(57, 20, 40, 0); checks.put("native_resize_and_inverse_mapping");
         touch(MotionEvent.ACTION_DOWN, 20, 40, 27, 48);
         ui(() -> {
             DesktopView view = BridgeTestActivity.current.desktop();
             android.view.ViewGroup.LayoutParams params = view.getLayoutParams();
             params.height = view.getHeight() / 2; view.setLayoutParams(params);
         });
-        packets(61, 20, 40, 0); checks.put("host_viewport_resize_releases_capture");
+        packets(59, 20, 40, 0); checks.put("host_viewport_resize_releases_capture");
         ui(() -> {
             DesktopView view = BridgeTestActivity.current.desktop();
             android.view.ViewGroup.LayoutParams params = view.getLayoutParams();
             params.height = android.view.ViewGroup.LayoutParams.MATCH_PARENT; view.setLayoutParams(params);
         });
+        touch(MotionEvent.ACTION_DOWN, 12, 13, 27, 48);
+        try (android.os.ParcelFileDescriptor shell = getUiAutomation().executeShellCommand("input keyevent KEYCODE_HOME")) {
+            try (InputStream stream = new android.os.ParcelFileDescriptor.AutoCloseInputStream(shell)) {
+                while (stream.read() != -1) { }
+            }
+        }
+        packets(61, 12, 13, 0);
+        getTargetContext().startActivity(activityIntent().addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT));
+        await(() -> BridgeTestActivity.current.hasWindowFocus(), "return from Home");
+        int resumed=DesktopView.drawnSequence();
+        await(() -> DesktopView.drawnSequence()>resumed+2,"draw after Home return");
+        check(BridgeTestActivity.launches == 1 && BridgeTestActivity.nativePid == pid, "Home return duplicated process");
+        checks.put("Home_return_same_process_and_release");
         BridgeTestActivity.command('Q');
         await(() -> BridgeTestActivity.result != null || BridgeTestActivity.error != null, "normal termination");
         check(BridgeTestActivity.error == null && BridgeTestActivity.exitCode == 0, "normal process exit");
@@ -536,12 +539,115 @@ public final class BridgeInstrumentation extends Instrumentation {
                 "combined native transport accounting");
         checks.put("same_authenticated_native_peer_balanced_pointer_keyboard_and_clean_exit");
     }
+    private CursorProfile savedProfile(RelativePointer.Mode selected) {
+        return new CursorProfile(selected,CursorProfile.DPAD_KEYS,new int[]{-1,-1,
+                android.view.KeyEvent.KEYCODE_DPAD_LEFT,android.view.KeyEvent.KEYCODE_DPAD_RIGHT,
+                android.view.KeyEvent.KEYCODE_DPAD_UP,android.view.KeyEvent.KEYCODE_DPAD_DOWN,
+                android.view.KeyEvent.KEYCODE_BUTTON_X,android.view.KeyEvent.KEYCODE_BUTTON_L1},24,0.2,0.25);
+    }
+    private void profile() throws Exception {
+        File path=new File(getTargetContext().getFilesDir(),"cursor-profile-"+session+".bin");
+        CursorProfileStore store=new CursorProfileStore(path);
+        CursorProfile expected=savedProfile(RelativePointer.Mode.DPAD);
+        if (mode.equals("profile")) {
+            store.save(savedProfile(RelativePointer.Mode.DISABLED));
+            store.save(expected);
+            // Simulate an interrupted replacement, with the committed record still present.
+            android.util.AtomicFile atomic=new android.util.AtomicFile(path);
+            FileOutputStream pending=atomic.startWrite();
+            pending.write(new byte[]{1,2,3}); pending.getFD().sync(); pending.close();
+            check(java.util.Arrays.equals(new CursorProfileStore(path).load().encode(),expected.encode()),"interrupted save lost committed profile");
+            pending=atomic.startWrite(); pending.write(1); atomic.failWrite(pending);
+            check(java.util.Arrays.equals(store.load().encode(),expected.encode()),"failed save lost committed profile");
+            checks.put("atomic_replacement_interruption_and_rollback_preserve_committed_settings");
+            byte[] unsupported=expected.encode(); unsupported[7]=2;
+            File invalid=new File(getTargetContext().getFilesDir(),"cursor-profile-invalid-"+session+".bin");
+            try (FileOutputStream out=new FileOutputStream(invalid)) { out.write(unsupported); }
+            boolean rejected=false;
+            try { new CursorProfileStore(invalid).load(); } catch (IOException required) { rejected=true; }
+            check(rejected && invalid.length()==CursorProfile.BYTES,"unknown version silently repaired");
+            check(java.util.Arrays.equals(store.load().encode(),expected.encode()),"rejected record changed active profile");
+            checks.put("unknown_version_rejected_without_overwriting_saved_profile");
+            ui(() -> {
+                boolean blocked=false;
+                try { store.load(); } catch (IllegalStateException required) { blocked=true; }
+                catch (IOException failure) { throw new AssertionError(failure); }
+                check(blocked,"profile IO allowed on UI thread");
+            });
+            checks.put("profile_IO_forbidden_on_UI_thread");
+        }
+        CursorProfile loaded=new CursorProfileStore(path).load();
+        check(java.util.Arrays.equals(loaded.encode(),expected.encode()),"persisted settings differ");
+        ui(() -> {
+            BridgeTestActivity.current.desktop().selectCursorProfile(loaded);
+            BridgeTestActivity.current.desktop().requestFocus();
+            BridgeTestActivity.current.showReceipt();
+        });
+        await(() -> BridgeTestActivity.current.desktop().cursor()!=null,"profile cursor attached");
+        check(BridgeTestActivity.current.desktop().cursor().mode()==RelativePointer.Mode.DPAD,"stored mode missing");
+        checks.put(mode.equals("profile") ? "profile_loaded_from_disk_and_explicitly_selected" : "fresh_host_process_loaded_same_session_profile_from_disk");
+        gameKey(101,android.view.KeyEvent.KEYCODE_BUTTON_A,0,false);
+        gameKey(101,android.view.KeyEvent.KEYCODE_BUTTON_X,0,true);
+        await(() -> BridgeTestActivity.held==1,"saved primary mapping");
+        dpadKey(android.view.KeyEvent.KEYCODE_DPAD_RIGHT,0,true);
+        await(() -> BridgeTestActivity.x>=26,"saved Dpad movement");
+        int pid=BridgeTestActivity.nativePid;
+        if (mode.equals("profile")) {
+            for (int change=0;change<2;change++) {
+                BridgeTestActivity previous=BridgeTestActivity.current;
+                DesktopView oldView=previous.desktop(); CursorInput oldCursor=oldView.cursor();
+                int sequence=DesktopView.drawnSequence();
+                if (change==0) ui(previous::recreate);
+                else {
+                    int orientation=previous.getResources().getConfiguration().orientation;
+                    ui(() -> previous.setRequestedOrientation(orientation==Configuration.ORIENTATION_PORTRAIT
+                            ? ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE : ActivityInfo.SCREEN_ORIENTATION_PORTRAIT));
+                    await(() -> BridgeTestActivity.current.getResources().getConfiguration().orientation!=orientation,"profile rotation");
+                }
+                await(() -> BridgeTestActivity.current!=previous && BridgeTestActivity.current.hasWindowFocus()
+                        && DesktopView.drawnSequence()>sequence+2 && BridgeTestActivity.current.desktop().cursor()!=null,"restored profile view");
+                await(() -> BridgeTestActivity.held==0,"recreation releases saved-profile drag");
+                check(BridgeTestActivity.launches==1 && BridgeTestActivity.nativePid==pid && BridgeTestActivity.child.isAlive(),"profile restore relaunched native process");
+                check(BridgeTestActivity.current.desktop().cursor()!=oldCursor
+                        && BridgeTestActivity.current.desktop().cursor().mode()==RelativePointer.Mode.DPAD,"profile not restored to new adapter");
+                int stopped=BridgeTestActivity.packets, after=DesktopView.drawnSequence();
+                await(() -> DesktopView.drawnSequence()>after+3,"frames after profile restore");
+                check(BridgeTestActivity.packets==stopped,"old held direction resumed");
+                ui(() -> {
+                    long now=SystemClock.uptimeMillis();
+                    android.view.KeyEvent event=new android.view.KeyEvent(now,now,0,android.view.KeyEvent.KEYCODE_BUTTON_X,
+                            0,0,101,0,0,android.view.InputDevice.SOURCE_GAMEPAD);
+                    check(!oldCursor.key(event) && !oldView.dispatchKeyEvent(event),"stale profile adapter accepted input");
+                    check(oldView.onCreateInputConnection(new android.view.inputmethod.EditorInfo())==null,"old view accepted IME connection");
+                });
+                checks.put(change==0 ? "recreate_restores_settings_releases_holds_same_native_process" : "rotation_restores_settings_releases_holds_same_native_process");
+                gameKey(101,android.view.KeyEvent.KEYCODE_BUTTON_X,0,true);
+                await(() -> BridgeTestActivity.held==1,"restored mapping primary");
+                dpadKey(android.view.KeyEvent.KEYCODE_DPAD_RIGHT,0,true);
+                await(() -> BridgeTestActivity.x>=26,"restored direction mapping");
+            }
+        }
+        dpadKey(android.view.KeyEvent.KEYCODE_DPAD_RIGHT,1,true);
+        gameKey(101,android.view.KeyEvent.KEYCODE_BUTTON_X,1,true);
+        await(() -> BridgeTestActivity.held==0 && BridgeTestActivity.downs==BridgeTestActivity.ups,"restored clicks balanced");
+        ui(() -> BridgeTestActivity.current.showReceipt()); screenshot();
+        interaction.put("profile_bytes",CursorProfile.BYTES).put("restored_mode",loaded.mode.toString())
+                .put("saved_primary",loaded.control(6)).put("same_native_pid",pid);
+        BridgeTestActivity.command('Q');
+        await(() -> BridgeTestActivity.result!=null || BridgeTestActivity.error!=null,"profile process exit");
+        check(BridgeTestActivity.error==null && BridgeTestActivity.exitCode==0,"profile fixture exit");
+        JSONObject result=BridgeTestActivity.result;
+        check(!result.has("error") && !result.has("pointer_error") && result.getInt("pointer_packets")==BridgeTestActivity.packets
+                && result.getInt("peer_pid")==pid && BridgeTestActivity.downs==BridgeTestActivity.ups,"profile native accounting");
+        checks.put("saved_mapping_native_receipts_balanced_and_clean_exit");
+    }
     @Override public void onStart() {
         JSONObject report = new JSONObject(); Bundle bundle = new Bundle();
         try {
             check(session != null && session.matches("[a-f0-9-]{36}"), "missing session UUID");
             BridgeTestActivity.keyboardTest=mode.equals("keyboard") || mode.equals("combined");
-            BridgeTestActivity.cursorTest=mode.equals("cursor") || mode.equals("combined");
+            BridgeTestActivity.profileTest=mode.equals("profile") || mode.equals("profile-read");
+            BridgeTestActivity.cursorTest=mode.equals("cursor") || mode.equals("combined") || BridgeTestActivity.profileTest;
             report.put("session", session).put("mode", mode).put("host_pid", android.os.Process.myPid()).put("host_uid", android.os.Process.myUid())
                     .put("official_runtime", "NOT TESTED");
             // Cancellation before a client connects must terminate the waiting receiver.
@@ -567,6 +673,7 @@ public final class BridgeInstrumentation extends Instrumentation {
             else if (mode.equals("keyboard")) keyboard();
             else if (mode.equals("cursor")) cursor();
             else if (mode.equals("combined")) combined();
+            else if (BridgeTestActivity.profileTest) profile();
             else {
                 check(mode.equals("abrupt") || mode.equals("partial"), "unknown test mode");
                 touch(MotionEvent.ACTION_DOWN, 3, 4, 48, 27);
@@ -590,7 +697,7 @@ public final class BridgeInstrumentation extends Instrumentation {
             report.put("outcome", "PASS");
         } catch (Throwable failure) {
             try { report.put("outcome", "FAIL").put("failure", failure.toString()); } catch (Exception ignored) { }
-            if ((mode.equals("keyboard") || mode.equals("cursor") || mode.equals("combined")) && BridgeTestActivity.current!=null && BridgeTestActivity.current.hasWindowFocus()) {
+            if ((BridgeTestActivity.keyboardTest || BridgeTestActivity.cursorTest) && BridgeTestActivity.current!=null && BridgeTestActivity.current.hasWindowFocus()) {
                 try { screenshot(); } catch (Exception ignored) { }
             }
         } finally {

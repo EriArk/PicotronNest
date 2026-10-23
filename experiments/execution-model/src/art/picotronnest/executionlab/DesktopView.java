@@ -19,6 +19,7 @@ final class DesktopView extends View {
     private final Paint paint = new Paint();
     private static PointerSender pointer;
     private static KeyboardInput keyboard;
+    private static CursorProfile selectedProfile;
     private CursorInput cursor;
     private int imeBottom;
     private final PointerState touch = new PointerState((x, y, buttons) -> {
@@ -29,7 +30,14 @@ final class DesktopView extends View {
         super(context);
         setFocusableInTouchMode(true);
         paint.setFilterBitmap(false);
-        synchronized (DesktopView.class) { attached = new WeakReference<>(this); }
+        synchronized (DesktopView.class) {
+            DesktopView previous=attached.get();
+            if (previous!=null) {
+                previous.release();
+                if (previous.cursor!=null) previous.cursor.close();
+            }
+            attached = new WeakReference<>(this);
+        }
     }
 
     static synchronized void begin() {
@@ -56,11 +64,16 @@ final class DesktopView extends View {
     }
 
     static synchronized int drawnSequence() { return drawn; }
+    static synchronized boolean frameSize(int width, int height) {
+        return frame!=null && frame.getWidth()==width && frame.getHeight()==height;
+    }
 
     CursorInput relativeCursor(CursorInput.Bindings bindings, double speed, double deadzone, double precision,
             boolean syntheticAxes) {
         synchronized (DesktopView.class) {
+            if (attached.get()!=this) throw new IllegalStateException("detached cursor view");
             if (pointer==null || frame==null) throw new IllegalStateException("cursor needs connected frames");
+            selectedProfile=null;
             release(); if (cursor!=null) cursor.close();
             cursor=new CursorInput(this,pointer::send,bindings,speed,deadzone,precision,syntheticAxes);
             cursor.geometry(frame.getWidth(),frame.getHeight(),getWidth(),viewportHeight());
@@ -68,12 +81,36 @@ final class DesktopView extends View {
         }
     }
 
+    /** Explicit opt-in only. Caller loads/saves settings off the UI thread before selecting. */
+    void selectCursorProfile(CursorProfile profile) {
+        if (android.os.Looper.myLooper()!=android.os.Looper.getMainLooper())
+            throw new IllegalStateException("cursor selection needs UI thread");
+        if (profile==null) throw new IllegalArgumentException("missing cursor profile");
+        synchronized (DesktopView.class) {
+            if (attached.get()!=this) throw new IllegalStateException("detached cursor view");
+            release();
+            if (cursor!=null) { cursor.close(); cursor=null; }
+            selectedProfile=profile;
+            restoreCursor(); invalidate();
+        }
+    }
+    private void restoreCursor() {
+        if (attached.get()!=this || cursor!=null || selectedProfile==null || pointer==null || frame==null) return;
+        CursorProfile profile=selectedProfile;
+        cursor=new CursorInput(this,pointer::send,CursorInput.Bindings.profile(profile),
+                profile.speed,profile.deadzone,profile.precision,false);
+        cursor.geometry(frame.getWidth(),frame.getHeight(),getWidth(),viewportHeight());
+        cursor.mode(profile.mode);
+    }
+    CursorInput cursor() { synchronized (DesktopView.class) { return cursor; } }
+
     static synchronized void pointer(PointerSender sender) {
         DesktopView view=attached.get();
         if (view!=null && view.cursor!=null) { view.cursor.disconnected(); view.cursor=null; }
         pointer = null;
         releasePointer(); // Forget local capture; a closed session cannot receive a release.
         pointer = sender;
+        if (sender==null) selectedProfile=null; // A disconnected session must not reactivate input.
     }
 
     static synchronized void releasePointer() {
@@ -100,18 +137,20 @@ final class DesktopView extends View {
         releasePointer();
         if (keyboard != null) keyboard.releaseAll();
     }
-    @Override public boolean onCheckIsTextEditor() { synchronized (DesktopView.class) { return keyboard != null; } }
+    @Override public boolean onCheckIsTextEditor() { synchronized (DesktopView.class) { return attached.get()==this && keyboard != null; } }
     @Override public android.view.inputmethod.InputConnection onCreateInputConnection(android.view.inputmethod.EditorInfo info) {
-        synchronized (DesktopView.class) { return keyboard == null ? null : keyboard.connection(this, info); }
+        synchronized (DesktopView.class) { return attached.get()!=this || keyboard == null ? null : keyboard.connection(this, info); }
     }
     @Override public boolean onKeyDown(int code, android.view.KeyEvent event) {
         synchronized (DesktopView.class) {
+            if (attached.get()!=this) return false;
             if (pointer!=null && cursor!=null && viewportHeight()>0 && cursor.key(event)) return true;
             return keyboard != null && keyboard.event(event) || super.onKeyDown(code, event);
         }
     }
     @Override public boolean onKeyUp(int code, android.view.KeyEvent event) {
         synchronized (DesktopView.class) {
+            if (attached.get()!=this) return false;
             if (pointer!=null && cursor!=null && viewportHeight()>0 && cursor.key(event)) return true;
             return keyboard != null && keyboard.event(event) || super.onKeyUp(code, event);
         }
@@ -124,13 +163,14 @@ final class DesktopView extends View {
 
     @Override public boolean onGenericMotionEvent(MotionEvent event) {
         synchronized (DesktopView.class) {
+            if (attached.get()!=this) return false;
             return pointer!=null && cursor!=null && viewportHeight()>0 && cursor.motion(event) || super.onGenericMotionEvent(event);
         }
     }
 
     @Override public boolean onTouchEvent(MotionEvent event) {
         synchronized (DesktopView.class) {
-            if (frame == null || pointer == null || viewportHeight()<=0) return false;
+            if (attached.get()!=this || frame == null || pointer == null || viewportHeight()<=0) return false;
             if (cursor!=null) {
                 cursor.geometry(frame.getWidth(),frame.getHeight(),getWidth(),viewportHeight());
                 return cursor.touch(event);
@@ -161,12 +201,12 @@ final class DesktopView extends View {
 
     @Override public void onWindowFocusChanged(boolean focused) {
         super.onWindowFocusChanged(focused);
-        if (!focused) { synchronized (DesktopView.class) { releaseInput(); } }
+        if (!focused) { synchronized (DesktopView.class) { if (attached.get()==this) releaseInput(); } }
     }
 
     @Override protected void onDetachedFromWindow() {
         synchronized (DesktopView.class) {
-            release(); if (keyboard != null) keyboard.releaseAll();
+            release(); if (attached.get()==this && keyboard != null) keyboard.releaseAll();
             if (cursor!=null) { cursor.close(); cursor=null; }
         }
         super.onDetachedFromWindow();
@@ -181,6 +221,7 @@ final class DesktopView extends View {
         canvas.drawColor(Color.BLACK);
         synchronized (DesktopView.class) {
             if (frame != null && viewportHeight()>0) {
+                restoreCursor();
                 float[] fit = FrameProtocol.fit(frame.getWidth(), frame.getHeight(), getWidth(), viewportHeight());
                 canvas.drawBitmap(frame, null, new RectF(fit[1], fit[2], fit[1] + frame.getWidth() * fit[0],
                         fit[2] + frame.getHeight() * fit[0]), paint);

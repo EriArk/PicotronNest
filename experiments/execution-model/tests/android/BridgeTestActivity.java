@@ -20,6 +20,7 @@ public final class BridgeTestActivity extends MainActivity {
     static volatile int exitCode = -1;
     static volatile boolean keyboardTest;
     static volatile boolean cursorTest;
+    static volatile boolean profileTest;
     static volatile CursorInput cursor;
     android.widget.Button primaryButton, modeButton;
     static volatile KeyboardInput keyboard;
@@ -35,7 +36,7 @@ public final class BridgeTestActivity extends MainActivity {
         label.setTextColor(android.graphics.Color.YELLOW);
         label.setBackgroundColor(android.graphics.Color.BLACK);
         View header=label;
-        if (cursorTest && !keyboardTest) {
+        if (cursorTest && !keyboardTest && !profileTest) {
             android.widget.LinearLayout controls=new android.widget.LinearLayout(this);
             controls.setOrientation(android.widget.LinearLayout.VERTICAL);
             controls.addView(label);
@@ -70,9 +71,11 @@ public final class BridgeTestActivity extends MainActivity {
             showReceipt();
         }
     }
-    private void showReceipt() {
+    void showReceipt() {
+        CursorInput shown=profileTest ? desktop().cursor() : cursor;
         label.setText("OWNED BRIDGE FIXTURE — NO PICOTRON\n" + (cursorTest
-                ? "Relative cursor: " + (cursor==null ? "preparing" : cursor.mode())
+                ? "Relative cursor: " + (shown==null ? "preparing" : shown.mode())
+                    + (profileTest ? " (saved profile)\nPrimary: X | Precision: L1\nActivity creates: " + creates + " | Native PID: " + nativePid : "")
                     + "\nNative receipt: x=" + x + " y=" + y + " held=" + held
                     + (keyboardTest ? "\nNative UTF-8: " + receivedText : "")
                 : "Native UTF-8 receipt:\n" + receivedText));

@@ -70,3 +70,6 @@ defaults or claiming physical-controller support.
 The subsequent [D-pad/IME experiment](DPAD_AND_IME.md) checks key and HAT profiles,
 separates keyboard arrows from controller directions, and keeps the owned frame
 above the docked IME. Physical controller/IME interaction is still untested.
+The [saved-profile experiment](CURSOR_PROFILES.md) persists explicit bindings
+and tuning while discarding held input across View recreation. It does not
+select product defaults or infer a controller from a handheld model.

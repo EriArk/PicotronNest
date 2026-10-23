@@ -61,9 +61,11 @@ presentation and Android display. Next: real pointer interaction on free hardwar
 
 ## P2 — Input and sound
 
-The [cross-device input discussion](INPUT_DESIGN.md) proposes capability-based
-profiles and shared release/coordinate rules. It is not a completed UI or an
-approved default mapping. First complete the [official-runtime input check](RETROID_INPUT_CHECK.md).
+The owner accepted the [cross-device input direction](INPUT_DESIGN.md):
+capability-based profiles and shared release/coordinate rules. Exact default
+mappings remain undecided. [Keyboard/Unicode fixture work](KEYBOARD_SPIKE.md)
+prepares a limited adapter while hardware is reserved; it does not close the
+[official-runtime input check](RETROID_INPUT_CHECK.md).
 
 - Route touch taps, drag, long press/right-click, wheel if available, mouse motion/buttons and keyboard text.
 - Provide optional handheld cursor mode (e.g. right stick moves pointer; buttons can click), with remapping and accessible exit/keyboard commands.

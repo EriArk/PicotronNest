@@ -13,9 +13,12 @@ the next gate.
 
 ## Latest evidence
 
-- Keyboard/Unicode preparation: source-aware held-key/modifier state, bounded
-  text chunks and transport failure checks pass on the host. This path is not
-  attached to official Picotron. [Experiment scope](KEYBOARD_SPIKE.md).
+- Keyboard/Unicode fixture: source-aware modifier ownership, bounded text
+  transport and limited Android IME composition/commit reach an owned native
+  process on the Android 15/API 35 x86_64 emulator. Cyrillic/CJK/emoji bytes,
+  focus release and stale-connection rejection pass; a real emulator screenshot
+  is retained. 30 lab tests and 9 archive tests pass. This path is not attached
+  to official Picotron. [Evidence and limits](KEYBOARD_SPIKE.md).
 - Owned bridge emulator checks PASS: real Android View/socket code plus a shared
   native pointer decoder, Android 15/API 35 x86_64, SELinux Enforcing, target 36.
   Recreation, rotation, dialog focus loss and Home/return retain one native

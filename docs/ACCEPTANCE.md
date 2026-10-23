@@ -24,8 +24,11 @@ The lab implements single-touch left-button input and lifecycle release paths.
 Host tests and [owned Android emulator fixtures](P1_BRIDGE_TESTS.md) pass.
 The updated official-runtime lab was not installed or screen-tested on Retroid
 because the owner requested no further screen tests. A2.1 and A2.5 remain NOT
-TESTED with official Picotron on hardware. Secondary click, hardware input,
-text/IME and audio are not implemented.
+TESTED with official Picotron on hardware. A limited keyboard/text/IME adapter
+has [owned emulator-fixture evidence](KEYBOARD_SPIKE.md), including simulated
+key/device events and direct calls on the system-created IME connection; it is
+disabled in the official launcher. Secondary click, controller input and audio
+are not implemented. No hardware keyboard or real IME typing acceptance is claimed.
 
 - [ ] A2.1 Touch taps, cursor movement, drag, secondary click and pointer boundaries land at expected Picotron coordinates.
 - [ ] A2.2 Hardware mouse and keyboard work, including modifiers, key release and text entry.

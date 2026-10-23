@@ -18,12 +18,14 @@ final class DesktopView extends View {
     private static WeakReference<DesktopView> attached = new WeakReference<>(null);
     private final Paint paint = new Paint();
     private static PointerSender pointer;
+    private static KeyboardInput keyboard;
     private final PointerState touch = new PointerState((x, y, buttons) -> {
         if (pointer != null) pointer.send(x, y, buttons);
     });
 
     DesktopView(Context context) {
         super(context);
+        setFocusableInTouchMode(true);
         paint.setFilterBitmap(false);
         synchronized (DesktopView.class) { attached = new WeakReference<>(this); }
     }
@@ -64,6 +66,29 @@ final class DesktopView extends View {
         if (view != null) view.release();
     }
 
+    static synchronized void keyboard(KeyboardInput input) {
+        if (keyboard != null && keyboard != input) keyboard.disconnect();
+        keyboard = input;
+    }
+    static synchronized void releaseInput() {
+        releasePointer();
+        if (keyboard != null) keyboard.releaseAll();
+    }
+    @Override public boolean onCheckIsTextEditor() { synchronized (DesktopView.class) { return keyboard != null; } }
+    @Override public android.view.inputmethod.InputConnection onCreateInputConnection(android.view.inputmethod.EditorInfo info) {
+        synchronized (DesktopView.class) { return keyboard == null ? null : keyboard.connection(this, info); }
+    }
+    @Override public boolean onKeyDown(int code, android.view.KeyEvent event) {
+        synchronized (DesktopView.class) {
+            return keyboard != null && keyboard.event(event) || super.onKeyDown(code, event);
+        }
+    }
+    @Override public boolean onKeyUp(int code, android.view.KeyEvent event) {
+        synchronized (DesktopView.class) {
+            return keyboard != null && keyboard.event(event) || super.onKeyUp(code, event);
+        }
+    }
+
     private void release() {
         touch.release();
     }
@@ -97,11 +122,11 @@ final class DesktopView extends View {
 
     @Override public void onWindowFocusChanged(boolean focused) {
         super.onWindowFocusChanged(focused);
-        if (!focused) { synchronized (DesktopView.class) { release(); } }
+        if (!focused) { synchronized (DesktopView.class) { releaseInput(); } }
     }
 
     @Override protected void onDetachedFromWindow() {
-        synchronized (DesktopView.class) { release(); }
+        synchronized (DesktopView.class) { release(); if (keyboard != null) keyboard.releaseAll(); }
         super.onDetachedFromWindow();
     }
 

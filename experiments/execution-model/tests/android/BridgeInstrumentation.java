@@ -19,6 +19,8 @@ import org.json.JSONObject;
 public final class BridgeInstrumentation extends Instrumentation {
     private String mode;
     private String session;
+    private boolean screenshotSaved;
+    private volatile String imeDiagnostic = "";
     private final JSONArray checks = new JSONArray();
     private void check(boolean ok, String message) {
         if (!ok) throw new AssertionError(message);
@@ -142,10 +144,119 @@ public final class BridgeInstrumentation extends Instrumentation {
         check(BridgeTestActivity.launches == 1, "unexpected launch count");
         checks.put("authenticated_peer_clean_exit_balanced_input");
     }
+    private void key(int device, int code, int action, int repeat, int meta) {
+        ui(() -> {
+            long now=SystemClock.uptimeMillis();
+            check(BridgeTestActivity.current.desktop().dispatchKeyEvent(new android.view.KeyEvent(
+                    now,now,action,code,repeat,meta,device,0)),"key not consumed");
+        });
+    }
+    private void keys(int count, int mods) {
+        await(() -> BridgeTestActivity.keyPackets >= count,"native keyboard count " + count);
+        check(BridgeTestActivity.keyPackets==count && BridgeTestActivity.keyMods==mods,"key count/modifiers");
+    }
+    private void keyboard() throws Exception {
+        ui(() -> BridgeTestActivity.current.desktop().requestFocus());
+        key(11,android.view.KeyEvent.KEYCODE_CTRL_LEFT,0,0,android.view.KeyEvent.META_CTRL_ON);
+        key(22,android.view.KeyEvent.KEYCODE_CTRL_LEFT,0,0,android.view.KeyEvent.META_CTRL_ON);
+        key(11,android.view.KeyEvent.KEYCODE_C,0,0,android.view.KeyEvent.META_CTRL_ON);
+        key(11,android.view.KeyEvent.KEYCODE_C,0,1,android.view.KeyEvent.META_CTRL_ON);
+        keys(3,2);
+        ui(() -> BridgeTestActivity.keyboard.onInputDeviceRemoved(11)); keys(4,2);
+        ui(() -> BridgeTestActivity.keyboard.onInputDeviceRemoved(22)); keys(5,0);
+        check(BridgeTestActivity.receivedText.isEmpty(),"shortcut leaked text");
+        checks.put("two_keyboard_sources_repeat_disconnect_modifiers_no_shortcut_text");
+        key(-1,android.view.KeyEvent.KEYCODE_A,0,0,0);
+        key(-1,android.view.KeyEvent.KEYCODE_A,1,0,0);
+        keys(8,0); check(BridgeTestActivity.receivedText.equals("a"),"hardware text duplication");
+        checks.put("physical_key_path_one_text_commit");
+        android.view.inputmethod.InputConnection previousConnection=BridgeTestActivity.keyboard.latestConnection();
+        ui(() -> {
+            DesktopView view=BridgeTestActivity.current.desktop();
+            android.view.inputmethod.InputMethodManager ime=(android.view.inputmethod.InputMethodManager)
+                    view.getContext().getSystemService(android.content.Context.INPUT_METHOD_SERVICE);
+            ime.restartInput(view);
+        });
+        await(() -> BridgeTestActivity.keyboard.latestConnection()!=null &&
+                BridgeTestActivity.keyboard.latestConnection()!=previousConnection,"restarted system IME connection");
+        boolean[] active=new boolean[1];
+        await(() -> {
+            ui(() -> {
+                DesktopView view=BridgeTestActivity.current.desktop();
+                android.view.inputmethod.InputMethodManager ime=(android.view.inputmethod.InputMethodManager)
+                        view.getContext().getSystemService(android.content.Context.INPUT_METHOD_SERVICE);
+                active[0]=ime.isActive(view);
+            });
+            return active[0];
+        },"system IME attached to fixture view");
+        ui(() -> {
+            DesktopView view=BridgeTestActivity.current.desktop();
+            android.view.inputmethod.InputMethodManager ime=(android.view.inputmethod.InputMethodManager)
+                    view.getContext().getSystemService(android.content.Context.INPUT_METHOD_SERVICE);
+            boolean shown=ime.showSoftInput(view,android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT);
+            imeDiagnostic="requested="+shown+" viewFocus="+view.hasFocus()+" windowFocus="+view.hasWindowFocus()+" active="+ime.isActive(view);
+        });
+        await(() -> BridgeTestActivity.current.desktop().getRootWindowInsets()!=null &&
+                BridgeTestActivity.current.desktop().getRootWindowInsets().isVisible(android.view.WindowInsets.Type.ime()),"visible system keyboard " + imeDiagnostic);
+        android.view.inputmethod.InputConnection connection=BridgeTestActivity.keyboard.latestConnection();
+        String text="print(\"Привет, 世界 👋\")";
+        ui(() -> {
+            check(connection.setComposingText("uncommitted",1),"composition start");
+            check(connection.setComposingText("replacement",1),"composition replacement");
+            check(BridgeTestActivity.receivedText.equals("a"),"preedit leaked to process");
+            check(connection.commitText(text,1),"Unicode commit");
+            check(connection.finishComposingText(),"composition finish");
+        });
+        int count=8+KeyboardProtocol.text(text).size(); keys(count,0);
+        check(BridgeTestActivity.receivedText.equals("a"+text),"native Unicode byte receipt");
+        checks.put("IME_composition_commit_UTF8_Cyrillic_CJK_emoji_once");
+        ui(() -> check(!connection.commitText("\ud800",1) && !connection.deleteSurroundingText(2,0),"unsupported input accepted"));
+        // Actual emulator screenshot, owned fixture visibly labeled; no generated/mock UI.
+        waitForIdleSync();
+        check(BridgeTestActivity.current.hasWindowFocus(),"screenshot foreground lost");
+        screenshot();
+        ui(() -> check(connection.setComposingText("discard-on-focus-loss",1),"pending preedit"));
+        key(33,android.view.KeyEvent.KEYCODE_SHIFT_LEFT,0,0,android.view.KeyEvent.META_SHIFT_ON); keys(++count,1);
+        AlertDialog[] dialog=new AlertDialog[1];
+        ui(() -> { dialog[0]=new AlertDialog.Builder(BridgeTestActivity.current).setMessage("Keyboard focus check").create(); dialog[0].show(); });
+        keys(++count,0);
+        ui(() -> check(!connection.commitText("STALE",1) && !connection.finishComposingText(),"stale IME wrote after focus loss"));
+        ui(() -> dialog[0].dismiss());
+        await(() -> BridgeTestActivity.current.hasWindowFocus(),"keyboard focus return");
+        checks.put("focus_loss_releases_modifier_and_rejects_stale_IME");
+        android.view.inputmethod.InputConnection[] fresh=new android.view.inputmethod.InputConnection[1];
+        ui(() -> {
+            fresh[0]=BridgeTestActivity.current.desktop().onCreateInputConnection(new android.view.inputmethod.EditorInfo());
+            connection.closeConnection();
+            check(fresh[0].setComposingText("новый",1) && fresh[0].finishComposingText(),"fresh composition finish");
+            check(fresh[0].deleteSurroundingTextInCodePoints(1,0),"backspace pair");
+        });
+        count+=3; keys(count,0);
+        check(BridgeTestActivity.receivedText.equals("a"+text+"новый"),"stale connection or finish duplicated text");
+        check(BridgeTestActivity.keyScan==42 && BridgeTestActivity.keyFlags==0,"backspace key-up missing");
+        checks.put("fresh_IME_finish_and_paired_backspace");
+        BridgeTestActivity.command('Q');
+        await(() -> BridgeTestActivity.result!=null || BridgeTestActivity.error!=null,"keyboard process exit");
+        check(BridgeTestActivity.error==null && BridgeTestActivity.exitCode==0,"keyboard fixture failed");
+        JSONObject result=BridgeTestActivity.result;
+        check(result.getInt("keyboard_packets")==count && !result.has("keyboard_error")
+                && result.getInt("keyboard_peer_pid")==BridgeTestActivity.nativePid,"keyboard transport evidence");
+        check(BridgeTestActivity.keyDowns==BridgeTestActivity.keyUps,"stuck native key");
+        checks.put("native_keyboard_counters_balanced_clean_exit");
+    }
+    private void screenshot() throws IOException {
+        android.graphics.Bitmap bitmap=getUiAutomation().takeScreenshot();
+        check(bitmap!=null,"screenshot missing");
+        try (FileOutputStream out=new FileOutputStream(new File(getTargetContext().getFilesDir(),"keyboard-preview.png"))) {
+            check(bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG,100,out),"screenshot encoding");
+            screenshotSaved=true;
+        } finally { bitmap.recycle(); }
+    }
     @Override public void onStart() {
         JSONObject report = new JSONObject(); Bundle bundle = new Bundle();
         try {
             check(session != null && session.matches("[a-f0-9-]{36}"), "missing session UUID");
+            BridgeTestActivity.keyboardTest=mode.equals("keyboard");
             report.put("session", session).put("mode", mode).put("host_pid", android.os.Process.myPid()).put("host_uid", android.os.Process.myUid())
                     .put("official_runtime", "NOT TESTED");
             // Cancellation before a client connects must terminate the waiting receiver.
@@ -168,6 +279,7 @@ public final class BridgeInstrumentation extends Instrumentation {
             check(BridgeTestActivity.transcript.contains("decoder_tests=PASS"), "shared native decoder tests");
             checks.put("owned_native_decoder_and_real_frames");
             if (mode.equals("normal")) normal();
+            else if (mode.equals("keyboard")) keyboard();
             else {
                 check(mode.equals("abrupt") || mode.equals("partial"), "unknown test mode");
                 touch(MotionEvent.ACTION_DOWN, 3, 4, 48, 27);
@@ -191,6 +303,9 @@ public final class BridgeInstrumentation extends Instrumentation {
             report.put("outcome", "PASS");
         } catch (Throwable failure) {
             try { report.put("outcome", "FAIL").put("failure", failure.toString()); } catch (Exception ignored) { }
+            if (mode.equals("keyboard") && BridgeTestActivity.current!=null && BridgeTestActivity.current.hasWindowFocus()) {
+                try { screenshot(); } catch (Exception ignored) { }
+            }
         } finally {
             Process child = BridgeTestActivity.child;
             if (child != null && child.isAlive()) {
@@ -201,6 +316,7 @@ public final class BridgeInstrumentation extends Instrumentation {
                 report.put("checks", checks).put("launches", BridgeTestActivity.launches).put("activity_creates", BridgeTestActivity.creates)
                         .put("native_pid", BridgeTestActivity.nativePid).put("exit_code", BridgeTestActivity.exitCode)
                         .put("stream", BridgeTestActivity.result).put("native_output", BridgeTestActivity.transcript);
+                if (screenshotSaved) report.put("screenshot","keyboard-preview.png");
                 File file = new File(getTargetContext().getFilesDir(), "bridge-" + mode + ".json");
                 try (Writer out = new OutputStreamWriter(new FileOutputStream(file), "UTF-8")) { out.write(report.toString(2)); }
                 bundle.putString("stream", report.toString());

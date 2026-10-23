@@ -22,7 +22,7 @@ def main():
         directory.mkdir(parents=True, exist_ok=True)
     sources = sorted((HERE / 'src').rglob('*.java')) + sorted((HERE / 'tests/android').glob('*.java'))
     inputs = sources + [HERE / n for n in ['build_bridge_tests.py', 'build.py', 'tests/bridge_fixture.c',
-                                          'native/pointer_protocol.h']]
+                                          'native/pointer_protocol.h', 'native/keyboard_protocol.h']]
     hashes = {p.relative_to(ROOT).as_posix(): digest(p) for p in inputs}
     native = work / 'libbridge_fixture.so'
     run(llvm / 'clang.exe', '--target=x86_64-linux-android26', '-fPIE', '-pie', '-O2',

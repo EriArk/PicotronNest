@@ -69,6 +69,22 @@ stopped without clearing data. Retroid and unrelated apps were not manipulated.
 
 ## Fixes and limits
 
+The later keyboard-fixture build reran all four scenarios successfully in session
+`13b83922-c197-4c96-9c4e-55dd1b8fe770`, APK SHA-256
+`a509cabe148fcb26607aaffcc3cc15f5cba297b99c4d2533064ea9dabcd87e78`.
+Normal: 15 groups, 61 pointer packets, 152 frames/drawn sequence, PID 10634,
+three Activity creations and one launch, exit 0. Abrupt and partial: five
+groups each, PIDs 10727/10811, expected exits 23/24; partial EOF remains explicit.
+Keyboard: nine groups, PID 10870, exit 0. All final UID censuses contain no
+surviving child. [Keyboard details and screenshot provenance](KEYBOARD_SPIKE.md).
+
+An initial rerun (`f0da35a9-3382-400c-b80d-2269f3d4fcec`) exposed test-fixture
+starvation: it sent a fragmented frame after every seven-byte input read.
+The fixture now schedules frames independently, at most once per 50 ms, and
+uses seven-byte header / 257-byte pixel writes while retaining fragmented input
+reads. This bounds test traffic amplification; it is not a Picotron performance
+measurement. The rapid-click regression passes with the existing timeout.
+
 - A bounded readiness poll makes a waiting server cancellable. Socket shutdown
   wakes reads/writes; thread joins confirm completion instead of relying solely
   on Java interruption or descriptor close.

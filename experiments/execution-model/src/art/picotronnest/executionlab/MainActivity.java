@@ -10,7 +10,7 @@ public class MainActivity extends Activity {
     private static final AtomicBoolean RUNNING = new AtomicBoolean();
 
     @Override protected void onPause() {
-        if (BuildConfig.DESKTOP) DesktopView.releasePointer();
+        if (BuildConfig.DESKTOP) DesktopView.releaseInput();
         super.onPause();
     }
 

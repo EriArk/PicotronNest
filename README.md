@@ -51,6 +51,9 @@ The current plan then covers input/audio, saved data, a self-contained APK and r
 | [Architecture](docs/ARCHITECTURE.md) | Runtime, display, input, audio, storage and Android boundaries |
 | [Runtime feasibility spike](docs/RUNTIME_SPIKE.md) | Reproducible P0/P1 investigation |
 | [Acceptance](docs/ACCEPTANCE.md) | Device-proven pass/fail checklist |
+| [Owned bridge tests](docs/P1_BRIDGE_TESTS.md) | Emulator input/lifecycle evidence and its limits |
+| [Retroid input check](docs/RETROID_INPUT_CHECK.md) | Prepared short official-runtime verification, still pending |
+| [Input design discussion](docs/INPUT_DESIGN.md) | Proposed phone, handheld and mouse/keyboard behavior |
 | [Reuse and provenance](docs/REUSE_AND_PROVENANCE.md) | Safe reuse from PikoNest and upstream sources |
 | [Agent instructions](AGENTS.md) | Developer/Codex guardrails and priorities |
 

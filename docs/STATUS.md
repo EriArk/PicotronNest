@@ -108,6 +108,9 @@ Do not upgrade a status because code compiles, ADB starts an activity, a process
 When the owner makes Retroid available, install the pointer lab and verify a
 real desktop click, drag, boundary mapping and focus-loss release. Do not treat
 host tests or a zero-input session as this interaction proof.
+The [three-session hardware procedure](RETROID_INPUT_CHECK.md) is prepared.
+[Phone/handheld input proposals](INPUT_DESIGN.md) are a discussion draft; defaults
+and physical-device usability remain undecided.
 Keep enforcing ARM64 Android execution as
 an explicit compatibility gap; the Retroid headless result does not close it.
 

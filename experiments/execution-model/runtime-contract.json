@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "archive_sha256": "ba84788f0b043d75cf4be53a8df80f2c192f3a847e4d1023acbeb82124cbae75",
+  "member": "picotron_0.3.0d2_raspi.zip",
+  "version": "0.3.0d2",
+  "files": {
+    "picotron": {
+      "sha256": "481b0214c51517cac9c4aaad5bea3c2de9d16c58a8c50bec1358fef552724a5f",
+      "size": 1276928
+    },
+    "picotron.dat": {
+      "sha256": "c41a294a4a0158fa7857e764e1c137c4978315ca2c8d9c5a3d957e42d5297e7c",
+      "size": 11978331
+    }
+  }
+}

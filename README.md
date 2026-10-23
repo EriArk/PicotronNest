@@ -2,7 +2,7 @@
 
 **The real Picotron fantasy workstation, running on Android.**
 
-**Status: early feasibility research — no working APK or public download yet.**
+**Status: early feasibility research — no product APK or public download yet.**
 
 [Picotron](https://www.lexaloffle.com/picotron.php) already has its own desktop, code editor, drawing tools, music tools, apps and cartridges. PicotronNest aims to bring that **actual workstation** to Android phones, tablets and gaming handhelds — not recreate those tools in a separate interface.
 
@@ -24,11 +24,14 @@ This repository currently contains **design documents, a static runtime-package
 inspector and a temporary Android execution lab**, not a finished runner. The
 owner's Raspberry Pi package is ARM64. An owned diagnostic fixture has run with
 target API 36 on Android, followed by an owned Linux guest through packaged
-PRoot; **Picotron itself has not yet run**. See the
-[P0a inspection](docs/P0_STATIC_INSPECTION.md) and
-[P0b.2 Linux guest findings](docs/P0_LINUX_LOADER.md). The first two hard gates are:
+PRoot. **The official user-imported Picotron now runs an owned headless Lua
+probe on Retroid Pocket Classic (Android 14)**, with repeat-launch and exit
+evidence. Its desktop has not yet been displayed. See the
+[P0a inspection](docs/P0_STATIC_INSPECTION.md),
+[P0b.2 Linux guest findings](docs/P0_LINUX_LOADER.md) and
+[P0c headless evidence](docs/P0_HEADLESS.md). The first two hard gates are:
 
-1. **P0 — run the official Picotron ARM64 binary** within a safe, app-owned Android/Linux compatibility environment.
+1. **P0 — run the official Picotron ARM64 binary** within an app-owned Android/Linux compatibility environment. Scoped headless proof exists on Retroid.
 2. **P1 — show the real, interactive Picotron desktop** on an Android screen.
 
 The existing PICO-8 Android video bridge hardcodes 128×128 output; Picotron requires its own verified SDL video path. That is why we are testing execution and rendering before building a polished frontend.

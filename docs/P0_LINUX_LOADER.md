@@ -3,6 +3,9 @@
 2026-10-23. **PASS for the scoped Linux guest probe on ARM64 Android and the
 x86_64 policy-control emulator. Official Picotron execution is NOT TESTED.**
 
+This is the historical P0b.2 record. The subsequent [P0c headless probe](P0_HEADLESS.md)
+adds glibc/SDL2 and official Picotron execution on Retroid.
+
 The target-36 execution lab now optionally packages a pinned Android-native
 PRoot tracer, its standalone loader and two native dependencies. An original
 libc-free Linux ELF is staged into a fresh private root and launched through

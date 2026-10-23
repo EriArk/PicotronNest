@@ -127,3 +127,30 @@ source manifests. Its [component audit](../../docs/P0_LINUX_LOADER.md) records
 the complete native closure, exact modifications and remaining release gates.
 
 See [device findings and next decision](../../docs/P0_EXECUTION_MODEL.md).
+
+## Optional official headless probe (native ARM64 only)
+
+`build.py --headless` implies `--linux-loader` and builds lab version 0.0.3.
+It adds pinned glibc and a minimal SDL2 built from source using CMake/Ninja and
+the NDK Clang cross-compiler. CMake and Ninja must be on PATH; versions are
+recorded in the component manifest. Proprietary files are never APK build inputs.
+The build rejects source changes made during compilation.
+
+After installing the completed build, use `provision_runtime.py --serial SERIAL
+--archive OWNER_COMBINED_ZIP` to provision the exact inspected owner runtime.
+This is an explicit debug-only procedure: bounded ZIP validation, exact hashes,
+fixed members, base64 ADB transport, device-side hash checks and a final ready
+marker. An existing import is refused and retained. The app validates/copies
+the import again into each session's separate root. App updates retain it.
+
+Two additional cases run the official runtime with `-home /home -x /probe/check.lua`.
+The owned glibc launcher records identity before exec; Picotron must print two
+fresh Lua markers per attempt and exit 0. A timeout or leftover same-UID process
+fails collection even if a marker was printed. Headless reports use the separate
+`files/headless-probes` journal; the existing collector selects it from build
+metadata. The prior 16-session quota applies separately to this journal.
+
+See [P0c evidence, dependency audit and complete procedure](../../docs/P0_HEADLESS.md).
+Do not install this optional ARM64 experiment on the x86_64 control emulator;
+it deliberately rejects unsupported ABIs. The regular `--linux-loader` probe
+continues to support both ABIs.

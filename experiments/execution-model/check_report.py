@@ -21,22 +21,45 @@ def validate(report, build, census):
 
     require(report.get('phase') == 'COMPLETE', 'probe did not complete')
     require(report.get('target_sdk') == 36, 'wrong target SDK')
-    require(report.get('picotron_execution') == 'NOT TESTED', 'incorrect Picotron claim')
+    headless = 'headless_components' in build
+    require(report.get('picotron_execution') == ('ATTEMPTED' if headless else 'NOT TESTED'), 'incorrect Picotron claim')
     matches = [abi for abi, digest in build['fixture_sha256'].items() if digest == report.get('fixture_sha256')]
     require(len(matches) == 1, 'fixture hash does not match build')
     require(matches[0] in report['abis'], 'fixture ABI absent from device ABI list')
     cases = report.get('cases', [])
     expected_names = list(CASE_NAMES)
     if 'linux_components' in build:
-        require(report.get('schema') == 2, 'Linux report schema missing')
+        require(report.get('schema') == (3 if headless else 2), 'Linux report schema missing')
         components = build['linux_components']
         require(report.get('linux_components') == components['packages'], 'native component manifest mismatch')
         require(report.get('linux_guest_sha256') == components['guests'][matches[0]], 'guest hash mismatch')
         expected_names += ['linux_guest', 'linux_guest_missing_marker']
+    if headless:
+        require(matches[0] == 'arm64-v8a', 'headless ABI mismatch')
+        require(report.get('headless_components') == build['headless_components'], 'headless closure mismatch')
+        require(report.get('runtime_contract') == build['runtime_contract'], 'owner runtime contract mismatch')
+        expected_names += ['picotron_headless_1', 'picotron_headless_2']
     require([case.get('name') for case in cases] == expected_names, 'missing, duplicate or reordered cases')
     children = set()
     for case in cases:
         name = case['name']
+        if name.startswith('picotron_headless_'):
+            require(case.get('outcome') == 'EXITED' and case.get('exit_code') == 0, 'Picotron termination failed')
+            require(case.get('output_truncated') is False and 'read_error' not in case, 'Picotron output unreliable')
+            output = case.get('output', '')
+            identity = re.search(r'^PICONEST_EXEC_PICOTRON pid=(\d+) ppid=(\d+) uid=(\d+)$', output, re.M)
+            require(identity is not None, 'Picotron exec identity missing')
+            pid, parent, uid = map(int, identity.groups())
+            require(uid == report['host_uid'] and parent > 0 and pid > 0 and pid != parent
+                    and pid not in children and pid != report['host_pid'], 'Picotron identity invalid')
+            children.add(pid)
+            marker = report['session'] + ':' + name.rsplit('_', 1)[1]
+            require('PICONEST_GLIBC glibc=2.36 sdl=2.32.10\n' in output, 'glibc/SDL fixture not observed')
+            require('PICONEST_EXEC_FAILED' not in output, 'Picotron exec failed')
+            for tag in ('LUA', 'OK'):
+                require('PICONEST_PICOTRON_' + tag + ' ' + marker + '\n' in output,
+                        'official Lua did not produce the current attempt marker')
+            continue
         if name.startswith('linux_guest'):
             missing = name == 'linux_guest_missing_marker'
             require(case.get('outcome') == 'EXITED' and case.get('exit_code') == (41 if missing else 0),
@@ -99,7 +122,8 @@ def main():
         return subprocess.run(['adb', '-s', args.serial, *parts], capture_output=True, check=check, timeout=20)
 
     build = json.loads(args.build.read_text(encoding='utf-8'))
-    raw = adb('exec-out', 'run-as', PACKAGE, 'cat', 'files/execution-probes/latest.json').stdout
+    report_path = 'files/' + ('headless-probes' if 'headless_components' in build else 'execution-probes') + '/latest.json'
+    raw = adb('exec-out', 'run-as', PACKAGE, 'cat', report_path).stdout
     if len(raw) > 65536:
         raise SystemExit('Oversize report')
     report = json.loads(raw)
@@ -111,7 +135,7 @@ def main():
     installed = adb('exec-out', 'cat', location.removeprefix('package:')).stdout
     if hashlib.sha256(installed).hexdigest() != build['apk_sha256']:
         raise SystemExit('Installed APK does not match recorded build')
-    again = adb('exec-out', 'run-as', PACKAGE, 'cat', 'files/execution-probes/latest.json').stdout
+    again = adb('exec-out', 'run-as', PACKAGE, 'cat', report_path).stdout
     if again != raw:
         raise SystemExit('Session changed during evidence collection')
     enforcing = adb('shell', 'getenforce', check=False)

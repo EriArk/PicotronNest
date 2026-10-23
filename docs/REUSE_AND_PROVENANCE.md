@@ -8,6 +8,10 @@ in PicotronNest's independent target-36 lab. No PikoNest code or bootstrap binar
 was copied. The optional lab's native dependency audit and source/package hashes
 are recorded separately from future product redistribution requirements.
 
+P0c adds a separately locked glibc closure and source-built minimal SDL2,
+without copying PikoNest's SDL shim. [Dependency/source/license evidence](P0_HEADLESS.md)
+distinguishes locally rebuilt components from pinned distribution binaries.
+
 ## Proven baseline
 
 [PikoNest](https://github.com/EriArk/PikoNest) developed an experimental Android-first host for a **user-provided official PICO-8 ARM64 Raspberry Pi runtime**. Its October 2026 single-APK work demonstrated local setup, official runtime launch and return on Retroid Pocket Classic. This is useful engineering prior art for PicotronNest; it is **not Picotron runtime compatibility evidence**.

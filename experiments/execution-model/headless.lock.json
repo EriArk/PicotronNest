@@ -1,0 +1,41 @@
+{
+  "schema": 1,
+  "architecture": "aarch64",
+  "inputs": [
+    {
+      "file": "libc6_2.36-9+deb12u14_arm64.deb",
+      "url": "https://deb.debian.org/debian/pool/main/g/glibc/libc6_2.36-9+deb12u14_arm64.deb",
+      "sha256": "01f4330719fd4f65580e16ea5a0527f372fca750e8f588d26deaf09f2d3b1cf4"
+    },
+    {
+      "file": "libc6-dev_2.36-9+deb12u14_arm64.deb",
+      "url": "https://deb.debian.org/debian/pool/main/g/glibc/libc6-dev_2.36-9+deb12u14_arm64.deb",
+      "sha256": "8bc395bf2ee9939f1a6ae395f974cffdcf541d98f99adfe89ce7e4bef36d159e"
+    },
+    {
+      "file": "linux-libc-dev_6.1.176-1_arm64.deb",
+      "url": "https://deb.debian.org/debian/pool/main/l/linux/linux-libc-dev_6.1.176-1_arm64.deb",
+      "sha256": "eeca5ec13bed7206f8171fab9a48e84119dcc20cc79557f104628447a524ad10"
+    },
+    {
+      "file": "SDL2-2.32.10.tar.gz",
+      "url": "https://www.libsdl.org/release/SDL2-2.32.10.tar.gz",
+      "sha256": "5f5993c530f084535c65a6879e9b26ad441169b3e25d789d83287040a9ca5165"
+    },
+    {
+      "file": "glibc_2.36-9+deb12u14.dsc",
+      "url": "https://deb.debian.org/debian/pool/main/g/glibc/glibc_2.36-9+deb12u14.dsc",
+      "sha256": "cfe1f0b8dc1fa211ce5a45b3725cc38b29f88667f1140ebdca6de35cf9c6f1fd"
+    },
+    {
+      "file": "glibc_2.36.orig.tar.xz",
+      "url": "https://deb.debian.org/debian/pool/main/g/glibc/glibc_2.36.orig.tar.xz",
+      "sha256": "a543c02070d46ccaf866957efd13f10c924daa74c86a90a0254db09a92a708ee"
+    },
+    {
+      "file": "glibc_2.36-9+deb12u14.debian.tar.xz",
+      "url": "https://deb.debian.org/debian/pool/main/g/glibc/glibc_2.36-9+deb12u14.debian.tar.xz",
+      "sha256": "cf4ac9cd98185452cae3ef34e2e4ee12753e3d93fd0c62c61396d4a47eec902f"
+    }
+  ]
+}

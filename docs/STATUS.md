@@ -1,14 +1,25 @@
 # Project status
 
-**2026-10-23 — P0b packaged Linux guest verified; Picotron execution not tested.**
+**2026-10-23 — P0c official Picotron headless execution verified on Retroid.**
 
 PicotronNest is an Android wrapper for the **official, user-imported Picotron runtime**.
 The repository contains a bounded archive inspector and a temporary target-36
 Android execution lab. Its owned Linux guest has now run through packaged
-PRoot on Retroid and an Android emulator. There is no Picotron launcher, video bridge or product APK;
-no Picotron device smoke test has been completed.
+PRoot on Retroid and an Android emulator. The official owner-imported ARM64
+Picotron now also executes an owned Lua probe on Retroid. There is no product
+launcher, video bridge or product APK; the desktop has not been displayed.
 
 ## Latest evidence
+
+- P0c: the unchanged owner Picotron 0.3.0d2 runs twice through packaged PRoot,
+  glibc 2.36 and a source-built minimal SDL2 2.32.10. Both launches print distinct
+  current-session Lua markers and exit 0. Retroid Pocket Classic, Android 14/API
+  34, ARM64; host target 36. Installed APK, runtime/component hashes and final
+  host-only process census are checked. [Headless evidence](P0_HEADLESS.md).
+- Proprietary executable/data are provisioned separately into private storage;
+  neither is bundled in the APK. This is a bounded developer import, not the
+  future SAF setup flow. The enforcing x86_64 emulator has not run this ARM64
+  probe. Desktop, input, audio and user-project persistence remain unproven.
 
 - P0b.2: a pinned PRoot tracer/loader and audited minimal native closure execute
   an owned Linux ELF at target 36. The guest reads the current root's unique
@@ -18,7 +29,7 @@ no Picotron device smoke test has been completed.
   Android 15 x86_64 emulator. [Evidence and PikoNest comparison](P0_LINUX_LOADER.md).
 - This uses no installed PikoNest or Termux app. PikoNest's bootstrap, private
   homes and process contracts informed the experiment; its unrelated work was
-  preserved. glibc and SDL2 are not part of this completed probe.
+  preserved. glibc and SDL2 were not part of that earlier probe; P0c adds them.
 
 - Target-36 execution lab: packaged native process, private Bionic fixture via
   the system linker, child tracing and timeout/reaping verified twice on Retroid
@@ -32,8 +43,8 @@ no Picotron device smoke test has been completed.
 - Owner package `picotron_0.3.0d2_raspi.zip` contains an AArch64 ELF at
   `picotron/picotron`; its bundled manual identifies itself as `Picotron v0.3.0d`.
 - GNU readelf confirms `/lib/ld-linux-aarch64.so.1`, SDL2 and glibc-linked direct
-  dependencies, with required GLIBC versions 2.17 and 2.29. Transitive dependency
-  closure is not yet established.
+  dependencies, with required GLIBC versions 2.17 and 2.29. The minimal headless
+  transitive closure is now established; real display/audio backends remain open.
 - SDL texture/renderer and window-surface functions are imported. This does not
   identify the actual rendering path, frame dimensions or selected backend.
 - Initial P0a inventory was read-only; P0b.1 subsequently installed only the
@@ -53,7 +64,9 @@ no Picotron device smoke test has been completed.
 
 ## Current milestone
 
-**P0: runtime feasibility**, followed by **P1: visible interactive desktop**. Consult [the experiment plan](RUNTIME_SPIKE.md), [roadmap](ROADMAP.md) and [acceptance](ACCEPTANCE.md).
+**P0 headless execution: device-verified in the scoped Retroid experiment. Next:
+P1a SDL presentation tracing**, followed by the visible interactive desktop.
+Consult [the experiment plan](RUNTIME_SPIKE.md), [roadmap](ROADMAP.md) and [acceptance](ACCEPTANCE.md).
 
 ## Status vocabulary
 
@@ -66,11 +79,10 @@ Do not upgrade a status because code compiles, ADB starts an activity, a process
 
 ## Next action
 
-Continue P0b by resolving and pinning the ARM64 glibc/SDL2 dependency closure,
-including source/license evidence. Packaged PRoot and a static guest now work
-in the scoped experiment, but dynamic glibc loading and the official runtime
-remain untested. Then run P0c using the owner's unchanged runtime and a fresh
-disposable home before beginning P1.
+Trace the actual SDL window/renderer/surface path from the official desktop:
+dimensions, stride, format and ownership. Use those observations to build the
+smallest real-frame display bridge. Keep enforcing ARM64 Android execution as
+an explicit compatibility gap; the Retroid headless result does not close it.
 
 References: [official manual](https://www.lexaloffle.com/dl/docs/picotron_manual.html), [roadmap](https://www.lexaloffle.com/picotron.php?page=roadmap), [PikoNest](https://github.com/EriArk/PikoNest).
 

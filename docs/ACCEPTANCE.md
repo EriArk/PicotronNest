@@ -5,10 +5,10 @@ This checklist defines **proof needed**, not features currently present. Start e
 ## A0 — Environment / official runtime
 
 - [ ] A0.1 Imported archive is the user's legally obtained current compatible Picotron build; version and ELF ABI are recorded.
-- [ ] A0.2 No proprietary Picotron runtime/data in repository, support bundle, APK or public artifacts.
+- [x] A0.2 Scoped P0c lab: proprietary files are separate private imports; APK allowlist and reviewed Git changes contain no runtime/data. [Evidence](P0_HEADLESS.md). Repeat this gate for future artifacts.
 - [ ] A0.3 Package import validates contents and rejects traversal/duplicates/oversize, and a rejected import leaves previous setup untouched.
-- [ ] A0.4 Minimal official runtime starts in a contained Android environment without root or Termux.
-- [ ] A0.5 Exact dependencies and process identity/lifecycle are observed, including actionable failure diagnostics.
+- [x] A0.4 Scoped P0c headless PASS on Retroid Android 14, target 36, no root/Termux. Desktop and other Android configurations remain untested. [Evidence](P0_HEADLESS.md).
+- [x] A0.5 Scoped headless closure, exec-preserved PID/UID, Lua output, two normal exits and final host-only census observed. Interactive lifecycle remains untested. [Evidence](P0_HEADLESS.md).
 
 ## A1 — Actual desktop output
 

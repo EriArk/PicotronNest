@@ -26,10 +26,36 @@ def validate(report, build, census):
     require(len(matches) == 1, 'fixture hash does not match build')
     require(matches[0] in report['abis'], 'fixture ABI absent from device ABI list')
     cases = report.get('cases', [])
-    require([case.get('name') for case in cases] == CASE_NAMES, 'missing, duplicate or reordered cases')
+    expected_names = list(CASE_NAMES)
+    if 'linux_components' in build:
+        require(report.get('schema') == 2, 'Linux report schema missing')
+        components = build['linux_components']
+        require(report.get('linux_components') == components['packages'], 'native component manifest mismatch')
+        require(report.get('linux_guest_sha256') == components['guests'][matches[0]], 'guest hash mismatch')
+        expected_names += ['linux_guest', 'linux_guest_missing_marker']
+    require([case.get('name') for case in cases] == expected_names, 'missing, duplicate or reordered cases')
     children = set()
     for case in cases:
         name = case['name']
+        if name.startswith('linux_guest'):
+            missing = name == 'linux_guest_missing_marker'
+            require(case.get('outcome') == 'EXITED' and case.get('exit_code') == (41 if missing else 0),
+                    'guest termination failed')
+            require(case.get('output_truncated') is False and 'read_error' not in case, 'guest output unreliable')
+            output = case.get('output', '')
+            identity = re.search(r'^PICONEST_LINUX_GUEST pid=(\d+) ppid=(\d+) uid=(\d+)$', output, re.M)
+            require(identity is not None, 'guest identity missing')
+            pid, parent, uid = map(int, identity.groups())
+            require(uid == report['host_uid'] and parent > 0 and pid > 0 and pid != parent
+                    and pid not in children and pid != report['host_pid'], 'guest identity invalid')
+            children.add(pid)
+            if missing:
+                require('PICONEST_MARKER_MISSING' in output and 'PICONEST_LINUX_GUEST_OK' not in output,
+                        'missing marker incorrectly passed')
+            else:
+                require('PICONEST_GUEST_MARKER ' + report['session'] + '\n' in output
+                        and 'PICONEST_LINUX_GUEST_OK' in output, 'wrong guest root or stale session marker')
+            continue
         if name == 'private_direct' and case['outcome'] == 'START_FAILED':
             require('error=13' in case.get('error', ''), 'private exec failed for an unexpected reason')
             continue
@@ -37,6 +63,9 @@ def validate(report, build, census):
         require(isinstance(case.get('exit_code'), int), 'missing exit evidence')
         require(case['exit_code'] != 0 if name == 'owned_timeout' else case['exit_code'] == 0, 'unexpected exit code')
         require(case.get('output_truncated') is False, 'truncated output')
+        if name == 'owned_timeout':
+            require(case.get('ready_observed') is True and 'PICONEST_HANG_READY' in case.get('output', ''),
+                    'timeout did not observe a running hang fixture')
         require(name == 'owned_timeout' or 'read_error' not in case, 'unreliable output capture')
         identity = re.search(r'^PICONEST_EXEC_OK pid=(\d+) ppid=(\d+) uid=(\d+)$', case.get('output', ''), re.M)
         require(identity is not None, 'successful callback without native process marker')

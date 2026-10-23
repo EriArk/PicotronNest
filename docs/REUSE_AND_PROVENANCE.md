@@ -2,6 +2,12 @@
 
 **Scope:** a map of ideas and code worth evaluating, not permission to copy entire systems blindly.
 
+2026-10-23: [P0b.2](P0_LINUX_LOADER.md) records a fresh read-only PikoNest review,
+the exact execution similarities/differences, and the small PRoot payload used
+in PicotronNest's independent target-36 lab. No PikoNest code or bootstrap binary
+was copied. The optional lab's native dependency audit and source/package hashes
+are recorded separately from future product redistribution requirements.
+
 ## Proven baseline
 
 [PikoNest](https://github.com/EriArk/PikoNest) developed an experimental Android-first host for a **user-provided official PICO-8 ARM64 Raspberry Pi runtime**. Its October 2026 single-APK work demonstrated local setup, official runtime launch and return on Retroid Pocket Classic. This is useful engineering prior art for PicotronNest; it is **not Picotron runtime compatibility evidence**.

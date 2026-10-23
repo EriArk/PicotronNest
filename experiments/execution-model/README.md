@@ -2,7 +2,8 @@
 
 This temporary lab measures Android execution restrictions before a Linux
 compatibility environment is selected. It is not PicotronNest's product UI.
-It uses an original, harmless native fixture, never the purchased runtime.
+It uses original, harmless native fixtures, never the purchased runtime. The
+optional `--linux-loader` build adds the pinned PRoot closure described below.
 
 Package: `art.picotronnest.executionlab`. Compile/target API 36, minimum API 26.
 The APK has one icon, no permissions, no network and no storage provider access.
@@ -18,11 +19,19 @@ py -3 -B experiments/execution-model/build.py
 py -3 -B -m unittest discover -s experiments/execution-model -p 'test_*.py' -v
 ```
 
+For P0b.2, build with `--linux-loader`. This downloads and verifies only locked
+open-source packages, matching source archives, recipes and license texts; caches
+are under `.local/proot/downloads/`. It produces version 0.0.2 in the same lab
+namespace, with packaged PRoot/loader/dependencies and owned Linux guest assets.
+The default build remains the original Bionic preflight (version 0.0.1).
+See [P0b.2 evidence and native dependency audit](../../docs/P0_LINUX_LOADER.md).
+
 Override SDK/JDK locations with `--sdk` and `--jdk`. Outputs, debug signing key,
 ELF reports, build hashes and APK are under ignored `.local/execution-model/`.
 Build work directories are unique and retained. No runtime archive input is
 accepted. Packaging checks allow only the manifest, owned Java/native code,
-NDK notices and signing entries. APK signatures and native payload hashes are
+NDK notices, signing entries and explicitly locked optional PRoot assets/libraries.
+APK signatures and native payload hashes are
 verified. Build commands are reproducible; ZIP timestamps and the locally
 generated debug key mean the APK is not claimed bit-for-bit deterministic.
 
@@ -76,10 +85,20 @@ existing session evidence. Future builds may update this known lab using `instal
 3. Invoke `/system/bin/linker64` with that private fixture (Bionic, not glibc).
 4. From the packaged fixture, fork an owned child, request tracing, observe its
    stop, continue it and reap its known exit code 37.
-5. Run the owned hang mode with a 250 ms host deadline, terminate and reap it.
+5. Wait at most five seconds for the owned hang fixture's explicit readiness
+   marker, then apply a 250 ms host deadline, terminate and reap it. Missing
+   readiness cannot pass the evidence checker.
 
-Other commands have a six-second host deadline. The fixture has a four-second
-alarm; its trace child has a three-second alarm and parent-death signal. The
+With `--linux-loader`, two additional cases launch a libc-free guest under PRoot
+in a new app-private root. The first must read the current session's marker; the
+second retains that file under a different name and must exit 41 for missing
+input. The guest itself reports PID/parent/UID. Each PRoot group has a system
+timeout of five seconds plus one second kill grace and an eight-second Java
+observation bound. Its short temporary directory avoids the path-length limit
+previously observed in PikoNest.
+
+Base commands have a six-second host deadline. The fixture has a four-second
+alarm (ten seconds for hang mode); its trace child has a three-second alarm and parent-death signal. The
 trace parent enables `PTRACE_O_EXITKILL`. These limits apply only to owned test
 processes. No arbitrary command/intent arguments are accepted.
 
@@ -101,6 +120,10 @@ from PikoNest, PRoot, Termux or their APKs. The build uses standard SDK packagin
 tools. NDK CRT/compiler support is linked by the toolchain; its installed
 `NOTICE` is included verbatim as `assets/NDK-NOTICE.txt`. The fixture's only
 DT_NEEDED entries are Android system `libc.so` and `libdl.so`; neither is bundled.
-No C++ runtime, glibc, SDL2, PRoot or purchased runtime is shipped in this lab APK.
+The default build bundles no C++ runtime, glibc, SDL2, PRoot or purchased runtime.
+The optional Linux-loader build includes PRoot, talloc and android-shmem from
+verified packages, with selected dynamic-string adaptations, license texts and
+source manifests. Its [component audit](../../docs/P0_LINUX_LOADER.md) records
+the complete native closure, exact modifications and remaining release gates.
 
 See [device findings and next decision](../../docs/P0_EXECUTION_MODEL.md).

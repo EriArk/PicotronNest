@@ -51,7 +51,8 @@ static int ptrace_probe(void) {
 
 int main(int argc, char **argv) {
     setvbuf(stdout, NULL, _IONBF, 0);
-    alarm(4);  /* Every invocation is disposable and bounded, including hang mode. */
+    int hanging = argc == 2 && strcmp(argv[1], "hang") == 0;
+    alarm(hanging ? 10 : 4); /* Allow bounded startup before the host's hang deadline. */
     pid_t parent = getppid();
     if (prctl(PR_SET_PDEATHSIG, SIGKILL) != 0 || getppid() != parent || parent == 1) return 10;
     printf("PICONEST_EXEC_OK pid=%d ppid=%d uid=%d\n", getpid(), parent, getuid());
@@ -63,7 +64,7 @@ int main(int argc, char **argv) {
     }
     printf("seccomp=%d\n", prctl(PR_GET_SECCOMP, 0, 0, 0, 0));
     if (argc == 2 && strcmp(argv[1], "ptrace") == 0) return ptrace_probe();
-    if (argc == 2 && strcmp(argv[1], "hang") == 0) { for (;;) pause(); }
+    if (hanging) { puts("PICONEST_HANG_READY"); for (;;) pause(); }
     if (argc == 2 && strcmp(argv[1], "identity") == 0) return 0;
     fputs("unsupported probe mode\n", stderr);
     return 2;

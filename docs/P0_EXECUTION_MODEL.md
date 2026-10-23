@@ -4,6 +4,9 @@ Date: 2026-10-23. **Owned native fixture verified on physical Android; Picotron
 execution remains NOT TESTED.** This increment tests a prerequisite of P0b; it
 does not complete the Linux dependency environment or P0.
 
+Follow-up: [P0b.2](P0_LINUX_LOADER.md) subsequently verified packaged PRoot and
+an owned Linux guest. This page preserves the original P0b.1 build and findings.
+
 ## Question and result
 
 Can a target-36 app start its packaged native helper, map/execute an owned private

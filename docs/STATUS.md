@@ -1,14 +1,24 @@
 # Project status
 
-**2026-10-23 — P0a inspected; P0b execution preflight tested; Picotron execution not tested.**
+**2026-10-23 — P0b packaged Linux guest verified; Picotron execution not tested.**
 
 PicotronNest is an Android wrapper for the **official, user-imported Picotron runtime**.
 The repository contains a bounded archive inspector and a temporary target-36
-Android execution lab. Its owned native fixture has run on Retroid and an
-Android emulator. There is no Picotron launcher, video bridge or product APK;
+Android execution lab. Its owned Linux guest has now run through packaged
+PRoot on Retroid and an Android emulator. There is no Picotron launcher, video bridge or product APK;
 no Picotron device smoke test has been completed.
 
 ## Latest evidence
+
+- P0b.2: a pinned PRoot tracer/loader and audited minimal native closure execute
+  an owned Linux ELF at target 36. The guest reads the current root's unique
+  marker (exit 0), and a second launch without that marker fails as expected
+  (exit 41). Real guest identity/output/exit, installed hashes and absence of
+  leftover guest processes were verified on Retroid ARM64 and the enforcing
+  Android 15 x86_64 emulator. [Evidence and PikoNest comparison](P0_LINUX_LOADER.md).
+- This uses no installed PikoNest or Termux app. PikoNest's bootstrap, private
+  homes and process contracts informed the experiment; its unrelated work was
+  preserved. glibc and SDL2 are not part of this completed probe.
 
 - Target-36 execution lab: packaged native process, private Bionic fixture via
   the system linker, child tracing and timeout/reaping verified twice on Retroid
@@ -16,8 +26,8 @@ no Picotron device smoke test has been completed.
 - Direct private execution succeeded on Retroid but was denied on the enforcing
   emulator. Retroid's SELinux enforcement mode was not readable; do not generalize
   its behavior. Actual child contexts and process evidence were recorded.
-- The installed lab contains only owned diagnostics and NDK notices. It is
-  independent of PikoNest. [P0b.1 findings and limits](P0_EXECUTION_MODEL.md).
+- The initial lab contained only owned diagnostics and NDK notices; P0b.2 adds
+  the explicitly locked PRoot closure. [Earlier P0b.1 limits](P0_EXECUTION_MODEL.md).
 
 - Owner package `picotron_0.3.0d2_raspi.zip` contains an AArch64 ELF at
   `picotron/picotron`; its bundled manual identifies itself as `Picotron v0.3.0d`.
@@ -56,11 +66,11 @@ Do not upgrade a status because code compiles, ADB starts an activity, a process
 
 ## Next action
 
-Continue P0b with a reviewed, pinned tracer/unbundled-loader candidate and an
-owned Linux guest probe, then resolve the glibc/SDL2 dependency closure. The
-target-36 preflight supports investigating packaged helpers; it does not prove
-glibc or PRoot compatibility. Preserve the independent namespace and empty
-disposable homes. Then run P0c using the owner's unchanged runtime before P1.
+Continue P0b by resolving and pinning the ARM64 glibc/SDL2 dependency closure,
+including source/license evidence. Packaged PRoot and a static guest now work
+in the scoped experiment, but dynamic glibc loading and the official runtime
+remain untested. Then run P0c using the owner's unchanged runtime and a fresh
+disposable home before beginning P1.
 
 References: [official manual](https://www.lexaloffle.com/dl/docs/picotron_manual.html), [roadmap](https://www.lexaloffle.com/picotron.php?page=roadmap), [PikoNest](https://github.com/EriArk/PikoNest).
 

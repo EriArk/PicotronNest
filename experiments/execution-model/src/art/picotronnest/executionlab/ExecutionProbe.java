@@ -80,6 +80,10 @@ final class ExecutionProbe {
         cases.put(runCase("packaged_ptrace", 6000, packaged.getAbsolutePath(), "ptrace"));
         writeJson(reportFile, report);
         cases.put(runCase("owned_timeout", 250, packaged.getAbsolutePath(), "hang"));
+        if (BuildConfig.LINUX_LOADER) {
+            report.put("schema", 2);
+            new LinuxProbe(app, this).run(session, token, report, cases);
+        }
         report.put("phase", "COMPLETE");
         writeJson(reportFile, report);
         writeJson(new File(root, "latest.json"), report);
@@ -92,11 +96,17 @@ final class ExecutionProbe {
     }
 
     private JSONObject runCase(String name, long timeoutMs, String... command) throws Exception {
+        return runWithEnvironment(name, timeoutMs, java.util.Collections.emptyMap(), command);
+    }
+
+    JSONObject runWithEnvironment(String name, long timeoutMs, java.util.Map<String, String> environment,
+                                 String... command) throws Exception {
         JSONObject result = new JSONObject().put("name", name);
         long start = SystemClock.elapsedRealtime();
         ProcessBuilder builder = new ProcessBuilder(command).redirectErrorStream(true);
         builder.environment().remove("LD_PRELOAD");
         builder.environment().remove("LD_LIBRARY_PATH");
+        builder.environment().putAll(environment);
         final Process process;
         try { process = builder.start(); }
         catch (IOException error) {
@@ -106,6 +116,7 @@ final class ExecutionProbe {
         ByteArrayOutputStream captured = new ByteArrayOutputStream();
         final boolean[] truncated = {false};
         final IOException[] readError = {null};
+        final java.util.concurrent.CountDownLatch ready = new java.util.concurrent.CountDownLatch(1);
         Thread reader = new Thread(() -> {
             try (java.io.InputStream input = process.getInputStream()) {
                 byte[] buffer = new byte[1024];
@@ -113,6 +124,7 @@ final class ExecutionProbe {
                 while ((count = input.read(buffer)) != -1) {
                     int keep = Math.min(count, OUTPUT_LIMIT - captured.size());
                     captured.write(buffer, 0, keep);
+                    if (captured.toString("UTF-8").contains("PICONEST_HANG_READY\n")) ready.countDown();
                     if (keep < count) truncated[0] = true;
                 }
             } catch (IOException error) { readError[0] = error; }
@@ -122,6 +134,11 @@ final class ExecutionProbe {
         boolean timedOut;
         try {
             process.getOutputStream().close();
+            if (name.equals("owned_timeout")) {
+                boolean observed = ready.await(5000, TimeUnit.MILLISECONDS);
+                result.put("ready_observed", observed);
+                if (!observed) process.destroyForcibly();
+            }
             timedOut = !process.waitFor(timeoutMs, TimeUnit.MILLISECONDS);
             if (timedOut) process.destroyForcibly();
             if (!process.waitFor(2000, TimeUnit.MILLISECONDS)) throw new IOException("child termination unconfirmed");
@@ -156,7 +173,7 @@ final class ExecutionProbe {
         }
     }
 
-    private static String sha256(File file) throws Exception {
+    static String sha256(File file) throws Exception {
         MessageDigest digest = MessageDigest.getInstance("SHA-256");
         try (FileInputStream in = new FileInputStream(file)) {
             byte[] buffer = new byte[8192];

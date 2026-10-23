@@ -1,4 +1,4 @@
-"""Build only the owned execution fixture. No runtime/archive input is accepted."""
+"""Build owned fixtures and optional pinned PRoot. No proprietary runtime input."""
 
 import argparse
 import hashlib
@@ -28,6 +28,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--sdk', type=Path, default=Path(os.environ['LOCALAPPDATA']) / 'Android/Sdk')
     parser.add_argument('--jdk', type=Path, default=Path(r'C:\Program Files\Android\Android Studio\jbr'))
+    parser.add_argument('--linux-loader', action='store_true', help='Include the pinned PRoot guest probe')
     args = parser.parse_args()
     ndk_version = '28.2.13676358'
     ndk = args.sdk / 'ndk' / ndk_version
@@ -45,6 +46,16 @@ def main():
         directory.mkdir(parents=True, exist_ok=True)
     # NDK CRT/compiler support notices accompany the native fixture.
     shutil.copyfile(ndk / 'NOTICE', work / 'assets/NDK-NOTICE.txt')
+    extra_files, components = {}, None
+    if args.linux_loader:
+        from prepare_proot import prepare
+        extra_files, components = prepare(work / 'proot')
+        components['guests'] = {}
+        for name, file in extra_files.items():
+            if name.startswith('assets/'):
+                target = work / name
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(file, target)
     natives = {}
     for abi, triple in [('arm64-v8a', 'aarch64-linux-android26'), ('x86_64', 'x86_64-linux-android26')]:
         native = work / abi / 'libexecution_probe.so'
@@ -56,19 +67,43 @@ def main():
                              capture_output=True, text=True, check=True, timeout=10).stdout
         (native.parent / 'fixture-elf.txt').write_text(elf, encoding='utf-8')
         natives[abi] = native
+        if args.linux_loader:
+            guest = work / 'assets/guest' / abi / 'probe'
+            guest.parent.mkdir(parents=True)
+            run(llvm / 'clang.exe', f'--target={triple}', '-nostdlib', '-static',
+                '-fno-builtin', '-fno-stack-protector', '-fno-unwind-tables', '-fno-asynchronous-unwind-tables',
+                '-Wall', '-Wextra', '-Werror', '-O2', '-Wl,-e,_start', '-Wl,-z,max-page-size=16384',
+                HERE / 'native/linux_guest.c', '-o', guest)
+            extra_files[f'assets/guest/{abi}/probe'] = guest
+            components['guests'][abi] = digest(guest)
+    if components:
+        component_file = work / 'assets/linux-components.json'
+        component_file.write_text(json.dumps(components, indent=2) + '\n', encoding='utf-8')
+        extra_files['assets/linux-components.json'] = component_file
+    config = work / 'BuildConfig.java'
+    config.write_text('package art.picotronnest.executionlab; final class BuildConfig {'
+                      'static final boolean LINUX_LOADER = ' + str(args.linux_loader).lower() + ';}', encoding='utf-8')
     sources = sorted((HERE / 'src').rglob('*.java'))
     run(javac, '--release', '8', '-encoding', 'UTF-8', '-Xlint:all,-options', '-Werror', '-classpath', android,
-        '-d', work / 'classes', *sources)
+        '-d', work / 'classes', *sources, config)
     run(jar, '--create', '--file', work / 'classes.jar', '-C', work / 'classes', '.')
     run(java, '-cp', build_tools / 'lib/d8.jar', 'com.android.tools.r8.D8', '--min-api', '26',
         '--lib', android, '--output', work / 'dex', work / 'classes.jar')
     unsigned = work / 'unsigned.apk'
-    run(build_tools / 'aapt.exe', 'package', '-f', '-M', HERE / 'AndroidManifest.xml',
+    manifest = HERE / 'AndroidManifest.xml'
+    if args.linux_loader:
+        manifest = work / 'AndroidManifest.xml'
+        manifest.write_text((HERE / 'AndroidManifest.xml').read_text().replace('versionCode="1"', 'versionCode="2"')
+                            .replace('versionName="0.0.1"', 'versionName="0.0.2"'), encoding='utf-8')
+    run(build_tools / 'aapt.exe', 'package', '-f', '-M', manifest,
         '-A', work / 'assets', '-I', android, '-F', unsigned)
     with zipfile.ZipFile(unsigned, 'a', compression=zipfile.ZIP_DEFLATED) as archive:
         archive.write(work / 'dex/classes.dex', 'classes.dex')
         for abi, native in natives.items():
             archive.write(native, f'lib/{abi}/libexecution_probe.so')
+        for name, file in extra_files.items():
+            if name.startswith('lib/'):
+                archive.write(file, name)
     aligned = work / 'aligned.apk'
     run(build_tools / 'zipalign.exe', '-f', '-P', '16', '4', unsigned, aligned)
     key = artifacts / 'execution-lab-debug.keystore'
@@ -83,6 +118,7 @@ def main():
     run(java, '-jar', build_tools / 'lib/apksigner.jar', 'verify', apk)
     allowed = {'AndroidManifest.xml', 'assets/NDK-NOTICE.txt', 'classes.dex'}
     allowed.update(f'lib/{abi}/libexecution_probe.so' for abi in natives)
+    allowed.update(extra_files)
     with zipfile.ZipFile(apk) as archive:
         names = archive.namelist()
         payloads = {n for n in names if not n.startswith('META-INF/')}
@@ -91,11 +127,18 @@ def main():
         for abi, native in natives.items():
             if hashlib.sha256(archive.read(f'lib/{abi}/libexecution_probe.so')).hexdigest() != digest(native):
                 raise SystemExit('Packaged fixture hash mismatch')
+        for name, file in extra_files.items():
+            if hashlib.sha256(archive.read(name)).hexdigest() != digest(file):
+                raise SystemExit(f'Packaged component hash mismatch: {name}')
     metadata = {'ndk': ndk_version, 'build_tools': '36.0.0', 'compile_sdk': 36, 'target_sdk': 36,
                 'apk_sha256': digest(apk), 'fixture_sha256': {abi: digest(p) for abi, p in natives.items()},
                 'source_sha256': {str(p.relative_to(ROOT)).replace('\\', '/'): digest(p)
                                   for p in [HERE / 'AndroidManifest.xml', HERE / 'native/probe.c',
                                             HERE / 'build.py', *sources]}}
+    if components:
+        metadata['linux_components'] = components
+        for name in ['prepare_proot.py', 'proot.lock.json', 'native/linux_guest.c']:
+            metadata['source_sha256'][str((HERE / name).relative_to(ROOT)).replace('\\', '/')] = digest(HERE / name)
     (artifacts / 'build.json').write_text(json.dumps(metadata, indent=2) + '\n', encoding='utf-8')
     print(json.dumps(metadata, indent=2))
     print(f'Local APK: {apk}')

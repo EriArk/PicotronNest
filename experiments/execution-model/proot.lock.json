@@ -1,0 +1,158 @@
+{
+  "schema": 1,
+  "recipe_commit": "8c421499d33ef49f172757c9051a1c8bf9cad9f4",
+  "sources": [
+    {
+      "file": "proot-source.zip",
+      "url": "https://github.com/termux/proot/archive/v5.1.107.99.zip",
+      "sha256": "49951a8f35245eaf8e5b300b237ffb10a328f42641a9cbcd1e285d45e95d84e8",
+      "notices": {
+        "PROOT-COPYING.txt": "proot-5.1.107.99/COPYING"
+      }
+    },
+    {
+      "file": "talloc-source.tar.gz",
+      "url": "https://distfiles.macports.org/talloc/talloc-2.5.0.tar.gz",
+      "sha256": "912afa237510ae542a7733998eb18a12bcda35ab6729c8e2ddb43e8d0ebab007",
+      "notices": {
+        "TALLOC-LGPL-3.0.txt": "talloc-2.5.0/LICENSE",
+        "TALLOC-COPYRIGHT.txt": "talloc-2.5.0/talloc.c"
+      }
+    },
+    {
+      "file": "shmem-source.tar.gz",
+      "url": "https://github.com/termux/libandroid-shmem/archive/refs/tags/v0.7.tar.gz",
+      "sha256": "1e5ff8459bc0a8c229dd8a94b27d119987e09ef3414331c2b5ebfff20b98e867",
+      "notices": {
+        "ANDROID-SHMEM-LICENSE.txt": "libandroid-shmem-0.7/LICENSE"
+      }
+    },
+    {
+      "file": "GPL-3.0.txt",
+      "url": "https://raw.githubusercontent.com/spdx/license-list-data/v3.26.0/text/GPL-3.0-only.txt",
+      "sha256": "fb981668c18a279e285fc4d83fba1e836cc84dd4daa73c9697d3cfd2d8aca6e0",
+      "notices": {
+        "GPL-3.0.txt": null
+      }
+    }
+  ],
+  "recipes": [
+    {
+      "file": "proot-build.sh",
+      "url": "https://raw.githubusercontent.com/termux/termux-packages/8c421499d33ef49f172757c9051a1c8bf9cad9f4/packages/proot/build.sh",
+      "sha256": "16831cfa2373137365418997fe1cd8b0047fd14b46d5dbbfefd89f9c1b530cb4"
+    },
+    {
+      "file": "libtalloc-build.sh",
+      "url": "https://raw.githubusercontent.com/termux/termux-packages/8c421499d33ef49f172757c9051a1c8bf9cad9f4/packages/libtalloc/build.sh",
+      "sha256": "b722c5adb89e4d4ad4595dbba40be562d9894103a190777392c363b57b1a7201"
+    },
+    {
+      "file": "libandroid-shmem-build.sh",
+      "url": "https://raw.githubusercontent.com/termux/termux-packages/8c421499d33ef49f172757c9051a1c8bf9cad9f4/packages/libandroid-shmem/build.sh",
+      "sha256": "db55b10b90c54dd4d39b76b5b074835c09c7c7534a84a12bc29c6a63717ff2fd"
+    }
+  ],
+  "packages": [
+    {
+      "file": "libandroid-shmem_0.7_aarch64.deb",
+      "url": "https://packages.termux.dev/apt/termux-main/pool/main/liba/libandroid-shmem/libandroid-shmem_0.7_aarch64.deb",
+      "sha256": "0da3a24d558b93c92bcf8d611e0826a99ff96e396b148e6cdf33b47c47c57ff6",
+      "name": "libandroid-shmem",
+      "version": "0.7",
+      "abi": "arm64-v8a",
+      "members": [
+        {
+          "path": "./data/data/com.termux/files/usr/lib/libandroid-shmem.so",
+          "output": "libandroid-shmem.so",
+          "sha256": "84475798e07c8174dbbfaec70a827fdb02f19ffa69a589380c13e7507fd0e731"
+        }
+      ]
+    },
+    {
+      "file": "libtalloc_2.5.0_aarch64.deb",
+      "url": "https://packages.termux.dev/apt/termux-main/pool/main/libt/libtalloc/libtalloc_2.5.0_aarch64.deb",
+      "sha256": "556591f43bb773ad8777e1a29522640866a55f95dab71914418b94a8c58ad5a7",
+      "name": "libtalloc",
+      "version": "2.5.0",
+      "abi": "arm64-v8a",
+      "members": [
+        {
+          "path": "./data/data/com.termux/files/usr/lib/libtalloc.so.2.5.0",
+          "output": "libtalloc.so",
+          "sha256": "742b438c4d09e276985a61d44164c9de207b6d8cc268f3018cb3001961bcb309"
+        }
+      ]
+    },
+    {
+      "file": "proot_5.1.107.99_aarch64.deb",
+      "url": "https://packages.termux.dev/apt/termux-main/pool/main/p/proot/proot_5.1.107.99_aarch64.deb",
+      "sha256": "0c31d50e9c0fc201347ef541b482c1cae055944dfcac5f881a0d2932a32bb90d",
+      "name": "proot",
+      "version": "5.1.107.99",
+      "abi": "arm64-v8a",
+      "members": [
+        {
+          "path": "./data/data/com.termux/files/usr/bin/proot",
+          "output": "libproot.so",
+          "sha256": "33c888fe541fba875dfac38f6aa02ccaf9537459b24ee83b8b02543d5121e8ae"
+        },
+        {
+          "path": "./data/data/com.termux/files/usr/libexec/proot/loader",
+          "output": "libproot_loader.so",
+          "sha256": "1da54355333cca3fb6ee10e3b82a24df24fb230c99241ce83809bf9e240609b5"
+        }
+      ]
+    },
+    {
+      "file": "libandroid-shmem_0.7_x86_64.deb",
+      "url": "https://packages.termux.dev/apt/termux-main/pool/main/liba/libandroid-shmem/libandroid-shmem_0.7_x86_64.deb",
+      "sha256": "ffa9e4c87467b158b148d0ff92dda796aa038276c2075af3269cdcdb06f25797",
+      "name": "libandroid-shmem",
+      "version": "0.7",
+      "abi": "x86_64",
+      "members": [
+        {
+          "path": "./data/data/com.termux/files/usr/lib/libandroid-shmem.so",
+          "output": "libandroid-shmem.so",
+          "sha256": "092926060298acd3778e6239033d7aef1280dcb59aebe021a3719612e6a3465f"
+        }
+      ]
+    },
+    {
+      "file": "libtalloc_2.5.0_x86_64.deb",
+      "url": "https://packages.termux.dev/apt/termux-main/pool/main/libt/libtalloc/libtalloc_2.5.0_x86_64.deb",
+      "sha256": "b8c6d95f20075dc1f9ec6573575b2444e8d526e48e0d8d6d5cf4e071e6e06530",
+      "name": "libtalloc",
+      "version": "2.5.0",
+      "abi": "x86_64",
+      "members": [
+        {
+          "path": "./data/data/com.termux/files/usr/lib/libtalloc.so.2.5.0",
+          "output": "libtalloc.so",
+          "sha256": "7fa6722a4320495b1b85832fc7fd02de0cb367b45f116c1921b2830a6936da90"
+        }
+      ]
+    },
+    {
+      "file": "proot_5.1.107.99_x86_64.deb",
+      "url": "https://packages.termux.dev/apt/termux-main/pool/main/p/proot/proot_5.1.107.99_x86_64.deb",
+      "sha256": "24c8b400b7b5ece5643c17d82f0106f23d8ac1860464e5bfb0cd5a5d734cd2b6",
+      "name": "proot",
+      "version": "5.1.107.99",
+      "abi": "x86_64",
+      "members": [
+        {
+          "path": "./data/data/com.termux/files/usr/bin/proot",
+          "output": "libproot.so",
+          "sha256": "553c2b529735ac09f5f6a6a0ac3f426cc94f5ded0668b85b6c034f19ee0073b2"
+        },
+        {
+          "path": "./data/data/com.termux/files/usr/libexec/proot/loader",
+          "output": "libproot_loader.so",
+          "sha256": "a836b0569c84b1661333d16bacf6b396ff08fea816a5c936a82e08ddeeca8341"
+        }
+      ]
+    }
+  ]
+}

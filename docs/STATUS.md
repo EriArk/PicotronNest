@@ -13,6 +13,9 @@ the next gate.
 
 ## Latest evidence
 
+- Keyboard/Unicode preparation: source-aware held-key/modifier state, bounded
+  text chunks and transport failure checks pass on the host. This path is not
+  attached to official Picotron. [Experiment scope](KEYBOARD_SPIKE.md).
 - Owned bridge emulator checks PASS: real Android View/socket code plus a shared
   native pointer decoder, Android 15/API 35 x86_64, SELinux Enforcing, target 36.
   Recreation, rotation, dialog focus loss and Home/return retain one native
@@ -109,7 +112,7 @@ When the owner makes Retroid available, install the pointer lab and verify a
 real desktop click, drag, boundary mapping and focus-loss release. Do not treat
 host tests or a zero-input session as this interaction proof.
 The [three-session hardware procedure](RETROID_INPUT_CHECK.md) is prepared.
-[Phone/handheld input proposals](INPUT_DESIGN.md) are a discussion draft; defaults
+[Phone/handheld input direction](INPUT_DESIGN.md) is accepted; exact defaults
 and physical-device usability remain undecided.
 Keep enforcing ARM64 Android execution as
 an explicit compatibility gap; the Retroid headless result does not close it.

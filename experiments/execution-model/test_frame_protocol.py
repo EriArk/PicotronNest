@@ -12,6 +12,9 @@ class FrameProtocolHost(unittest.TestCase):
     def test_transport_and_failure_boundaries(self):
         self.run_java('TransportHostTest')
 
+    def test_keyboard_state_unicode_and_transport(self):
+        self.run_java('KeyboardHostTest')
+
     def run_java(self, test):
         here = Path(__file__).resolve().parent
         jdk = Path(os.environ.get('JAVA_HOME', r'C:\Program Files\Android\Android Studio\jbr')) / 'bin'
@@ -21,6 +24,9 @@ class FrameProtocolHost(unittest.TestCase):
                             str(here / 'src/art/picotronnest/executionlab/PointerSender.java'),
                             str(here / 'src/art/picotronnest/executionlab/PointerState.java'),
                             str(here / 'src/art/picotronnest/executionlab/FrameStream.java'),
+                            str(here / 'src/art/picotronnest/executionlab/KeyboardProtocol.java'),
+                            str(here / 'src/art/picotronnest/executionlab/KeyboardState.java'),
+                            str(here / 'src/art/picotronnest/executionlab/KeyboardWriter.java'),
                             str(here / ('tests/' + test + '.java'))], check=True, capture_output=True, timeout=30)
             subprocess.run([str(jdk / 'java.exe'), '-cp', destination,
                             'art.picotronnest.executionlab.' + test],

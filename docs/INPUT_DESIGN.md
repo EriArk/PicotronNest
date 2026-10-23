@@ -1,11 +1,12 @@
 # Input across phones, handhelds and larger screens
 
-**Discussion draft, not an implemented feature list or an approved default
-layout.** The current implementation is a single-touch left-button lab adapter.
+**Interaction direction accepted by the owner on 2026-10-23; exact defaults and
+bindings still need usability tests.** This is not an implemented feature list.
+The official-runtime lab currently has a single-touch left-button adapter.
 Official Picotron input acceptance is pending; see [the prepared hardware
 check](RETROID_INPUT_CHECK.md). Product UI work follows that gate.
 
-## Proposed interaction modes
+## Accepted interaction direction
 
 | Context | Candidate behavior | Questions to settle through use |
 | --- | --- | --- |
@@ -58,6 +59,8 @@ name. Keep the actual Picotron desktop and editors as the workspace.
    using the same real workflows: select a file, enter/edit Lua, draw a precise
    line, save/reopen a project and return after a normal interruption.
 
-The owner's preferred phone workflow and the first controller profile remain
-discussion points. This draft does not authorize claiming phone usability,
-hardware input support or a finished product frontend.
+The owner's preferred phone workflow, initial mode and first controller profile
+remain discussion points. Accepted direction does not establish phone usability,
+hardware input support or a finished product frontend. While hardware is reserved,
+bounded [keyboard/Unicode fixture work](KEYBOARD_SPIKE.md) prepares the next adapter
+without enabling an unverified path in official Picotron.

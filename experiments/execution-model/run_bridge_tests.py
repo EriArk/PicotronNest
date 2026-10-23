@@ -12,7 +12,7 @@ PACKAGE = 'art.picotronnest.bridgetest'
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--serial', required=True)
-    parser.add_argument('--mode', choices=['all','normal','abrupt','partial','keyboard'], default='all')
+    parser.add_argument('--mode', choices=['all','normal','abrupt','partial','keyboard','cursor'], default='all')
     args = parser.parse_args()
     def adb(*command, timeout=15):
         return subprocess.run(['adb', '-s', args.serial, *command], check=True,
@@ -41,18 +41,18 @@ def main():
               ['ro.product.model', 'ro.build.version.release', 'ro.build.version.sdk', 'ro.product.cpu.abi']}
     device['selinux'] = adb('shell', 'getenforce').decode().strip()
     (evidence / 'device.json').write_text(json.dumps(device, indent=2), encoding='utf-8')
-    for mode in (['normal', 'abrupt', 'partial', 'keyboard'] if args.mode == 'all' else [args.mode]):
+    for mode in (['normal', 'abrupt', 'partial', 'keyboard', 'cursor'] if args.mode == 'all' else [args.mode]):
         output = adb('shell', 'am', 'instrument', '-w', '-r', '-e', 'mode', mode, '-e', 'session', session,
                      PACKAGE + '/art.picotronnest.executionlab.BridgeInstrumentation', timeout=120)
         (evidence / (mode + '-instrument.txt')).write_bytes(output)
         raw = adb('exec-out', 'run-as', PACKAGE, 'cat', 'files/bridge-' + mode + '.json')
         (evidence / (mode + '.json')).write_bytes(raw)
         report = json.loads(raw)
-        if report.get('session') == session and report.get('screenshot') == 'keyboard-preview.png':
-            screenshot = adb('exec-out', 'run-as', PACKAGE, 'cat', 'files/keyboard-preview.png')
+        if mode in ('keyboard','cursor') and report.get('session') == session and report.get('screenshot') == mode + '-preview.png':
+            screenshot = adb('exec-out', 'run-as', PACKAGE, 'cat', 'files/' + mode + '-preview.png')
             if not screenshot.startswith(b'\x89PNG\r\n\x1a\n'):
                 raise ValueError('Invalid emulator screenshot')
-            (evidence / 'keyboard.png').write_bytes(screenshot)
+            (evidence / (mode + '.png')).write_bytes(screenshot)
         if report.get('session') != session or report.get('mode') != mode or report.get('outcome') != 'PASS':
             raise ValueError('Instrumentation failed: ' + str(report.get('failure', report)))
         if report.get('official_runtime') != 'NOT TESTED' or report['launches'] != 1:

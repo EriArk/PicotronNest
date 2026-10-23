@@ -13,6 +13,12 @@ the next gate.
 
 ## Latest evidence
 
+- Relative touchpad/stick fixture: fractional cursor motion, explicit primary
+  drag ownership, remapped axes/buttons, precision and cancellation pass on the
+  Android 15/API 35 x86_64 emulator. Seven down/up pairs reach the native receiver;
+  all five bridge scenarios pass, with 31 lab and 9 archive tests passing.
+  The official launcher does not attach this adapter; no physical controller or
+  Picotron input acceptance is claimed. [Evidence and actual screenshot scope](CURSOR_SPIKE.md).
 - Keyboard/Unicode fixture: source-aware modifier ownership, bounded text
   transport and limited Android IME composition/commit reach an owned native
   process on the Android 15/API 35 x86_64 emulator. Cyrillic/CJK/emoji bytes,

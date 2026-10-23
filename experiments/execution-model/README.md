@@ -190,8 +190,10 @@ For regression work without the ARM64 runtime, the separate
 [`build_bridge_tests.py` / `run_bridge_tests.py` harness](../../docs/P1_BRIDGE_TESTS.md)
 exercises the same Android display, input and lifecycle code with an owned
 x86_64 process on an emulator. This is not official Picotron acceptance.
-Its default run covers normal lifecycle/input, abrupt exit, partial-frame exit
-and the [limited keyboard/Unicode fixture](../../docs/KEYBOARD_SPIKE.md).
-Use `--mode keyboard` for the focused IME check. The collector retains an actual
-labeled emulator screenshot as `keyboard.png` beside the private JSON report.
-The official launcher does not attach the experimental keyboard adapter.
+Its default run covers normal lifecycle/input, abrupt exit, partial-frame exit,
+the [limited keyboard/Unicode fixture](../../docs/KEYBOARD_SPIKE.md) and the
+[relative touchpad/stick cursor](../../docs/CURSOR_SPIKE.md).
+Use `--mode keyboard` or `--mode cursor` for focused checks. The collector retains
+actual labeled emulator screenshots as `keyboard.png` and `cursor.png` beside
+their private JSON reports. The official launcher attaches neither experimental
+adapter.

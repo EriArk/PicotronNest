@@ -19,6 +19,9 @@ public final class BridgeTestActivity extends MainActivity {
     static volatile JSONObject result;
     static volatile int exitCode = -1;
     static volatile boolean keyboardTest;
+    static volatile boolean cursorTest;
+    static volatile CursorInput cursor;
+    android.widget.Button primaryButton, modeButton;
     static volatile KeyboardInput keyboard;
     static volatile int keyPackets, keyScan, keyFlags, keyMods, keyDowns, keyUps, keyPeerPid;
     static volatile String receivedText = "";
@@ -31,9 +34,33 @@ public final class BridgeTestActivity extends MainActivity {
         label.setText("OWNED BRIDGE FIXTURE — NO PICOTRON");
         label.setTextColor(android.graphics.Color.YELLOW);
         label.setBackgroundColor(android.graphics.Color.BLACK);
-        addContentView(label, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
-                keyboardTest ? ViewGroup.LayoutParams.WRAP_CONTENT : 60));
-        if (keyboardTest) {
+        View header=label;
+        if (cursorTest) {
+            android.widget.LinearLayout controls=new android.widget.LinearLayout(this);
+            controls.setOrientation(android.widget.LinearLayout.VERTICAL);
+            controls.addView(label);
+            modeButton=new android.widget.Button(this); modeButton.setText("Switch touchpad / stick");
+            modeButton.setFocusable(false);
+            modeButton.setOnClickListener(v -> {
+                if (cursor!=null) cursor.mode(cursor.mode()==RelativePointer.Mode.TOUCHPAD ? RelativePointer.Mode.STICK : RelativePointer.Mode.TOUCHPAD);
+                showReceipt();
+            });
+            primaryButton=new android.widget.Button(this); primaryButton.setText("Hold primary (touchpad)");
+            primaryButton.setFocusable(false);
+            primaryButton.setOnTouchListener((v,event) -> {
+                if (cursor==null) return false;
+                int action=event.getActionMasked();
+                if (action==android.view.MotionEvent.ACTION_DOWN) return cursor.primaryTouch(true);
+                if (action==android.view.MotionEvent.ACTION_UP || action==android.view.MotionEvent.ACTION_CANCEL) {
+                    cursor.primaryTouch(false); return true;
+                }
+                return true;
+            });
+            controls.addView(modeButton); controls.addView(primaryButton); header=controls;
+        }
+        addContentView(header, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                keyboardTest || cursorTest ? ViewGroup.LayoutParams.WRAP_CONTENT : 60));
+        if (keyboardTest || cursorTest) {
             label.setOnApplyWindowInsetsListener((view, insets) -> {
                 android.graphics.Insets bars=insets.getInsets(android.view.WindowInsets.Type.systemBars());
                 view.setPadding(bars.left + 12, bars.top, bars.right + 12, 12);
@@ -44,7 +71,10 @@ public final class BridgeTestActivity extends MainActivity {
         }
     }
     private void showReceipt() {
-        label.setText("OWNED BRIDGE FIXTURE — NO PICOTRON\nNative UTF-8 receipt:\n" + receivedText);
+        label.setText("OWNED BRIDGE FIXTURE — NO PICOTRON\n" + (cursorTest
+                ? "Relative cursor: " + (cursor==null ? "preparing" : cursor.mode())
+                    + "\nNative receipt: x=" + x + " y=" + y + " held=" + held
+                : "Native UTF-8 receipt:\n" + receivedText));
     }
     DesktopView desktop() {
         ViewGroup content = findViewById(android.R.id.content);
@@ -87,6 +117,10 @@ public final class BridgeTestActivity extends MainActivity {
                         x = Integer.parseInt(fields[2]); y = Integer.parseInt(fields[3]);
                         held = Integer.parseInt(fields[4]); downs = Integer.parseInt(fields[5]); ups = Integer.parseInt(fields[6]);
                         packets = Integer.parseInt(fields[1]); // Publish the complete input snapshot last.
+                        if (cursorTest) {
+                            BridgeTestActivity view=current;
+                            if (view!=null) view.runOnUiThread(view::showReceipt);
+                        }
                     }
                     if (line.startsWith("TEXT ")) {
                         String hex = fields[1]; byte[] bytes = new byte[hex.length()/2];

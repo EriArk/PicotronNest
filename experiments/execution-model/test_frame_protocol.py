@@ -15,6 +15,9 @@ class FrameProtocolHost(unittest.TestCase):
     def test_keyboard_state_unicode_and_transport(self):
         self.run_java('KeyboardHostTest')
 
+    def test_relative_cursor_ownership_and_timing(self):
+        self.run_java('RelativePointerHostTest')
+
     def run_java(self, test):
         here = Path(__file__).resolve().parent
         jdk = Path(os.environ.get('JAVA_HOME', r'C:\Program Files\Android\Android Studio\jbr')) / 'bin'
@@ -23,6 +26,7 @@ class FrameProtocolHost(unittest.TestCase):
                             str(here / 'src/art/picotronnest/executionlab/FrameProtocol.java'),
                             str(here / 'src/art/picotronnest/executionlab/PointerSender.java'),
                             str(here / 'src/art/picotronnest/executionlab/PointerState.java'),
+                            str(here / 'src/art/picotronnest/executionlab/RelativePointer.java'),
                             str(here / 'src/art/picotronnest/executionlab/FrameStream.java'),
                             str(here / 'src/art/picotronnest/executionlab/KeyboardProtocol.java'),
                             str(here / 'src/art/picotronnest/executionlab/KeyboardState.java'),

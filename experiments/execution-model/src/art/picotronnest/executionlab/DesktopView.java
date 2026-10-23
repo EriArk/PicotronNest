@@ -19,6 +19,7 @@ final class DesktopView extends View {
     private final Paint paint = new Paint();
     private static PointerSender pointer;
     private static KeyboardInput keyboard;
+    private CursorInput cursor;
     private final PointerState touch = new PointerState((x, y, buttons) -> {
         if (pointer != null) pointer.send(x, y, buttons);
     });
@@ -55,7 +56,20 @@ final class DesktopView extends View {
 
     static synchronized int drawnSequence() { return drawn; }
 
+    CursorInput relativeCursor(CursorInput.Bindings bindings, double speed, double deadzone, double precision,
+            boolean syntheticAxes) {
+        synchronized (DesktopView.class) {
+            if (pointer==null || frame==null) throw new IllegalStateException("cursor needs connected frames");
+            release(); if (cursor!=null) cursor.close();
+            cursor=new CursorInput(this,pointer::send,bindings,speed,deadzone,precision,syntheticAxes);
+            cursor.geometry(frame.getWidth(),frame.getHeight(),getWidth(),getHeight());
+            return cursor;
+        }
+    }
+
     static synchronized void pointer(PointerSender sender) {
+        DesktopView view=attached.get();
+        if (view!=null && view.cursor!=null) { view.cursor.disconnected(); view.cursor=null; }
         pointer = null;
         releasePointer(); // Forget local capture; a closed session cannot receive a release.
         pointer = sender;
@@ -80,22 +94,35 @@ final class DesktopView extends View {
     }
     @Override public boolean onKeyDown(int code, android.view.KeyEvent event) {
         synchronized (DesktopView.class) {
+            if (pointer!=null && cursor!=null && cursor.key(event)) return true;
             return keyboard != null && keyboard.event(event) || super.onKeyDown(code, event);
         }
     }
     @Override public boolean onKeyUp(int code, android.view.KeyEvent event) {
         synchronized (DesktopView.class) {
+            if (pointer!=null && cursor!=null && cursor.key(event)) return true;
             return keyboard != null && keyboard.event(event) || super.onKeyUp(code, event);
         }
     }
 
     private void release() {
         touch.release();
+        if (cursor!=null) cursor.cancel();
+    }
+
+    @Override public boolean onGenericMotionEvent(MotionEvent event) {
+        synchronized (DesktopView.class) {
+            return pointer!=null && cursor!=null && cursor.motion(event) || super.onGenericMotionEvent(event);
+        }
     }
 
     @Override public boolean onTouchEvent(MotionEvent event) {
         synchronized (DesktopView.class) {
             if (frame == null || pointer == null) return false;
+            if (cursor!=null) {
+                cursor.geometry(frame.getWidth(),frame.getHeight(),getWidth(),getHeight());
+                return cursor.touch(event);
+            }
             int action = event.getActionMasked();
             if (action == MotionEvent.ACTION_CANCEL || action == MotionEvent.ACTION_POINTER_DOWN) {
                 release();
@@ -126,7 +153,10 @@ final class DesktopView extends View {
     }
 
     @Override protected void onDetachedFromWindow() {
-        synchronized (DesktopView.class) { release(); if (keyboard != null) keyboard.releaseAll(); }
+        synchronized (DesktopView.class) {
+            release(); if (keyboard != null) keyboard.releaseAll();
+            if (cursor!=null) { cursor.close(); cursor=null; }
+        }
         super.onDetachedFromWindow();
     }
 
@@ -142,6 +172,10 @@ final class DesktopView extends View {
                 float[] fit = FrameProtocol.fit(frame.getWidth(), frame.getHeight(), getWidth(), getHeight());
                 canvas.drawBitmap(frame, null, new RectF(fit[1], fit[2], fit[1] + frame.getWidth() * fit[0],
                         fit[2] + frame.getHeight() * fit[0]), paint);
+                if (cursor!=null) {
+                    cursor.geometry(frame.getWidth(),frame.getHeight(),getWidth(),getHeight());
+                    cursor.draw(canvas);
+                }
                 drawn = sequence;
             }
             paint.setColor(Color.WHITE);

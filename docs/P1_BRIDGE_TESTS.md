@@ -69,6 +69,12 @@ stopped without clearing data. Retroid and unrelated apps were not manipulated.
 
 ## Fixes and limits
 
+The [relative cursor increment](CURSOR_SPIKE.md) subsequently passes all five
+scenarios on its final APK in session `b36014f4-71e7-41a3-8958-a96a279c7d3d`.
+That record includes the new pointer ownership/profile checks, native counters,
+actual emulator screenshot and current build hashes. Earlier observations below
+remain tied to their original artifacts.
+
 The later keyboard-fixture build reran all four scenarios successfully in session
 `13b83922-c197-4c96-9c4e-55dd1b8fe770`, APK SHA-256
 `a509cabe148fcb26607aaffcc3cc15f5cba297b99c4d2533064ea9dabcd87e78`.

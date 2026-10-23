@@ -64,7 +64,8 @@ presentation and Android display. Next: real pointer interaction on free hardwar
 The owner accepted the [cross-device input direction](INPUT_DESIGN.md):
 capability-based profiles and shared release/coordinate rules. Exact default
 mappings remain undecided. [Keyboard/Unicode fixture work](KEYBOARD_SPIKE.md)
-prepares a limited adapter while hardware is reserved; it does not close the
+and [relative touchpad/stick checks](CURSOR_SPIKE.md) prepare limited adapters
+while hardware is reserved; they do not close the
 [official-runtime input check](RETROID_INPUT_CHECK.md).
 
 - Route touch taps, drag, long press/right-click, wheel if available, mouse motion/buttons and keyboard text.

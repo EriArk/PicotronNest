@@ -247,16 +247,158 @@ public final class BridgeInstrumentation extends Instrumentation {
     private void screenshot() throws IOException {
         android.graphics.Bitmap bitmap=getUiAutomation().takeScreenshot();
         check(bitmap!=null,"screenshot missing");
-        try (FileOutputStream out=new FileOutputStream(new File(getTargetContext().getFilesDir(),"keyboard-preview.png"))) {
+        try (FileOutputStream out=new FileOutputStream(new File(getTargetContext().getFilesDir(),mode+"-preview.png"))) {
             check(bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG,100,out),"screenshot encoding");
             screenshotSaved=true;
         } finally { bitmap.recycle(); }
+    }
+    private void pad(int action, float x, float y) {
+        ui(() -> {
+            DesktopView view=BridgeTestActivity.current.desktop();
+            float scale=FrameProtocol.fit(48,27,view.getWidth(),view.getHeight())[0];
+            long now=SystemClock.uptimeMillis();
+            MotionEvent event=MotionEvent.obtain(now,now,action,100+x*scale,300+y*scale,0);
+            event.setSource(android.view.InputDevice.SOURCE_TOUCHSCREEN);
+            try { check(view.dispatchTouchEvent(event),"touchpad event rejected"); } finally { event.recycle(); }
+        });
+    }
+    private void padButton(int action) {
+        ui(() -> {
+            long now=SystemClock.uptimeMillis();
+            MotionEvent event=MotionEvent.obtain(now,now,action,10,10,0);
+            try { check(BridgeTestActivity.current.primaryButton.dispatchTouchEvent(event),"primary control rejected"); }
+            finally { event.recycle(); }
+        });
+    }
+    private void gameKey(int device, int code, int action, boolean accepted) {
+        ui(() -> {
+            long now=SystemClock.uptimeMillis();
+            android.view.KeyEvent event=new android.view.KeyEvent(now,now,action,code,0,0,device,0,0,
+                    android.view.InputDevice.SOURCE_GAMEPAD);
+            check(BridgeTestActivity.current.desktop().dispatchKeyEvent(event)==accepted,"controller key routing");
+        });
+    }
+    private void stick(int device, int axisX, int axisY, float x, float y, boolean accepted) {
+        ui(() -> {
+            MotionEvent.PointerProperties property=new MotionEvent.PointerProperties(); property.id=0;
+            MotionEvent.PointerCoords point=new MotionEvent.PointerCoords();
+            point.setAxisValue(axisX,x); point.setAxisValue(axisY,y);
+            long now=SystemClock.uptimeMillis();
+            MotionEvent event=MotionEvent.obtain(now,now,MotionEvent.ACTION_MOVE,1,
+                    new MotionEvent.PointerProperties[]{property},new MotionEvent.PointerCoords[]{point},0,0,1,1,
+                    device,0,android.view.InputDevice.SOURCE_JOYSTICK,0);
+            try { check(BridgeTestActivity.current.desktop().dispatchGenericMotionEvent(event)==accepted,"stick routing"); }
+            finally { event.recycle(); }
+        });
+    }
+    private void cursor() throws Exception {
+        ui(() -> {
+            DesktopView view=BridgeTestActivity.current.desktop(); view.requestFocus();
+            BridgeTestActivity.cursor=view.relativeCursor(new CursorInput.Bindings(MotionEvent.AXIS_X,MotionEvent.AXIS_Y,
+                    android.view.KeyEvent.KEYCODE_BUTTON_A,android.view.KeyEvent.KEYCODE_BUTTON_L1),24,0.2,0.25,true);
+            BridgeTestActivity.cursor.mode(RelativePointer.Mode.TOUCHPAD);
+        });
+        pad(MotionEvent.ACTION_DOWN,0,0); pad(MotionEvent.ACTION_MOVE,5.25f,4.25f); pad(MotionEvent.ACTION_UP,5.25f,4.25f);
+        packets(1,28,17,0);
+        pad(MotionEvent.ACTION_DOWN,20,20); pad(MotionEvent.ACTION_UP,20,20); packets(1,28,17,0);
+        checks.put("relative_touch_and_recontact_without_cursor_jump_or_click");
+        padButton(MotionEvent.ACTION_DOWN);
+        pad(MotionEvent.ACTION_DOWN,0,0); pad(MotionEvent.ACTION_MOVE,2,2); pad(MotionEvent.ACTION_UP,2,2);
+        packets(3,30,19,1);
+        ui(() -> BridgeTestActivity.current.modeButton.performClick()); packets(4,30,19,0);
+        padButton(MotionEvent.ACTION_UP);
+        checks.put("explicit_touch_drag_and_mode_switch_release");
+        stick(101,MotionEvent.AXIS_X,MotionEvent.AXIS_Y,0.05f,0.05f,true);
+        gameKey(101,android.view.KeyEvent.KEYCODE_BUTTON_A,0,true);
+        await(() -> BridgeTestActivity.held==1,"controller primary down");
+        check(BridgeTestActivity.x==30 && BridgeTestActivity.y==19,"deadzone drift");
+        gameKey(202,android.view.KeyEvent.KEYCODE_BUTTON_A,0,false);
+        stick(202,MotionEvent.AXIS_X,MotionEvent.AXIS_Y,-1,0,false);
+        ui(() -> BridgeTestActivity.cursor.onInputDeviceRemoved(202));
+        check(BridgeTestActivity.held==1,"foreign removal released drag");
+        stick(101,MotionEvent.AXIS_X,MotionEvent.AXIS_Y,1,0,true);
+        await(() -> BridgeTestActivity.x>=33,"scheduled stick movement");
+        stick(101,MotionEvent.AXIS_X,MotionEvent.AXIS_Y,0,0,true);
+        ui(() -> BridgeTestActivity.cursor.onInputDeviceRemoved(101));
+        await(() -> BridgeTestActivity.held==0,"owner removal release");
+        checks.put("stick_animation_deadzone_drag_owner_and_disconnect");
+
+        gameKey(101,android.view.KeyEvent.KEYCODE_BUTTON_A,0,true);
+        await(() -> BridgeTestActivity.held==1,"drag before remapping");
+        ui(() -> BridgeTestActivity.cursor.bindings(new CursorInput.Bindings(MotionEvent.AXIS_Z,MotionEvent.AXIS_RZ,
+                android.view.KeyEvent.KEYCODE_BUTTON_X,android.view.KeyEvent.KEYCODE_BUTTON_R1)));
+        await(() -> BridgeTestActivity.held==0,"remapping releases old primary");
+        gameKey(101,android.view.KeyEvent.KEYCODE_BUTTON_A,0,false);
+        gameKey(101,android.view.KeyEvent.KEYCODE_BUTTON_R1,0,true);
+        gameKey(101,android.view.KeyEvent.KEYCODE_BUTTON_X,0,true);
+        await(() -> BridgeTestActivity.held==1,"remapped primary");
+        int oldY=BridgeTestActivity.y;
+        stick(101,MotionEvent.AXIS_Z,MotionEvent.AXIS_RZ,0,-1,true);
+        await(() -> BridgeTestActivity.y<=oldY-2,"remapped precise stick movement");
+        AlertDialog[] dialog=new AlertDialog[1];
+        ui(() -> { dialog[0]=new AlertDialog.Builder(BridgeTestActivity.current).setMessage("Cursor focus check").create(); dialog[0].show(); });
+        await(() -> BridgeTestActivity.held==0,"cursor focus release");
+        int stoppedX=BridgeTestActivity.x, stoppedY=BridgeTestActivity.y;
+        ui(() -> dialog[0].dismiss());
+        await(() -> BridgeTestActivity.current.hasWindowFocus(),"cursor focus return");
+        gameKey(101,android.view.KeyEvent.KEYCODE_BUTTON_X,0,true);
+        await(() -> BridgeTestActivity.held==1,"new drag after focus");
+        check(BridgeTestActivity.x==stoppedX && BridgeTestActivity.y==stoppedY,"stale movement on focus return");
+        gameKey(101,android.view.KeyEvent.KEYCODE_BUTTON_X,1,true);
+        await(() -> BridgeTestActivity.held==0,"new drag release");
+        checks.put("remapped_axes_buttons_precision_and_focus_reset");
+
+        ui(() -> BridgeTestActivity.current.modeButton.performClick());
+        pad(MotionEvent.ACTION_DOWN,0,0); pad(MotionEvent.ACTION_MOVE,-100,-100); pad(MotionEvent.ACTION_UP,-100,-100);
+        await(() -> BridgeTestActivity.x==0 && BridgeTestActivity.y==0,"touchpad edge clamp");
+        pad(MotionEvent.ACTION_DOWN,0,0); pad(MotionEvent.ACTION_MOVE,12,10); pad(MotionEvent.ACTION_UP,12,10);
+        await(() -> BridgeTestActivity.x==12 && BridgeTestActivity.y==10,"reverse from clamped edge");
+        int beforeClick=BridgeTestActivity.packets;
+        padButton(MotionEvent.ACTION_DOWN); padButton(MotionEvent.ACTION_UP);
+        await(() -> BridgeTestActivity.packets>=beforeClick+2 && BridgeTestActivity.held==0
+                && BridgeTestActivity.downs==BridgeTestActivity.ups,"all cursor buttons paired");
+        checks.put("edge_clamp_reverse_and_balanced_buttons");
+        padButton(MotionEvent.ACTION_DOWN);
+        await(() -> BridgeTestActivity.held==1,"cursor drag before viewport resize");
+        ui(() -> {
+            DesktopView view=BridgeTestActivity.current.desktop();
+            android.view.ViewGroup.LayoutParams params=view.getLayoutParams();
+            params.height=view.getHeight()/2; view.setLayoutParams(params);
+        });
+        await(() -> BridgeTestActivity.held==0,"cursor viewport resize release");
+        int beforeRestore=DesktopView.drawnSequence();
+        ui(() -> {
+            DesktopView view=BridgeTestActivity.current.desktop();
+            android.view.ViewGroup.LayoutParams params=view.getLayoutParams();
+            params.height=android.view.ViewGroup.LayoutParams.MATCH_PARENT; view.setLayoutParams(params);
+        });
+        padButton(MotionEvent.ACTION_UP);
+        await(() -> DesktopView.drawnSequence()>beforeRestore+2,"restored cursor viewport presented");
+        checks.put("relative_cursor_viewport_resize_release");
+        waitForIdleSync(); screenshot();
+        ui(() -> BridgeTestActivity.cursor.mode(RelativePointer.Mode.DISABLED));
+        gameKey(101,android.view.KeyEvent.KEYCODE_BUTTON_X,0,false);
+        stick(101,MotionEvent.AXIS_Z,MotionEvent.AXIS_RZ,1,0,false);
+        checks.put("disabled_cursor_does_not_consume_gamepad");
+        BridgeTestActivity.command('Q');
+        await(() -> BridgeTestActivity.result!=null || BridgeTestActivity.error!=null,"cursor process exit");
+        check(BridgeTestActivity.error==null && BridgeTestActivity.exitCode==0,"cursor fixture exit");
+        JSONObject result=BridgeTestActivity.result;
+        check(!result.has("error") && !result.has("pointer_error") && result.getInt("pointer_packets")==BridgeTestActivity.packets
+                && result.getInt("peer_pid")==BridgeTestActivity.nativePid,"cursor native transport accounting");
+        ui(() -> {
+            BridgeTestActivity.cursor.mode(RelativePointer.Mode.TOUCHPAD);
+            check(!BridgeTestActivity.cursor.primaryTouch(true),"disconnected cursor accepted a new press");
+        });
+        checks.put("disconnected_cursor_rejects_stale_overlay_control");
+        checks.put("cursor_native_peer_accounting_and_clean_exit");
     }
     @Override public void onStart() {
         JSONObject report = new JSONObject(); Bundle bundle = new Bundle();
         try {
             check(session != null && session.matches("[a-f0-9-]{36}"), "missing session UUID");
             BridgeTestActivity.keyboardTest=mode.equals("keyboard");
+            BridgeTestActivity.cursorTest=mode.equals("cursor");
             report.put("session", session).put("mode", mode).put("host_pid", android.os.Process.myPid()).put("host_uid", android.os.Process.myUid())
                     .put("official_runtime", "NOT TESTED");
             // Cancellation before a client connects must terminate the waiting receiver.
@@ -280,6 +422,7 @@ public final class BridgeInstrumentation extends Instrumentation {
             checks.put("owned_native_decoder_and_real_frames");
             if (mode.equals("normal")) normal();
             else if (mode.equals("keyboard")) keyboard();
+            else if (mode.equals("cursor")) cursor();
             else {
                 check(mode.equals("abrupt") || mode.equals("partial"), "unknown test mode");
                 touch(MotionEvent.ACTION_DOWN, 3, 4, 48, 27);
@@ -303,7 +446,7 @@ public final class BridgeInstrumentation extends Instrumentation {
             report.put("outcome", "PASS");
         } catch (Throwable failure) {
             try { report.put("outcome", "FAIL").put("failure", failure.toString()); } catch (Exception ignored) { }
-            if (mode.equals("keyboard") && BridgeTestActivity.current!=null && BridgeTestActivity.current.hasWindowFocus()) {
+            if ((mode.equals("keyboard") || mode.equals("cursor")) && BridgeTestActivity.current!=null && BridgeTestActivity.current.hasWindowFocus()) {
                 try { screenshot(); } catch (Exception ignored) { }
             }
         } finally {
@@ -316,7 +459,7 @@ public final class BridgeInstrumentation extends Instrumentation {
                 report.put("checks", checks).put("launches", BridgeTestActivity.launches).put("activity_creates", BridgeTestActivity.creates)
                         .put("native_pid", BridgeTestActivity.nativePid).put("exit_code", BridgeTestActivity.exitCode)
                         .put("stream", BridgeTestActivity.result).put("native_output", BridgeTestActivity.transcript);
-                if (screenshotSaved) report.put("screenshot","keyboard-preview.png");
+                if (screenshotSaved) report.put("screenshot",mode+"-preview.png");
                 File file = new File(getTargetContext().getFilesDir(), "bridge-" + mode + ".json");
                 try (Writer out = new OutputStreamWriter(new FileOutputStream(file), "UTF-8")) { out.write(report.toString(2)); }
                 bundle.putString("stream", report.toString());

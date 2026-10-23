@@ -64,3 +64,6 @@ remain discussion points. Accepted direction does not establish phone usability,
 hardware input support or a finished product frontend. While hardware is reserved,
 bounded [keyboard/Unicode fixture work](KEYBOARD_SPIKE.md) prepares the next adapter
 without enabling an unverified path in official Picotron.
+The [relative touchpad/stick fixture](CURSOR_SPIKE.md) similarly exercises explicit
+drag ownership, remapped controls and cancellation without selecting product
+defaults or claiming physical-controller support.

@@ -7,6 +7,12 @@ import unittest
 
 class FrameProtocolHost(unittest.TestCase):
     def test_java_protocol_and_geometry(self):
+        self.run_java('FrameProtocolHostTest')
+
+    def test_transport_and_failure_boundaries(self):
+        self.run_java('TransportHostTest')
+
+    def run_java(self, test):
         here = Path(__file__).resolve().parent
         jdk = Path(os.environ.get('JAVA_HOME', r'C:\Program Files\Android\Android Studio\jbr')) / 'bin'
         with tempfile.TemporaryDirectory() as destination:
@@ -14,7 +20,8 @@ class FrameProtocolHost(unittest.TestCase):
                             str(here / 'src/art/picotronnest/executionlab/FrameProtocol.java'),
                             str(here / 'src/art/picotronnest/executionlab/PointerSender.java'),
                             str(here / 'src/art/picotronnest/executionlab/PointerState.java'),
-                            str(here / 'tests/FrameProtocolHostTest.java')], check=True, capture_output=True, timeout=30)
+                            str(here / 'src/art/picotronnest/executionlab/FrameStream.java'),
+                            str(here / ('tests/' + test + '.java'))], check=True, capture_output=True, timeout=30)
             subprocess.run([str(jdk / 'java.exe'), '-cp', destination,
-                            'art.picotronnest.executionlab.FrameProtocolHostTest'],
+                            'art.picotronnest.executionlab.' + test],
                            check=True, capture_output=True, timeout=10)

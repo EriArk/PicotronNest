@@ -169,3 +169,22 @@ near displayed edges, focus loss/re-entry and clean exit with matching counters.
 Native polling versus state-sampling behavior still needs runtime observation.
 Double-click semantics, secondary click, wheel, mouse hardware, keyboard/IME,
 controller mapping and sound remain outside this minimal pointer increment.
+
+## Host transport regression increment
+
+The same `FrameStream` now drives Android reception and host failure tests.
+Only complete, validated frames reach the View. Tests cover fragmented headers
+and payloads, partial EOF, malformed/stale/oversized headers, color conversion,
+storage reuse and changing frame dimensions. A real localhost full-duplex test
+sends 40 rapid click pairs through `PointerSender` while receiving fragmented
+frames and a size change; every packet/edge is checked in order.
+
+Blocked-output tests exposed two diagnostic gaps, now fixed: an overflowing
+sender must reject subsequent presses after queuing its emergency release,
+and closing with accepted but unsent input must not report clean completion.
+Broken writes also fail explicitly. These fixtures contain no Picotron code or
+assets and do not prove SDL or official Picotron input behavior.
+
+29 lab tests pass. The desktop APK builds with warnings as errors; built-only
+SHA-256 `1c6da7b9ecd14e11dbcb9b525c347c20a5ab8bf47b0f4580aded9476b289c45e`.
+Retroid was not accessed for installation, input or screen tests.

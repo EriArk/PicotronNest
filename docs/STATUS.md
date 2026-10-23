@@ -13,6 +13,11 @@ the next gate.
 
 ## Latest evidence
 
+- Host transport hardening: the shared frame reader rejects partial/invalid
+  packets and supports size changes. A real localhost duplex test preserves 40
+  rapid press/release pairs while frames flow in the opposite direction.
+  Overflow, broken writes and pending input at close are explicit failures.
+  29 lab tests pass; this is host evidence, not official-runtime input acceptance.
 - P1b.2: lab 0.0.6 adds bounded touch-to-SDL pointer transport, inverse display
   mapping and release on cancel/focus loss/pause. Host tests and APK build pass;
   this version was not installed or screen-tested, at the owner's request to

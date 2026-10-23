@@ -10,7 +10,7 @@ final class PointerSender implements AutoCloseable {
     private final Thread worker;
     private volatile boolean closing;
     private volatile String failure;
-    private volatile int sent;
+    private volatile int sent, accepted;
 
     PointerSender(OutputStream output) {
         worker = new Thread(() -> {
@@ -21,24 +21,28 @@ final class PointerSender implements AutoCloseable {
                     sent++;
                 }
             } catch (InterruptedException ended) { Thread.currentThread().interrupt(); }
-            catch (IOException error) { if (!closing) failure = error.toString(); }
+            catch (IOException error) { if (!closing && failure == null) failure = error.toString(); }
         }, "desktop-pointer");
         worker.start();
     }
 
-    void send(int x, int y, int buttons) {
-        if (closing) return;
+    synchronized void send(int x, int y, int buttons) {
+        if (closing || failure != null) return;
         if (!queue.offer(new int[]{x, y, buttons})) {
             failure = "pointer queue overflow; release queued";
             queue.clear();
             queue.offer(new int[]{x, y, 0});
         }
+        accepted++;
     }
 
     int sent() { return sent; }
-    String failure() { return failure; }
+    String failure() {
+        if (failure != null) return failure;
+        return closing && !worker.isAlive() && accepted != sent ? "pointer updates unconfirmed at close" : null;
+    }
 
-    @Override public void close() {
+    @Override public synchronized void close() {
         closing = true;
         worker.interrupt();
     }

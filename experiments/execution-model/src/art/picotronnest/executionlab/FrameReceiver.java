@@ -2,7 +2,6 @@ package art.picotronnest.executionlab;
 
 import android.net.LocalServerSocket;
 import android.net.LocalSocket;
-import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import org.json.JSONObject;
@@ -33,17 +32,11 @@ final class FrameReceiver implements AutoCloseable {
             pointer = new PointerSender(client.getOutputStream());
             DesktopView.pointer(pointer);
             InputStream input = client.getInputStream();
-            byte[] header = new byte[16], rgba = new byte[0];
-            int[] pixels = new int[0];
-            while (readFully(input, header, true)) {
-                int[] parsed = FrameProtocol.header(header, lastSequence);
-                width = parsed[0]; height = parsed[1];
-                int length = width * height * 4;
-                if (rgba.length != length) { rgba = new byte[length]; pixels = new int[width * height]; }
-                readFully(input, rgba, false);
-                FrameProtocol.rgbaToArgb(rgba, pixels);
-                DesktopView.frame(width, height, parsed[2], pixels);
-                lastSequence = parsed[2];
+            FrameStream stream = new FrameStream();
+            while (stream.next(input)) {
+                width = stream.width(); height = stream.height();
+                DesktopView.frame(width, height, stream.sequence(), stream.pixels());
+                lastSequence = stream.sequence();
                 received++;
             }
         } catch (IOException error) { failure = error.toString(); }
@@ -58,19 +51,6 @@ final class FrameReceiver implements AutoCloseable {
             }
             DesktopView.ended(failure == null ? "Picotron session ended" : "Frame stream failed");
         }
-    }
-
-    private static boolean readFully(InputStream input, byte[] bytes, boolean cleanEof) throws IOException {
-        int offset = 0;
-        while (offset < bytes.length) {
-            int count = input.read(bytes, offset, bytes.length - offset);
-            if (count < 0) {
-                if (offset == 0 && cleanEof) return false;
-                throw new EOFException("partial frame");
-            }
-            offset += count;
-        }
-        return true;
     }
 
     JSONObject evidence() throws Exception {

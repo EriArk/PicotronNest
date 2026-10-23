@@ -7,7 +7,7 @@ This checklist defines **proof needed**, not features currently present. Start e
 - [ ] A0.1 Imported archive is the user's legally obtained current compatible Picotron build; version and ELF ABI are recorded.
 - [x] A0.2 Scoped P0c lab: proprietary files are separate private imports; APK allowlist and reviewed Git changes contain no runtime/data. [Evidence](P0_HEADLESS.md). Repeat this gate for future artifacts.
 - [ ] A0.3 Package import validates contents and rejects traversal/duplicates/oversize, and a rejected import leaves previous setup untouched.
-- [x] A0.4 Scoped P0c headless PASS on Retroid Android 14, target 36, no root/Termux. Desktop and other Android configurations remain untested. [Evidence](P0_HEADLESS.md).
+- [x] A0.4 Scoped P0c headless PASS on Retroid Android 14, target 36, no root/Termux. Other Android configurations remain untested for official Picotron; desktop proof is separately scoped under A1.1. [Evidence](P0_HEADLESS.md).
 - [x] A0.5 Scoped headless closure, exec-preserved PID/UID, Lua output, two normal exits and final host-only census observed. Interactive lifecycle remains untested. [Evidence](P0_HEADLESS.md).
 
 ## A1 — Actual desktop output
@@ -19,6 +19,11 @@ This checklist defines **proof needed**, not features currently present. Start e
 - [ ] A1.5 The screen remains responsive after repeated navigation, animation, app switching and returning.
 
 ## A2 — Real usable input and audio
+
+Lab 0.0.6 implements single-touch left-button input and lifecycle release paths.
+Host tests and compilation pass; it was not installed or screen-tested because
+the owner requested no further screen tests. A2.1 and A2.5 remain NOT TESTED on
+device. Secondary click, hardware input, text/IME and audio are not implemented.
 
 - [ ] A2.1 Touch taps, cursor movement, drag, secondary click and pointer boundaries land at expected Picotron coordinates.
 - [ ] A2.2 Hardware mouse and keyboard work, including modifiers, key release and text entry.

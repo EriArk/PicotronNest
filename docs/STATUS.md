@@ -8,14 +8,19 @@ Android execution lab. Its owned Linux guest has now run through packaged
 PRoot on Retroid and an Android emulator. The official owner-imported ARM64
 Picotron now also executes an owned Lua probe on Retroid. There is no product
 launcher or product APK. Original desktop frames stream into an Android View;
-minimal pointer interaction is the next gate.
+the minimal pointer path is built and host-tested, with device interaction still
+the next gate.
 
 ## Latest evidence
 
+- P1b.2: lab 0.0.6 adds bounded touch-to-SDL pointer transport, inverse display
+  mapping and release on cancel/focus loss/pause. Host tests and APK build pass;
+  this version was not installed or screen-tested, at the owner's request to
+  leave Retroid available. No real click or drag is claimed. [Scope](P1_DESKTOP.md).
 - P1b.1: 67 original frames received from the verified Picotron socket peer;
   the final sequence was drawn in Android. Boot and desktop screenshots were
   inspected privately. Normal exit, host-only census and repeat process launch
-  passed. Input is not yet connected. [Display evidence](P1_DESKTOP.md).
+  passed. This evidence predates the pointer adapter. [Display evidence](P1_DESKTOP.md).
 - P1a: the official desktop uses a 480x270 ARGB8888 streaming texture and SDL's
   software renderer, presenting a 1024x768 window. Complete RGBA frames were
   captured before present and visually inspected locally. SDL_QUIT ends the
@@ -28,7 +33,7 @@ minimal pointer interaction is the next gate.
 - Proprietary executable/data are provisioned separately into private storage;
   neither is bundled in the APK. This is a bounded developer import, not the
   future SAF setup flow. The enforcing x86_64 emulator has not run this ARM64
-  probe. Desktop, input, audio and user-project persistence remain unproven.
+  probe. Input, audio and user-project persistence remain unproven on device.
 
 - P0b.2: a pinned PRoot tracer/loader and audited minimal native closure execute
   an owned Linux ELF at target 36. The guest reads the current root's unique
@@ -53,9 +58,10 @@ minimal pointer interaction is the next gate.
   `picotron/picotron`; its bundled manual identifies itself as `Picotron v0.3.0d`.
 - GNU readelf confirms `/lib/ld-linux-aarch64.so.1`, SDL2 and glibc-linked direct
   dependencies, with required GLIBC versions 2.17 and 2.29. The minimal headless
-  transitive closure is now established; real display/audio backends remain open.
-- SDL texture/renderer and window-surface functions are imported. This does not
-  identify the actual rendering path, frame dimensions or selected backend.
+  transitive closure is now established; the display experiment is recorded above
+  and real audio output remains open.
+- Static imports alone did not identify the rendering path; P1a subsequently
+  observed the texture/renderer path, dimensions and software backend.
 - Initial P0a inventory was read-only; P0b.1 subsequently installed only the
   isolated execution lab and created its disposable private test sessions.
 - Reproducible procedure, hashes, tool versions and remaining gates:
@@ -74,7 +80,7 @@ minimal pointer interaction is the next gate.
 ## Current milestone
 
 **P1a presentation tracing: device-verified in the scoped Retroid experiment.
-P1b live Android display now has evidence; next: minimal interaction.**
+P1b live Android display has evidence; pointer code is host-tested only.**
 Consult [the experiment plan](RUNTIME_SPIKE.md), [roadmap](ROADMAP.md) and [acceptance](ACCEPTANCE.md).
 
 ## Status vocabulary
@@ -88,7 +94,9 @@ Do not upgrade a status because code compiles, ADB starts an activity, a process
 
 ## Next action
 
-Route a correctly transformed pointer click and verify a real desktop action.
+When the owner makes Retroid available, install the pointer lab and verify a
+real desktop click, drag, boundary mapping and focus-loss release. Do not treat
+host tests or a zero-input session as this interaction proof.
 Keep enforcing ARM64 Android execution as
 an explicit compatibility gap; the Retroid headless result does not close it.
 

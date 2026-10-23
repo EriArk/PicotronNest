@@ -9,6 +9,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public final class MainActivity extends Activity {
     private static final AtomicBoolean RUNNING = new AtomicBoolean();
 
+    @Override protected void onPause() {
+        if (BuildConfig.DESKTOP) DesktopView.releasePointer();
+        super.onPause();
+    }
+
     @Override public void onCreate(Bundle saved) {
         super.onCreate(saved);
         TextView text = new TextView(this);

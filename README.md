@@ -27,7 +27,8 @@ target API 36 on Android, followed by an owned Linux guest through packaged
 PRoot. **The official user-imported Picotron now runs an owned headless Lua
 probe on Retroid Pocket Classic (Android 14)**, with repeat-launch and exit
 evidence. Its original desktop frames now also display in the Android lab;
-interactive input is still in progress. See the
+the pointer adapter is built and host-tested, with actual device interaction
+still unverified. See the
 [P0a inspection](docs/P0_STATIC_INSPECTION.md),
 [P0b.2 Linux guest findings](docs/P0_LINUX_LOADER.md) and
 [P0c headless evidence](docs/P0_HEADLESS.md) and

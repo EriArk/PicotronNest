@@ -119,7 +119,7 @@ def main():
     manifest = HERE / 'AndroidManifest.xml'
     if args.linux_loader:
         manifest = work / 'AndroidManifest.xml'
-        version = '5' if args.desktop_base else ('3' if args.headless else '2')
+        version = '6' if args.desktop_base else ('3' if args.headless else '2')
         manifest.write_text((HERE / 'AndroidManifest.xml').read_text().replace('versionCode="1"', 'versionCode="' + version + '"')
                             .replace('versionName="0.0.1"', 'versionName="0.0.' + version + '"'), encoding='utf-8')
     run(build_tools / 'aapt.exe', 'package', '-f', '-M', manifest,
@@ -170,6 +170,7 @@ def main():
     if args.desktop_base:
         metadata['desktop_probe'] = True
         metadata['desktop_live'] = True
+        metadata['desktop_pointer'] = True
     (artifacts / 'build.json').write_text(json.dumps(metadata, indent=2) + '\n', encoding='utf-8')
     print(json.dumps(metadata, indent=2))
     print(f'Local APK: {apk}')

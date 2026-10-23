@@ -121,3 +121,51 @@ foreground application and is explicitly excluded from Picotron visual proof.
 Host Java checks cover red/blue/alpha channel order, portrait/landscape aspect
 fit, stale sequence rejection and invalid dimensions. Pointer, text, audio,
 alternate modes and physical-owner acceptance remain open.
+
+## P1b.2 — Pointer transport, host-tested only, 2026-10-23
+
+Lab version 0.0.6 implements the minimal single-touch left-button path. **It was
+not installed or tested on Retroid.** The owner requested continued development
+without further screen tests while the device was occupied. The verified
+0.0.5 display evidence above does not prove this new input path.
+
+Android applies the inverse of its full-frame fit transform. A new touch in
+the outer letterbox is ignored; captured drag and release clamp to the frame
+edges. Picotron's internal letterboxing remains part of its SDL window. Shared
+release logic handles touch-up/cancel, additional fingers, focus loss, view
+detachment and Activity pause. Disconnect clears local capture without claiming
+that a release reached a process that has already closed its socket.
+
+A separate writer sends 20-byte packets: five little-endian 32-bit fields for
+magic `0x504e4931`, sequence, window x/y and left-button state (0 or 1). The
+128-entry queue keeps socket IO off the UI thread; overflow is recorded as a
+failure and queues a release. Socket closure unblocks a pending writer. The
+native reader assembles partial packets without blocking, checks sequence and
+bounds, exposes mouse state and returns SDL motion/button events through
+`SDL_PollEvent`. SDL cursor warps update the adapter's state. This is an original,
+replaceable diagnostic adapter, not a change to the official runtime.
+
+The collector requires equal Java/native packet counts, paired down/up counters,
+no held button and no transport/protocol error. Zero-input sessions are allowed
+for display diagnostics and are explicitly **not interaction acceptance**.
+The current session requests SDL_QUIT after 20 seconds, ahead of further input;
+the failure bounds are 30 seconds at the system level plus two seconds kill
+grace, and 35 seconds in the host. The eight-second results above belong to the
+earlier versions and have not been relabeled as tests of this build.
+
+Local validation: **37 tests pass** (9 archive and 28 lab checks). Java host
+checks exercise inverse mapping, outer bars, captured edges, ordered press/drag/
+release and idempotent release. Report tests reject lost input, held buttons,
+wrong frame peers and missing draw evidence. Native/Java compilation and APK
+packaging checks pass. No extra third-party dependency was added.
+
+Built-only APK SHA-256:
+`6e0cfd88a26755909ca9d4e50149f2a1dc9ac4eefca9dd79e897290f855884df`.
+Artifact and build metadata remain private under `.local/execution-model/artifacts/`.
+There is no device session report for this version.
+
+Next: on available Retroid hardware, verify real click/drag behavior, coordinates
+near displayed edges, focus loss/re-entry and clean exit with matching counters.
+Native polling versus state-sampling behavior still needs runtime observation.
+Double-click semantics, secondary click, wheel, mouse hardware, keyboard/IME,
+controller mapping and sound remain outside this minimal pointer increment.

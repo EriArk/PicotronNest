@@ -29,4 +29,18 @@ final class FrameProtocol {
         float scale = Math.min((float)viewWidth / width, (float)viewHeight / height);
         return new float[]{scale, (viewWidth - width * scale) / 2, (viewHeight - height * scale) / 2};
     }
+
+    static int[] pointer(float x, float y, int width, int height, int viewWidth, int viewHeight, boolean captured) {
+        float[] fit = fit(width, height, viewWidth, viewHeight);
+        float px = (x - fit[1]) / fit[0], py = (y - fit[2]) / fit[0];
+        if (!captured && (px < 0 || py < 0 || px >= width || py >= height)) return null;
+        return new int[]{Math.max(0, Math.min(width - 1, (int)px)), Math.max(0, Math.min(height - 1, (int)py))};
+    }
+
+    static byte[] pointerPacket(int sequence, int x, int y, int buttons) {
+        if (sequence <= 0 || x < 0 || y < 0 || x >= 2048 || y >= 2048 || buttons < 0 || buttons > 1)
+            throw new IllegalArgumentException("invalid pointer packet");
+        return ByteBuffer.allocate(20).order(ByteOrder.LITTLE_ENDIAN).putInt(0x504e4931)
+                .putInt(sequence).putInt(x).putInt(y).putInt(buttons).array();
+    }
 }

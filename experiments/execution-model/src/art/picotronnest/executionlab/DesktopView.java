@@ -7,6 +7,7 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.RectF;
 import android.view.View;
+import android.view.MotionEvent;
 import java.lang.ref.WeakReference;
 
 /** Lab-only complete-frame display. Store survives Activity recreation, never starts a process. */
@@ -16,6 +17,10 @@ final class DesktopView extends View {
     private static int sequence, drawn;
     private static WeakReference<DesktopView> attached = new WeakReference<>(null);
     private final Paint paint = new Paint();
+    private static PointerSender pointer;
+    private final PointerState touch = new PointerState((x, y, buttons) -> {
+        if (pointer != null) pointer.send(x, y, buttons);
+    });
 
     DesktopView(Context context) {
         super(context);
@@ -45,6 +50,53 @@ final class DesktopView extends View {
     }
 
     static synchronized int drawnSequence() { return drawn; }
+
+    static synchronized void pointer(PointerSender sender) {
+        pointer = null;
+        releasePointer(); // Forget local capture; a closed session cannot receive a release.
+        pointer = sender;
+    }
+
+    static synchronized void releasePointer() {
+        DesktopView view = attached.get();
+        if (view != null) view.release();
+    }
+
+    private void release() {
+        touch.release();
+    }
+
+    @Override public boolean onTouchEvent(MotionEvent event) {
+        synchronized (DesktopView.class) {
+            if (frame == null || pointer == null) return false;
+            int action = event.getActionMasked();
+            if (action == MotionEvent.ACTION_CANCEL || action == MotionEvent.ACTION_POINTER_DOWN) {
+                release();
+                return true;
+            }
+            if (action != MotionEvent.ACTION_DOWN && action != MotionEvent.ACTION_MOVE && action != MotionEvent.ACTION_UP)
+                return touch.held();
+            if (action != MotionEvent.ACTION_DOWN && !touch.held()) return false;
+            int[] point = FrameProtocol.pointer(event.getX(), event.getY(), frame.getWidth(), frame.getHeight(),
+                    getWidth(), getHeight(), touch.held());
+            if (point == null) return false;
+            touch.update(point[0], point[1], action != MotionEvent.ACTION_UP);
+            if (!touch.held()) performClick();
+            return true;
+        }
+    }
+
+    @Override public boolean performClick() { super.performClick(); return true; }
+
+    @Override public void onWindowFocusChanged(boolean focused) {
+        super.onWindowFocusChanged(focused);
+        if (!focused) { synchronized (DesktopView.class) { release(); } }
+    }
+
+    @Override protected void onDetachedFromWindow() {
+        synchronized (DesktopView.class) { release(); }
+        super.onDetachedFromWindow();
+    }
 
     private static void invalidateAttached() {
         DesktopView view = attached.get();

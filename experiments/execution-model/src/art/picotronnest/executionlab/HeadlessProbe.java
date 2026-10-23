@@ -78,12 +78,12 @@ final class HeadlessProbe {
         if (BuildConfig.DESKTOP) {
             String socketName = "picotronnest." + token;
             env.put("PICONEST_FRAME_SOCKET", socketName);
-            String[] command = {"/system/bin/timeout", "-k", "2", "15",
+            String[] command = {"/system/bin/timeout", "-k", "2", "30",
                     new File(nativeDir, "libproot.so").getPath(), "--kill-on-exit",
                     "-r", root.getPath(), "-b", "/proc", "-b", "/dev/null", "-b", "/dev/urandom",
                     "-w", "/runtime", "/lib/ld-linux-aarch64.so.1", "--library-path", "/lib", "/probe/desktop-exec"};
             try (FrameReceiver receiver = new FrameReceiver(socketName)) {
-                cases.put(runner.runWithEnvironment("picotron_desktop_trace", 20000, env, command));
+                cases.put(runner.runWithEnvironment("picotron_desktop_trace", 35000, env, command));
                 report.put("desktop_frames", receiver.evidence());
             }
         }

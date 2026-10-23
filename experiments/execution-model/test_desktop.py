@@ -1,10 +1,49 @@
 import struct
 import unittest
+from copy import deepcopy
 from check_report import validate, validate_frame
 from test_headless import headless_fixture
 
 
+def desktop_fixture():
+    report, build, census = headless_fixture()
+    build.update(desktop_probe=True, desktop_live=True, desktop_pointer=True)
+    report['schema'] = 4
+    report['desktop_frames'] = dict(frames=20, sequence=80, drawn_sequence=80,
+                                    width=1024, height=768, peer_pid=500, pointer_packets=3)
+    report['cases'].append(dict(name='picotron_desktop_trace', outcome='EXITED', exit_code=0,
+                               output_truncated=False, output=(
+        'PICONEST_TRACE_LOADED pid=500 uid=10001\nPICONEST_PRESENT width=1024 height=768\n'
+        'PICONEST_FRAME_CAPTURE sequence=60\nPICONEST_TRACE_QUIT\nPICONEST_TRACE_DONE\n'
+        'PICONEST_INPUT_DONE packets=3 downs=1 ups=1 held=0\n')))
+    return report, build, census
+
+
 class DesktopEvidence(unittest.TestCase):
+    def test_live_peer_and_actual_draw_required(self):
+        report, build, census = desktop_fixture()
+        self.assertEqual(validate(report, build, census), 'arm64-v8a')
+        for bad in [dict(peer_pid=999), dict(drawn_sequence=0), dict(drawn_sequence=81),
+                    dict(frames=0), dict(error='partial frame')]:
+            changed = deepcopy(report)
+            changed['desktop_frames'].update(bad)
+            with self.subTest(bad=bad), self.assertRaises(ValueError):
+                validate(changed, build, census)
+
+    def test_pointer_loss_and_held_button_rejected(self):
+        report, build, census = desktop_fixture()
+        output = report['cases'][-1]['output']
+        for old, new in [('packets=3', 'packets=2'), ('ups=1', 'ups=0'), ('held=0', 'held=1'),
+                         ('PICONEST_INPUT_DONE', 'missing'), ('PICONEST_TRACE_DONE',
+                          'PICONEST_TRACE_DONE\nPICONEST_INPUT_INVALID')]:
+            report['cases'][-1]['output'] = output.replace(old, new)
+            with self.subTest(change=new), self.assertRaises(ValueError):
+                validate(report, build, census)
+        report['cases'][-1]['output'] = output
+        report['desktop_frames']['pointer_error'] = 'write failed'
+        with self.assertRaises(ValueError):
+            validate(report, build, census)
+
     def test_frame_length_and_bounds(self):
         good = struct.pack('<4I', 0x504e4631, 3, 2, 60) + bytes(24)
         self.assertEqual(validate_frame(good)['stride'], 12)

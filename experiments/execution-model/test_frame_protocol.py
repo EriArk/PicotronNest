@@ -12,6 +12,8 @@ class FrameProtocolHost(unittest.TestCase):
         with tempfile.TemporaryDirectory() as destination:
             subprocess.run([str(jdk / 'javac.exe'), '--release', '8', '-Xlint:all,-options', '-Werror', '-d', destination,
                             str(here / 'src/art/picotronnest/executionlab/FrameProtocol.java'),
+                            str(here / 'src/art/picotronnest/executionlab/PointerSender.java'),
+                            str(here / 'src/art/picotronnest/executionlab/PointerState.java'),
                             str(here / 'tests/FrameProtocolHostTest.java')], check=True, capture_output=True, timeout=30)
             subprocess.run([str(jdk / 'java.exe'), '-cp', destination,
                             'art.picotronnest.executionlab.FrameProtocolHostTest'],

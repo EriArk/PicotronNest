@@ -26,6 +26,29 @@ public final class FrameProtocolHostTest {
         rejected = false;
         try { FrameProtocol.header(header, 5); } catch (java.io.IOException expected) { rejected = true; }
         require(rejected);
+        require(FrameProtocol.pointer(40, 0, 480, 270, 1080, 1240, false) == null);
+        int[] point = FrameProtocol.pointer(225, 541.25f, 480, 270, 1080, 1240, false);
+        require(point[0] == 100 && point[1] == 100);
+        point = FrameProtocol.pointer(-100, 2000, 480, 270, 1080, 1240, true);
+        require(point[0] == 0 && point[1] == 269);
+        java.io.ByteArrayOutputStream output = new java.io.ByteArrayOutputStream();
+        PointerSender sender = new PointerSender(output);
+        PointerState state = new PointerState(sender::send);
+        state.update(100, 100, true);
+        state.update(120, 140, true);
+        state.release(); // same path used by cancel/focus loss/Activity pause
+        state.release(); // idempotent: must not fabricate an additional release
+        require(!state.held());
+        long deadline = System.nanoTime() + 1000000000L;
+        while (sender.sent() < 3 && System.nanoTime() < deadline) Thread.yield();
+        sender.close();
+        sender.awaitClosed();
+        require(sender.sent() == 3 && sender.failure() == null);
+        byte[] packets = output.toByteArray();
+        require(packets.length == 60);
+        ByteBuffer wire = ByteBuffer.wrap(packets).order(ByteOrder.LITTLE_ENDIAN);
+        require(wire.getInt(0) == 0x504e4931 && wire.getInt(4) == 1 && wire.getInt(16) == 1);
+        require(wire.getInt(44) == 3 && wire.getInt(48) == 120 && wire.getInt(52) == 140 && wire.getInt(56) == 0);
         System.out.println("RGBA channels, aspect fit, sequence and size checks passed");
     }
 }

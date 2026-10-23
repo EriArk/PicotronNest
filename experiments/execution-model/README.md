@@ -1,9 +1,10 @@
 # Modern-target execution probe
 
-This temporary lab measures Android execution restrictions before a Linux
-compatibility environment is selected. It is not PicotronNest's product UI.
-It uses original, harmless native fixtures, never the purchased runtime. The
-optional `--linux-loader` build adds the pinned PRoot closure described below.
+This temporary lab measures Android execution restrictions and the official
+runtime's process/display boundaries. It is not PicotronNest's product UI.
+The default build uses original native fixtures. Optional `--linux-loader`,
+`--headless` and `--desktop-base` stages add the reviewed compatibility components
+described below; official runtime files are always imported separately.
 
 Package: `art.picotronnest.executionlab`. Compile/target API 36, minimum API 26.
 The APK has one icon, no permissions, no network and no storage provider access.
@@ -31,6 +32,7 @@ ELF reports, build hashes and APK are under ignored `.local/execution-model/`.
 Build work directories are unique and retained. No runtime archive input is
 accepted. Packaging checks allow only the manifest, owned Java/native code,
 NDK notices, signing entries and explicitly locked optional PRoot assets/libraries.
+The headless/desktop variants also allow their pinned glibc/SDL assets and notices.
 APK signatures and native payload hashes are
 verified. Build commands are reproducible; ZIP timestamps and the locally
 generated debug key mean the APK is not claimed bit-for-bit deterministic.
@@ -154,3 +156,32 @@ See [P0c evidence, dependency audit and complete procedure](../../docs/P0_HEADLE
 Do not install this optional ARM64 experiment on the x86_64 control emulator;
 it deliberately rejects unsupported ABIs. The regular `--linux-loader` probe
 continues to support both ABIs.
+
+## Optional desktop and pointer probe (native ARM64 only)
+
+Preserve a verified headless APK and sibling `build.json` outside the artifact
+output directory. Then build the current desktop lab, version 0.0.6:
+
+```powershell
+py -3 -B experiments/execution-model/build.py --desktop-base .local/desktop/base/picotronnest-execution-lab.apk
+```
+
+The build verifies the base artifact and headless source hashes, reuses its
+audited dependencies/notices, and compiles an original SDL observer/launcher.
+The desktop stage uses `files/desktop-probes` with fresh roots/homes and retains
+the earlier fixture/headless cases. It streams complete frames to an Android
+View and accepts single-touch left-button input over the authenticated socket.
+
+The current desktop session requests SDL_QUIT after 20 seconds, with a separate
+30-second system timeout (two-second kill grace) and 35-second host bound.
+Touch-down outside the displayed frame is ignored; captured drag/release is
+clamped to its edges. Focus loss, cancel, detach and pause share release logic.
+The report rejects transport errors, sent/received count mismatches or a held
+button at exit. A passing zero-input report does not establish working input.
+
+Version 0.0.5 has Retroid display/process evidence. Version 0.0.6 is built and
+host-tested only; no device installation or interaction test was performed.
+When the device is available, repeat the install/start/collect procedure above,
+observe a real desktop click/drag and focus-loss release, and capture matching
+private frames plus process/input evidence. Do not interact with another app.
+See [P1 evidence and remaining acceptance](../../docs/P1_DESKTOP.md).

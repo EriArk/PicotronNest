@@ -75,6 +75,14 @@ def validate(report, build, census):
                 require(0 < live.get('drawn_sequence', 0) <= live.get('sequence', 0), 'no Android frame draw evidence')
                 require(0 < live.get('width', 0) <= 2048 and 0 < live.get('height', 0) <= 2048, 'invalid live dimensions')
                 require('PICONEST_FRAME_SEND_FAILED' not in output, 'frame sender failed')
+                if build.get('desktop_pointer'):
+                    require('pointer_error' not in live, 'pointer sender failed')
+                    counters = re.search(r'PICONEST_INPUT_DONE packets=(\d+) downs=(\d+) ups=(\d+) held=(\d+)', output)
+                    require(counters is not None, 'pointer termination evidence missing')
+                    packets, downs, ups, held = map(int, counters.groups())
+                    require(packets == live.get('pointer_packets') and downs == ups and held == 0,
+                            'pointer updates lost or button left held')
+                    require('PICONEST_INPUT_INVALID' not in output, 'native pointer protocol rejected')
             require('PICONEST_PRESENT ' in output and 'PICONEST_FRAME_CAPTURE ' in output, 'no actual captured presentation')
             require('PICONEST_TRACE_QUIT' in output and 'PICONEST_TRACE_DONE' in output, 'desktop shutdown not observed')
             continue

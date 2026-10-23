@@ -1,0 +1,105 @@
+"""Build only the owned execution fixture. No runtime/archive input is accepted."""
+
+import argparse
+import hashlib
+import json
+import os
+from pathlib import Path
+import shutil
+import subprocess
+import uuid
+import zipfile
+
+
+HERE = Path(__file__).resolve().parent
+ROOT = HERE.parent.parent
+
+
+def run(*args):
+    subprocess.run([str(a) for a in args], check=True, timeout=120)
+
+
+def digest(path):
+    with path.open('rb') as stream:
+        return hashlib.file_digest(stream, 'sha256').hexdigest()
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--sdk', type=Path, default=Path(os.environ['LOCALAPPDATA']) / 'Android/Sdk')
+    parser.add_argument('--jdk', type=Path, default=Path(r'C:\Program Files\Android\Android Studio\jbr'))
+    args = parser.parse_args()
+    ndk_version = '28.2.13676358'
+    ndk = args.sdk / 'ndk' / ndk_version
+    llvm = ndk / 'toolchains/llvm/prebuilt/windows-x86_64/bin'
+    build_tools = args.sdk / 'build-tools/36.0.0'
+    android = args.sdk / 'platforms/android-36/android.jar'
+    java, javac, jar, keytool = (args.jdk / 'bin' / (n + '.exe') for n in ('java', 'javac', 'jar', 'keytool'))
+    for path in (llvm / 'clang.exe', llvm / 'llvm-readelf.exe', android, java, javac, jar, keytool,
+                 build_tools / 'aapt.exe', build_tools / 'lib/d8.jar', ndk / 'NOTICE'):
+        if not path.is_file():
+            raise SystemExit(f'Required build input missing: {path}')
+    work = ROOT / '.local/execution-model/builds' / uuid.uuid4().hex
+    artifacts = ROOT / '.local/execution-model/artifacts'
+    for directory in (work / 'classes', work / 'dex', work / 'assets', artifacts):
+        directory.mkdir(parents=True, exist_ok=True)
+    # NDK CRT/compiler support notices accompany the native fixture.
+    shutil.copyfile(ndk / 'NOTICE', work / 'assets/NDK-NOTICE.txt')
+    natives = {}
+    for abi, triple in [('arm64-v8a', 'aarch64-linux-android26'), ('x86_64', 'x86_64-linux-android26')]:
+        native = work / abi / 'libexecution_probe.so'
+        native.parent.mkdir()
+        run(llvm / 'clang.exe', f'--target={triple}', '-fPIE', '-pie',
+            '-Wall', '-Wextra', '-Werror', '-O2', '-Wl,-z,max-page-size=16384',
+            HERE / 'native/probe.c', '-o', native)
+        elf = subprocess.run([str(llvm / 'llvm-readelf.exe'), '-h', '-l', '-d', str(native)],
+                             capture_output=True, text=True, check=True, timeout=10).stdout
+        (native.parent / 'fixture-elf.txt').write_text(elf, encoding='utf-8')
+        natives[abi] = native
+    sources = sorted((HERE / 'src').rglob('*.java'))
+    run(javac, '--release', '8', '-encoding', 'UTF-8', '-Xlint:all,-options', '-Werror', '-classpath', android,
+        '-d', work / 'classes', *sources)
+    run(jar, '--create', '--file', work / 'classes.jar', '-C', work / 'classes', '.')
+    run(java, '-cp', build_tools / 'lib/d8.jar', 'com.android.tools.r8.D8', '--min-api', '26',
+        '--lib', android, '--output', work / 'dex', work / 'classes.jar')
+    unsigned = work / 'unsigned.apk'
+    run(build_tools / 'aapt.exe', 'package', '-f', '-M', HERE / 'AndroidManifest.xml',
+        '-A', work / 'assets', '-I', android, '-F', unsigned)
+    with zipfile.ZipFile(unsigned, 'a', compression=zipfile.ZIP_DEFLATED) as archive:
+        archive.write(work / 'dex/classes.dex', 'classes.dex')
+        for abi, native in natives.items():
+            archive.write(native, f'lib/{abi}/libexecution_probe.so')
+    aligned = work / 'aligned.apk'
+    run(build_tools / 'zipalign.exe', '-f', '-P', '16', '4', unsigned, aligned)
+    key = artifacts / 'execution-lab-debug.keystore'
+    if not key.exists():
+        run(keytool, '-genkeypair', '-keystore', key, '-storepass', 'android', '-keypass', 'android',
+            '-alias', 'execution-lab', '-keyalg', 'RSA', '-keysize', '2048', '-validity', '3650',
+            '-dname', 'CN=PicotronNest Execution Lab')
+    apk = artifacts / 'picotronnest-execution-lab.apk'
+    run(java, '-jar', build_tools / 'lib/apksigner.jar', 'sign', '--ks', key,
+        '--ks-key-alias', 'execution-lab', '--ks-pass', 'pass:android', '--key-pass', 'pass:android',
+        '--out', apk, aligned)
+    run(java, '-jar', build_tools / 'lib/apksigner.jar', 'verify', apk)
+    allowed = {'AndroidManifest.xml', 'assets/NDK-NOTICE.txt', 'classes.dex'}
+    allowed.update(f'lib/{abi}/libexecution_probe.so' for abi in natives)
+    with zipfile.ZipFile(apk) as archive:
+        names = archive.namelist()
+        payloads = {n for n in names if not n.startswith('META-INF/')}
+        if len(names) != len(set(names)) or payloads != allowed:
+            raise SystemExit(f'Unexpected APK payloads: {sorted(payloads)}')
+        for abi, native in natives.items():
+            if hashlib.sha256(archive.read(f'lib/{abi}/libexecution_probe.so')).hexdigest() != digest(native):
+                raise SystemExit('Packaged fixture hash mismatch')
+    metadata = {'ndk': ndk_version, 'build_tools': '36.0.0', 'compile_sdk': 36, 'target_sdk': 36,
+                'apk_sha256': digest(apk), 'fixture_sha256': {abi: digest(p) for abi, p in natives.items()},
+                'source_sha256': {str(p.relative_to(ROOT)).replace('\\', '/'): digest(p)
+                                  for p in [HERE / 'AndroidManifest.xml', HERE / 'native/probe.c',
+                                            HERE / 'build.py', *sources]}}
+    (artifacts / 'build.json').write_text(json.dumps(metadata, indent=2) + '\n', encoding='utf-8')
+    print(json.dumps(metadata, indent=2))
+    print(f'Local APK: {apk}')
+
+
+if __name__ == '__main__':
+    main()

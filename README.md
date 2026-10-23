@@ -20,10 +20,12 @@ PicotronNest **does not include Picotron**. Users must obtain their own licensed
 
 ## Where development actually stands
 
-This repository currently contains **design documents and a static runtime-package
-inspection tool**, not a finished runner. The owner's Raspberry Pi package has
-been identified as ARM64; Android execution is not yet proven. See the
-[P0a inspection record](docs/P0_STATIC_INSPECTION.md). The first two hard gates are:
+This repository currently contains **design documents, a static runtime-package
+inspector and a temporary Android execution lab**, not a finished runner. The
+owner's Raspberry Pi package is ARM64. An owned diagnostic fixture has run with
+target API 36 on Android; **Picotron itself has not yet run**. See the
+[P0a inspection](docs/P0_STATIC_INSPECTION.md) and
+[P0b.1 execution findings](docs/P0_EXECUTION_MODEL.md). The first two hard gates are:
 
 1. **P0 — run the official Picotron ARM64 binary** within a safe, app-owned Android/Linux compatibility environment.
 2. **P1 — show the real, interactive Picotron desktop** on an Android screen.

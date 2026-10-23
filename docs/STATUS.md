@@ -1,14 +1,23 @@
 # Project status
 
-**2026-10-23 — P0a static inspection experimented; Android execution not tested.**
+**2026-10-23 — P0a inspected; P0b execution preflight tested; Picotron execution not tested.**
 
 PicotronNest is an Android wrapper for the **official, user-imported Picotron runtime**.
-The repository now contains a bounded static inspection tool and synthetic
-archive regression checks alongside the design documents. There is no working
-Android launcher, runtime bridge or APK. No Picotron device smoke test has been
-completed in this repository.
+The repository contains a bounded archive inspector and a temporary target-36
+Android execution lab. Its owned native fixture has run on Retroid and an
+Android emulator. There is no Picotron launcher, video bridge or product APK;
+no Picotron device smoke test has been completed.
 
 ## Latest evidence
+
+- Target-36 execution lab: packaged native process, private Bionic fixture via
+  the system linker, child tracing and timeout/reaping verified twice on Retroid
+  Pocket Classic (Android 14/API 34/ARM64) and an Android 15/API 35 x86_64 emulator.
+- Direct private execution succeeded on Retroid but was denied on the enforcing
+  emulator. Retroid's SELinux enforcement mode was not readable; do not generalize
+  its behavior. Actual child contexts and process evidence were recorded.
+- The installed lab contains only owned diagnostics and NDK notices. It is
+  independent of PikoNest. [P0b.1 findings and limits](P0_EXECUTION_MODEL.md).
 
 - Owner package `picotron_0.3.0d2_raspi.zip` contains an AArch64 ELF at
   `picotron/picotron`; its bundled manual identifies itself as `Picotron v0.3.0d`.
@@ -17,8 +26,8 @@ completed in this repository.
   closure is not yet established.
 - SDL texture/renderer and window-surface functions are imported. This does not
   identify the actual rendering path, frame dimensions or selected backend.
-- Read-only ADB inventory: Retroid Pocket Classic, Android 14 / API 34,
-  `arm64-v8a,armeabi-v7a,armeabi`. No APK installed or device files changed.
+- Initial P0a inventory was read-only; P0b.1 subsequently installed only the
+  isolated execution lab and created its disposable private test sessions.
 - Reproducible procedure, hashes, tool versions and remaining gates:
   [P0 static inspection](P0_STATIC_INSPECTION.md).
 
@@ -47,12 +56,11 @@ Do not upgrade a status because code compiles, ADB starts an activity, a process
 
 ## Next action
 
-P0b: review and pin the open-source compatibility environment, resolve the SDL2
-and glibc dependency closure, and choose an isolated app-owned execution probe.
-Use a new PicotronNest lab package and empty disposable home. Establish a modern
-Android target execution strategy before packaging; do not inherit PikoNest's
-temporary target-28 workaround as an accepted PicotronNest decision. Then run
-P0c with process and output evidence before beginning P1 display work.
+Continue P0b with a reviewed, pinned tracer/unbundled-loader candidate and an
+owned Linux guest probe, then resolve the glibc/SDL2 dependency closure. The
+target-36 preflight supports investigating packaged helpers; it does not prove
+glibc or PRoot compatibility. Preserve the independent namespace and empty
+disposable homes. Then run P0c using the owner's unchanged runtime before P1.
 
 References: [official manual](https://www.lexaloffle.com/dl/docs/picotron_manual.html), [roadmap](https://www.lexaloffle.com/picotron.php?page=roadmap), [PikoNest](https://github.com/EriArk/PikoNest).
 

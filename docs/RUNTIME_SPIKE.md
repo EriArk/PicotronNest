@@ -32,6 +32,10 @@ See [the P0a record](P0_STATIC_INSPECTION.md) for invocation, limits and the
 
 ## Step 2 — Native process proof
 
+Before the official process test, [P0b.1](P0_EXECUTION_MODEL.md) records a
+target-36 owned-fixture execution probe in real app contexts. Its results guide
+the compatibility environment but do not pass this step for Picotron.
+
 1. In an isolated app-owned directory, prepare a minimal reviewed Linux runtime environment. Start Picotron without root/Termux; `-home` points at an empty disposable data home.
 2. Where supported, run a **harmless, owned** headless Lua probe using the officially documented `-x`. Check termination and captured stdout/stderr. Do not assume that a headless success proves the GUI.
 3. Record PID, exit code, signal, child processes, created home files and repeat-launch behavior.

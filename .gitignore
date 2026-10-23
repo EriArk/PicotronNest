@@ -21,6 +21,8 @@ build/
 *.class
 *.dex
 *.log
+__pycache__/
+*.pyc
 
 # OS/editor debris
 .DS_Store

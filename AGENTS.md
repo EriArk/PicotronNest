@@ -31,3 +31,4 @@ Do P0 **runtime feasibility before UI work**. Inspect a user-provided Raspberry 
 - When the owner-provided runtime isn't accessible, write a bounded non-sensitive inspection procedure and state the dependency.
 - Prioritize P0 → P1 → P2; leave cosmetic UI polish until the real Picotron screen and controls work.
 - Use English for repository documentation and public-facing text unless the owner changes that preference. Discuss decisions with the owner in the conversation language.
+- Finish each development increment with focused validation, a reviewed commit and a push to the project remote. Include only task-owned changes; never stage proprietary files or unrelated work. Report the commit and push result, or the concrete blocker if either cannot complete. This does not authorize publishing APKs or GitHub Releases.

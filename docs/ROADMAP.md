@@ -1,6 +1,31 @@
 # Roadmap — evidence-first
 
-This is a delivery sequence, **not a list of features already built**. Status starts as PLANNED for everything. Do not skip feasibility or call an APK working because it opens a splash screen.
+This is a delivery sequence, **not a list of features already built**. As of
+2026-10-23, P0a has static inspection evidence; runtime execution and P1–P5 are
+not proven. Do not call an APK working because it opens a splash screen.
+
+## Delivery contract
+
+PicotronNest supplies an Android host and reviewed compatibility components.
+The user separately obtains and imports their own official Picotron copy.
+Picotron's executable, data, desktop and tools stay official; no source port or
+replacement workstation is planned. No purchased files are bundled in our APK.
+Runtime updates and the persistent user home have separate lifetimes.
+
+## First development increments
+
+| Increment | Deliverable and exit evidence | State |
+| --- | --- | --- |
+| P0a — Inspect owner package | Reproducible static inspector; exact hashes, ELF/loader/dependencies, import hints; hostile ZIP regression fixtures | Experimented: [inspection record](P0_STATIC_INSPECTION.md) |
+| P0b — Prepare isolated execution | Pin and review open-source loader/userland/SDL dependencies; resolve transitive closure; create a separate PicotronNest lab namespace and disposable home; document modern-target strategy | Next |
+| P0c — Prove process execution | Owned headless probe using the package's documented syntax; capture actual Picotron PID, stdout/stderr, exit and repeat-launch evidence on ARM64 Android | Planned |
+| P1a — Trace actual presentation | Observe which SDL calls present frames and record dimensions, stride, format and ownership | Planned |
+| P1b — Show and interact | Original live desktop on Android, one correctly mapped pointer click, shutdown and restart | Planned |
+
+P0a is not completion of P0. P0b must not borrow an installed PikoNest app's
+private runtime or replace its package. Inspect modern-target constraints during
+P0b; defer only product integration to P4. Each increment records its commands,
+evidence and unresolved questions before expanding the implementation.
 
 ## P0 — Runtime feasibility (blocking)
 

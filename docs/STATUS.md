@@ -1,14 +1,34 @@
 # Project status
 
-**2026-10-13 — planning / zero implementation.**
+**2026-10-23 — P0a static inspection experimented; Android execution not tested.**
 
-PicotronNest is an Android wrapper proposal for the **official, user-provided Picotron runtime**. The repository currently contains planning documents, not a working Android launcher, runtime bridge, or APK. No device smoke test has been completed in this repository.
+PicotronNest is an Android wrapper for the **official, user-imported Picotron runtime**.
+The repository now contains a bounded static inspection tool and synthetic
+archive regression checks alongside the design documents. There is no working
+Android launcher, runtime bridge or APK. No Picotron device smoke test has been
+completed in this repository.
+
+## Latest evidence
+
+- Owner package `picotron_0.3.0d2_raspi.zip` contains an AArch64 ELF at
+  `picotron/picotron`; its bundled manual identifies itself as `Picotron v0.3.0d`.
+- GNU readelf confirms `/lib/ld-linux-aarch64.so.1`, SDL2 and glibc-linked direct
+  dependencies, with required GLIBC versions 2.17 and 2.29. Transitive dependency
+  closure is not yet established.
+- SDL texture/renderer and window-surface functions are imported. This does not
+  identify the actual rendering path, frame dimensions or selected backend.
+- Read-only ADB inventory: Retroid Pocket Classic, Android 14 / API 34,
+  `arm64-v8a,armeabi-v7a,armeabi`. No APK installed or device files changed.
+- Reproducible procedure, hashes, tool versions and remaining gates:
+  [P0 static inspection](P0_STATIC_INSPECTION.md).
 
 ## Grounded upstream facts
 
 - Picotron is a fantasy workstation with its own desktop, editors, apps and virtual filesystem, not simply a PICO-8 cartridge runner.
 - The official manual documents SDL2, standard 480x270 and 240x135 video modes, .p64 and .p64.png cartridges, and the host command-line `-home` option.
-- The official roadmap lists Raspberry Pi 64-bit support in the Picotron 0.2.x era; the exact currently downloadable archive and executable layout still require inspection of the owner's purchased copy.
+- The owner's supplied Raspberry Pi archive has now been statically inspected;
+  this establishes its specific layout and ABI, not general compatibility with
+  other versions or Android.
 - PikoNest has demonstrated an integrated, single-APK, user-imported PICO-8 ARM64 runtime on Android. This is evidence for **PikoNest**, not proof that Picotron works with the same adapter.
 - The inspected PICO-8 SDL shim contains a hard-coded 128x128 framebuffer and cannot be copied unchanged for Picotron.
 
@@ -27,7 +47,12 @@ Do not upgrade a status because code compiles, ADB starts an activity, a process
 
 ## Next action
 
-Inventory the owner's legally obtained Raspberry Pi 64-bit Picotron package in a private local workspace; identify ELF/ABI, dynamic dependencies, launch requirements and SDL behavior without adding proprietary files to Git. Then perform the minimal headless/visible probe before designing a large Android UI.
+P0b: review and pin the open-source compatibility environment, resolve the SDL2
+and glibc dependency closure, and choose an isolated app-owned execution probe.
+Use a new PicotronNest lab package and empty disposable home. Establish a modern
+Android target execution strategy before packaging; do not inherit PikoNest's
+temporary target-28 workaround as an accepted PicotronNest decision. Then run
+P0c with process and output evidence before beginning P1 display work.
 
 References: [official manual](https://www.lexaloffle.com/dl/docs/picotron_manual.html), [roadmap](https://www.lexaloffle.com/picotron.php?page=roadmap), [PikoNest](https://github.com/EriArk/PikoNest).
 

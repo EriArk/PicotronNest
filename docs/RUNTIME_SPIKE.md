@@ -18,6 +18,10 @@ These sources justify testing ARM64, **not** assuming the package has PICO-8's `
 
 ## Step 1 — Static inventory
 
+The first reproducible implementation is `tools/inspect_runtime.py`.
+See [the P0a record](P0_STATIC_INSPECTION.md) for invocation, limits and the
+2026-10-23 owner-package observations. This tool performs static inspection only.
+
 1. Identify archive type, size, exact entries and version markers **locally**; reject archive escapes, duplicates and suspicious links.
 2. Identify actual executable and support data. Use `file`, `readelf -h -l -d` or equivalent read-only tools; record architecture, interpreter, NEEDED entries and likely library search paths.
 3. Detect whether the distributed Pi runtime is AArch64, and which glibc / SDL2 / audio / GPU dependencies it needs.

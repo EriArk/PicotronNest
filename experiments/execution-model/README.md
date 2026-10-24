@@ -195,8 +195,10 @@ the [limited keyboard/Unicode fixture](../../docs/KEYBOARD_SPIKE.md) and the
 [relative touchpad/stick cursor](../../docs/CURSOR_SPIKE.md), plus
 [D-pad with simultaneous IME](../../docs/DPAD_AND_IME.md) and two
 [saved-profile restoration scenarios](../../docs/CURSOR_PROFILES.md).
+The ninth scenario covers [host menu/keyboard/exit commands](../../docs/HOST_MENU.md).
 Use `--mode keyboard`, `--mode cursor`, `--mode combined` or `--mode profile`
 for focused checks; `profile` includes a second process reading the saved file.
+Use `--mode menu` for the host-command check, including its actual `menu.png`.
 The collector retains actual labeled emulator screenshots as `keyboard.png`,
 `cursor.png`, `combined.png`, `profile.png` and `profile-read.png` beside
 their private JSON reports. The official launcher attaches neither experimental

@@ -64,6 +64,8 @@ final class FrameReceiver implements AutoCloseable {
         }
     }
 
+    int pointerAccepted() { PointerSender sender=pointer; return sender==null ? 0 : sender.accepted(); }
+
     JSONObject evidence() throws Exception {
         worker.join(2000);
         if (worker.isAlive()) throw new IOException("frame receiver completion unconfirmed");

@@ -1,6 +1,6 @@
 # Project status
 
-**2026-10-24 — Saved cursor profiles verified in the emulator; Retroid input gate remains open.**
+**2026-10-24 — Host-command fixture verified; functional beta candidate and Retroid input gates remain open.**
 
 PicotronNest is an Android wrapper for the **official, user-imported Picotron runtime**.
 The repository contains a bounded archive inspector and a temporary target-36
@@ -13,6 +13,13 @@ the next gate.
 
 ## Latest evidence
 
+- Host-menu fixture: controller/touch menu and keyboard commands, Unicode
+  receipt, exit cancellation and one verified native shutdown pass on the API 35
+  x86_64 emulator. 34 lab and nine archive tests pass. This menu is not attached
+  to official Picotron. [Evidence](HOST_MENU.md).
+- The owner will free Retroid for a complete candidate check when the required
+  functionality is assembled. [Beta readiness](BETA_READINESS.md) records the
+  outstanding import, home, input, audio and lifecycle work; that gate is not met.
 - Saved cursor profile fixture: settings survive Activity recreation/rotation
   with one native process, and a new host process loads them from disk.
   Interrupted staging, rollback, unsupported records and stale input are checked

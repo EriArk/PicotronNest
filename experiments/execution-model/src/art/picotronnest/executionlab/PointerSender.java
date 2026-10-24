@@ -37,6 +37,7 @@ final class PointerSender implements AutoCloseable {
     }
 
     int sent() { return sent; }
+    int accepted() { return accepted; }
     String failure() {
         if (failure != null) return failure;
         return closing && !worker.isAlive() && accepted != sent ? "pointer updates unconfirmed at close" : null;

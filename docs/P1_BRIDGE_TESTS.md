@@ -71,10 +71,15 @@ stopped without clearing data. Retroid and unrelated apps were not manipulated.
 
 The [saved-profile increment](CURSOR_PROFILES.md) adds atomic settings storage,
 Activity restoration and reading the same file in a new host process. The
-current runner has eight scenarios. Its evidence keeps settings persistence
+saved-profile runner had eight scenarios. Its evidence keeps settings persistence
 separate from official-runtime home/project persistence. All eight have passing
 evidence on its final APK across collections; startup/IME timing failures and
 reruns are recorded rather than described as one uninterrupted full pass.
+
+The later [host-menu fixture](HOST_MENU.md) adds the ninth scenario, with touch
+and controller menu actions, IME/native receipt and verified exit. Its harness
+also routes UI assertion failures back to instrumentation so reporting and
+owned-child cleanup can run even when a View assertion fails.
 
 The [D-pad/IME increment](DPAD_AND_IME.md) passes all six scenarios on one APK in
 session `7245e501-c9da-4198-b8ae-35a60199bd11`. It records source-aware keyboard

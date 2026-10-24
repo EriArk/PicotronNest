@@ -31,7 +31,12 @@ public final class BridgeInstrumentation extends Instrumentation {
         while (!condition.getAsBoolean() && SystemClock.uptimeMillis() < end) SystemClock.sleep(20);
         check(condition.getAsBoolean(), message + ": " + BridgeTestActivity.error);
     }
-    private void ui(Runnable action) { runOnMainSync(action); waitForIdleSync(); }
+    private void ui(Runnable action) {
+        Throwable[] failure=new Throwable[1];
+        runOnMainSync(() -> { try { action.run(); } catch (Throwable problem) { failure[0]=problem; } });
+        waitForIdleSync();
+        if (failure[0]!=null) throw new AssertionError("UI action failed",failure[0]);
+    }
     private void touch(int action, float x, float y, int width, int height) {
         ui(() -> {
             DesktopView view = BridgeTestActivity.current.desktop();
@@ -641,13 +646,115 @@ public final class BridgeInstrumentation extends Instrumentation {
                 && result.getInt("peer_pid")==pid && BridgeTestActivity.downs==BridgeTestActivity.ups,"profile native accounting");
         checks.put("saved_mapping_native_receipts_balanced_and_clean_exit");
     }
+    private void hostKey(int device, int code, int action, int repeat, int flags) {
+        ui(() -> {
+            long now=SystemClock.uptimeMillis();
+            android.view.KeyEvent event=new android.view.KeyEvent(now,now,action,code,repeat,0,device,0,flags,
+                    android.view.InputDevice.SOURCE_GAMEPAD);
+            BridgeTestActivity activity=BridgeTestActivity.current;
+            AlertDialog dialog=activity.hostMenu.dialog();
+            check(dialog!=null && dialog.isShowing() ? dialog.dispatchKeyEvent(event) : activity.dispatchKeyEvent(event),"host key not consumed");
+        });
+    }
+    private void hostPress(int code) { hostKey(101,code,0,0,0); hostKey(101,code,1,0,0); }
+    private void menuTouch(int item) {
+        ui(() -> {
+            android.view.View view=BridgeTestActivity.current.hostMenu.button;
+            float x=view.getWidth()/2f, y=view.getHeight()/2f;
+            if (item>=0) {
+                android.widget.ListView list=BridgeTestActivity.current.hostMenu.dialog().getListView();
+                android.view.View row=list.getChildAt(item-list.getFirstVisiblePosition());
+                check(row!=null,"menu row not visible"); view=list; x=row.getWidth()/2f; y=row.getTop()+row.getHeight()/2f;
+            }
+            long now=SystemClock.uptimeMillis();
+            for (int action:new int[]{MotionEvent.ACTION_DOWN,MotionEvent.ACTION_UP}) {
+                MotionEvent event=MotionEvent.obtain(now,now,action,x,y,0);
+                try { check(view.dispatchTouchEvent(event),"menu touch not consumed"); } finally { event.recycle(); }
+            }
+        });
+    }
+    private void menu() throws Exception {
+        boolean captured=false;
+        try { ui(() -> { throw new IllegalStateException("owned assertion probe"); }); }
+        catch (AssertionError expected) { captured=expected.getCause() instanceof IllegalStateException; }
+        check(captured,"UI failure escaped instrumentation cleanup");
+        checks.put("UI_failures_return_to_instrumentation_cleanup");
+        ui(() -> {
+            BridgeTestActivity.current.desktop().selectCursorProfile(savedProfile(RelativePointer.Mode.DPAD));
+            BridgeTestActivity.current.desktop().requestFocus();
+        });
+        hideIme();
+        gameKey(101,android.view.KeyEvent.KEYCODE_BUTTON_X,0,true);
+        key(-1,android.view.KeyEvent.KEYCODE_CTRL_LEFT,0,0,android.view.KeyEvent.META_CTRL_ON);
+        await(() -> BridgeTestActivity.held==1 && BridgeTestActivity.keyMods==2,"menu held inputs");
+        hostKey(101,android.view.KeyEvent.KEYCODE_BUTTON_START,0,0,0);
+        hostKey(102,android.view.KeyEvent.KEYCODE_BUTTON_START,1,0,0);
+        check(!BridgeTestActivity.current.hostMenu.visible(),"foreign release opened menu");
+        hostKey(101,android.view.KeyEvent.KEYCODE_BUTTON_START,0,1,0);
+        hostKey(101,android.view.KeyEvent.KEYCODE_BUTTON_START,1,0,0);
+        await(() -> BridgeTestActivity.current.hostMenu.visible() && BridgeTestActivity.held==0
+                && BridgeTestActivity.keyMods==0,"menu opening releases pointer and keyboard");
+        check(BridgeTestActivity.keyPackets==2,"menu shortcut leaked keyboard event");
+        checks.put("controller_menu_source_ownership_repeat_suppression_and_shared_release");
+        hostPress(android.view.KeyEvent.KEYCODE_DPAD_DOWN);
+        hostPress(android.view.KeyEvent.KEYCODE_BUTTON_A);
+        await(() -> BridgeTestActivity.current.desktop().getRootWindowInsets().isVisible(android.view.WindowInsets.Type.ime()),"menu shows real IME");
+        android.view.inputmethod.InputConnection connection=BridgeTestActivity.keyboard.latestConnection();
+        check(connection!=null,"menu IME connection absent");
+        String text="menu ✓";
+        ui(() -> check(connection.commitText(text,1),"menu Unicode commit"));
+        await(() -> BridgeTestActivity.receivedText.equals(text),"menu text native receipt");
+        checks.put("controller_menu_keyboard_action_and_native_UTF8_receipt");
+        menuTouch(-1);
+        await(() -> BridgeTestActivity.current.hostMenu.visible(),"touch menu open");
+        ui(() -> check(!connection.commitText("STALE",1),"menu retained old IME connection"));
+        screenshot();
+        menuTouch(1);
+        await(() -> BridgeTestActivity.current.desktop().getRootWindowInsets().isVisible(android.view.WindowInsets.Type.ime()),"touch menu shows IME");
+        menuTouch(-1);
+        await(() -> BridgeTestActivity.current.hostMenu.visible(),"menu after touch keyboard action");
+        checks.put("touch_menu_keyboard_action_and_stale_connection_rejection");
+        menuTouch(2);
+        await(() -> BridgeTestActivity.current.hostMenu.dialog()!=null && BridgeTestActivity.current.hostMenu.dialog().getListView().getCount()==2,"exit confirmation");
+        menuTouch(0);
+        await(() -> BridgeTestActivity.current.hasWindowFocus(),"cancel exit focus");
+        check(BridgeTestActivity.exitRequests==0 && BridgeTestActivity.child.isAlive(),"cancel exit stopped process");
+        checks.put("touch_menu_exit_confirmation_cancel_preserves_live_session");
+        hostKey(101,android.view.KeyEvent.KEYCODE_BUTTON_START,0,0,0);
+        hostKey(101,android.view.KeyEvent.KEYCODE_BUTTON_START,1,0,android.view.KeyEvent.FLAG_CANCELED);
+        check(!BridgeTestActivity.current.hostMenu.visible(),"canceled shortcut opened menu");
+        hostPress(android.view.KeyEvent.KEYCODE_BUTTON_START);
+        HostMenu oldMenu=BridgeTestActivity.current.hostMenu;
+        BridgeTestActivity old=BridgeTestActivity.current; int pid=BridgeTestActivity.nativePid;
+        ui(old::recreate);
+        await(() -> BridgeTestActivity.current!=old && BridgeTestActivity.current.hasWindowFocus(),"menu recreation");
+        check(!oldMenu.visible() && BridgeTestActivity.nativePid==pid && BridgeTestActivity.launches==1,"menu recreation lost session");
+        ui(oldMenu::open); check(!oldMenu.visible(),"stale menu reopened");
+        checks.put("menu_recreation_dismisses_stale_window_same_process");
+        hostPress(android.view.KeyEvent.KEYCODE_BUTTON_START);
+        hostPress(android.view.KeyEvent.KEYCODE_DPAD_DOWN);
+        hostPress(android.view.KeyEvent.KEYCODE_DPAD_DOWN);
+        hostPress(android.view.KeyEvent.KEYCODE_BUTTON_A);
+        hostPress(android.view.KeyEvent.KEYCODE_DPAD_DOWN);
+        hostPress(android.view.KeyEvent.KEYCODE_BUTTON_A);
+        await(() -> BridgeTestActivity.sessionExit.state()==SessionExit.State.ENDED && BridgeTestActivity.finishedSessions==1,"verified menu shutdown");
+        check(BridgeTestActivity.exitRequests==1 && BridgeTestActivity.exitCode==0 && !BridgeTestActivity.child.isAlive(),"exit request duplicated or child alive");
+        JSONObject result=BridgeTestActivity.result;
+        check(result.getInt("peer_pid")==pid && result.getInt("keyboard_peer_pid")==pid
+                && result.getInt("pointer_packets")==BridgeTestActivity.packets
+                && result.getInt("keyboard_packets")==BridgeTestActivity.keyPackets
+                && BridgeTestActivity.downs==BridgeTestActivity.ups && BridgeTestActivity.keyDowns==BridgeTestActivity.keyUps,"menu native accounting");
+        interaction.put("exit_requests",BridgeTestActivity.exitRequests).put("finished_sessions",BridgeTestActivity.finishedSessions);
+        checks.put("controller_exit_once_waits_for_native_release_receipts_exit_and_reap_before_finish");
+    }
     @Override public void onStart() {
         JSONObject report = new JSONObject(); Bundle bundle = new Bundle();
         try {
             check(session != null && session.matches("[a-f0-9-]{36}"), "missing session UUID");
-            BridgeTestActivity.keyboardTest=mode.equals("keyboard") || mode.equals("combined");
+            BridgeTestActivity.menuTest=mode.equals("menu");
+            BridgeTestActivity.keyboardTest=mode.equals("keyboard") || mode.equals("combined") || BridgeTestActivity.menuTest;
             BridgeTestActivity.profileTest=mode.equals("profile") || mode.equals("profile-read");
-            BridgeTestActivity.cursorTest=mode.equals("cursor") || mode.equals("combined") || BridgeTestActivity.profileTest;
+            BridgeTestActivity.cursorTest=mode.equals("cursor") || mode.equals("combined") || BridgeTestActivity.profileTest || BridgeTestActivity.menuTest;
             report.put("session", session).put("mode", mode).put("host_pid", android.os.Process.myPid()).put("host_uid", android.os.Process.myUid())
                     .put("official_runtime", "NOT TESTED");
             // Cancellation before a client connects must terminate the waiting receiver.
@@ -673,6 +780,7 @@ public final class BridgeInstrumentation extends Instrumentation {
             else if (mode.equals("keyboard")) keyboard();
             else if (mode.equals("cursor")) cursor();
             else if (mode.equals("combined")) combined();
+            else if (mode.equals("menu")) menu();
             else if (BridgeTestActivity.profileTest) profile();
             else {
                 check(mode.equals("abrupt") || mode.equals("partial"), "unknown test mode");
@@ -712,6 +820,8 @@ public final class BridgeInstrumentation extends Instrumentation {
                         .put("stream", BridgeTestActivity.result).put("native_output", BridgeTestActivity.transcript);
                 if (screenshotSaved) report.put("screenshot",mode+"-preview.png");
                 if (interaction.length()>0) report.put("interaction",interaction);
+                if (BridgeTestActivity.sessionExit!=null && BridgeTestActivity.sessionExit.failure()!=null)
+                    report.put("exit_failure",BridgeTestActivity.sessionExit.failure());
                 File file = new File(getTargetContext().getFilesDir(), "bridge-" + mode + ".json");
                 try (Writer out = new OutputStreamWriter(new FileOutputStream(file), "UTF-8")) { out.write(report.toString(2)); }
                 bundle.putString("stream", report.toString());

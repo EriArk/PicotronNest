@@ -8,6 +8,10 @@ call a Picotron APK working because it opens a splash screen.
 
 ## Delivery contract
 
+The owner will free Retroid when a functional beta candidate is assembled.
+[Beta readiness](BETA_READINESS.md) tracks that handoff separately from hardware
+acceptance and publication approval. The candidate gate is not yet reached.
+
 PicotronNest supplies an Android host and reviewed compatibility components.
 The user separately obtains and imports their own official Picotron copy.
 Picotron's executable, data, desktop and tools stay official; no source port or

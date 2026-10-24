@@ -33,6 +33,8 @@ the [D-pad/IME extension](DPAD_AND_IME.md) checks their simultaneous operation.
 The [saved-profile fixture](CURSOR_PROFILES.md) checks settings restoration and
 release across Activity recreation/rotation, plus disk loading in a fresh host
 process. This does not prove persistence of the Picotron runtime or user home.
+The [host-menu fixture](HOST_MENU.md) exercises keyboard/exit access from touch
+and synthetic controller input, with native receipt and process completion checks.
 These experimental adapters are not attached to official Picotron. Secondary click, a complete controller
 workflow and audio are not implemented. No physical controller, hardware keyboard
 or real IME typing acceptance is claimed.

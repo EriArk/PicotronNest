@@ -24,6 +24,9 @@ class FrameProtocolHost(unittest.TestCase):
     def test_cursor_profile_schema_and_rejection(self):
         self.run_java('CursorProfileHostTest')
 
+    def test_session_exit_waits_for_verified_backend_once(self):
+        self.run_java('SessionExitHostTest')
+
     def run_java(self, test):
         here = Path(__file__).resolve().parent
         jdk = Path(os.environ.get('JAVA_HOME', r'C:\Program Files\Android\Android Studio\jbr')) / 'bin'
@@ -34,6 +37,7 @@ class FrameProtocolHost(unittest.TestCase):
                             str(here / 'src/art/picotronnest/executionlab/PointerState.java'),
                             str(here / 'src/art/picotronnest/executionlab/RelativePointer.java'),
                             str(here / 'src/art/picotronnest/executionlab/CursorProfile.java'),
+                            str(here / 'src/art/picotronnest/executionlab/SessionExit.java'),
                             str(here / 'src/art/picotronnest/executionlab/FrameStream.java'),
                             str(here / 'src/art/picotronnest/executionlab/KeyboardProtocol.java'),
                             str(here / 'src/art/picotronnest/executionlab/KeyboardState.java'),

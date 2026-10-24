@@ -21,6 +21,12 @@ public final class BridgeTestActivity extends MainActivity {
     static volatile boolean keyboardTest;
     static volatile boolean cursorTest;
     static volatile boolean profileTest;
+    static volatile boolean menuTest;
+    static SessionExit sessionExit;
+    static volatile int exitRequests, finishedSessions;
+    static volatile FrameReceiver activeReceiver;
+    static volatile KeyboardWriter activeKeyWriter;
+    HostMenu hostMenu;
     static volatile CursorInput cursor;
     android.widget.Button primaryButton, modeButton;
     static volatile KeyboardInput keyboard;
@@ -59,6 +65,17 @@ public final class BridgeTestActivity extends MainActivity {
             });
             controls.addView(modeButton); controls.addView(primaryButton); header=controls;
         }
+        if (menuTest) {
+            if (sessionExit==null) sessionExit=new SessionExit(BridgeTestActivity::exitFixture);
+            hostMenu=new HostMenu(this,desktop(),sessionExit,android.view.KeyEvent.KEYCODE_BUTTON_START,
+                    android.view.KeyEvent.KEYCODE_BUTTON_A,android.view.KeyEvent.KEYCODE_BUTTON_B,() -> {
+                        if (child.isAlive() || result==null || exitCode!=0) throw new AssertionError("premature finish");
+                        finishedSessions++; finish();
+                    });
+            android.widget.LinearLayout controls=new android.widget.LinearLayout(this);
+            controls.setOrientation(android.widget.LinearLayout.VERTICAL);
+            controls.addView(label); controls.addView(hostMenu.button); header=controls;
+        }
         addContentView(header, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
                 keyboardTest || cursorTest ? ViewGroup.LayoutParams.WRAP_CONTENT : 60));
         if (keyboardTest || cursorTest) {
@@ -71,8 +88,32 @@ public final class BridgeTestActivity extends MainActivity {
             showReceipt();
         }
     }
+    @Override public boolean dispatchKeyEvent(android.view.KeyEvent event) {
+        return hostMenu!=null && hostMenu.key(event) || super.dispatchKeyEvent(event);
+    }
+    @Override public void onWindowFocusChanged(boolean focused) {
+        super.onWindowFocusChanged(focused);
+        if (hostMenu!=null) hostMenu.focus(focused);
+    }
+    @Override protected void onPause() { if (hostMenu!=null) hostMenu.pause(); super.onPause(); }
+    @Override protected void onDestroy() { if (hostMenu!=null) hostMenu.close(); super.onDestroy(); }
+    private static void exitFixture() throws Exception {
+        exitRequests++;
+        int pointerTarget=activeReceiver.pointerAccepted(), keyTarget=activeKeyWriter.accepted();
+        long deadline=android.os.SystemClock.uptimeMillis()+5000;
+        while ((packets<pointerTarget || keyPackets<keyTarget || held!=0 || downs!=ups || keyDowns!=keyUps)
+                && android.os.SystemClock.uptimeMillis()<deadline) Thread.sleep(10);
+        if (packets<pointerTarget || keyPackets<keyTarget || held!=0 || downs!=ups || keyDowns!=keyUps)
+            throw new IOException("native release acknowledgement timeout");
+        command('Q');
+        deadline=android.os.SystemClock.uptimeMillis()+5000;
+        while (result==null && error==null && android.os.SystemClock.uptimeMillis()<deadline) Thread.sleep(10);
+        if (result==null || error!=null || child.isAlive() || exitCode!=0
+                || result.has("error") || result.has("pointer_error") || result.has("keyboard_error"))
+            throw new IOException("native exit unconfirmed");
+    }
     void showReceipt() {
-        CursorInput shown=profileTest ? desktop().cursor() : cursor;
+        CursorInput shown=profileTest || menuTest ? desktop().cursor() : cursor;
         label.setText("OWNED BRIDGE FIXTURE — NO PICOTRON\n" + (cursorTest
                 ? "Relative cursor: " + (shown==null ? "preparing" : shown.mode())
                     + (profileTest ? " (saved profile)\nPrimary: X | Precision: L1\nActivity creates: " + creates + " | Native PID: " + nativePid : "")
@@ -97,6 +138,7 @@ public final class BridgeTestActivity extends MainActivity {
         KeyboardWriter keyWriter = null; android.net.LocalSocket keyClient = null; JSONObject completed = null;
         try (FrameReceiver receiver = new FrameReceiver(name);
              android.net.LocalServerSocket keyServer = keyboardTest ? new android.net.LocalServerSocket(name + ".keys") : null) {
+            activeReceiver=receiver;
             String executable = new File(app.getApplicationInfo().nativeLibraryDir,"libbridge_fixture.so").getPath();
             child = new ProcessBuilder(keyboardTest ? new String[]{executable,name,name+".keys"} : new String[]{executable,name})
                     .redirectErrorStream(true).start();
@@ -108,6 +150,7 @@ public final class BridgeTestActivity extends MainActivity {
                 if (keyClient.getPeerCredentials().getUid() != android.os.Process.myUid()) throw new IOException("keyboard peer UID");
                 keyPeerPid = keyClient.getPeerCredentials().getPid();
                 keyWriter = new KeyboardWriter(keyClient.getOutputStream());
+                activeKeyWriter=keyWriter;
                 keyboard = new KeyboardInput(app,keyWriter); DesktopView.keyboard(keyboard);
             }
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(child.getInputStream(), "UTF-8"))) {

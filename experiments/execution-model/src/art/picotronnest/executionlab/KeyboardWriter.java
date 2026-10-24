@@ -43,6 +43,7 @@ final class KeyboardWriter implements AutoCloseable {
         return true;
     }
     int sent() { return sent; }
+    int accepted() { return accepted; }
     String failure() {
         return failure != null ? failure : closing && !worker.isAlive() && accepted != sent
                 ? "keyboard updates unconfirmed at close" : null;

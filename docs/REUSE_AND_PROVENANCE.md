@@ -42,6 +42,12 @@ Names refer to PikoNest's current paths for research, **not dependencies** of Pi
 
 ## Upstream references
 
+The owned bridge fixture uses the same checksum-pinned SDL 2.32.10 headers as
+the desktop observer to test shared mouse event construction. This is a
+build-time dependency, not bundled SDL runtime code. Its APK retains the SDL
+zlib license alongside NDK notices; native dependency/payload allowlists and
+source pins are recorded by `build_bridge_tests.py`. See [pointer transport](POINTER_WHEEL.md).
+
 - [Official Picotron manual](https://www.lexaloffle.com/dl/docs/picotron_manual.html): SDL2, display modes, `-home`, `-x`, native cartridges.
 - [Official Picotron roadmap](https://www.lexaloffle.com/picotron.php?page=roadmap): Raspberry Pi 64-bit support milestone.
 - [Picotron BBS Pi discussion](https://www.lexaloffle.com/bbs/?pid=184871): community report of an available Raspberry Pi download in March 2026; informative, not technical ABI proof.

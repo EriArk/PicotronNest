@@ -12,6 +12,9 @@ class FrameProtocolHost(unittest.TestCase):
     def test_transport_and_failure_boundaries(self):
         self.run_java('TransportHostTest')
 
+    def test_secondary_button_and_wheel_transport(self):
+        self.run_java('PointerProtocolHostTest')
+
     def test_keyboard_state_unicode_and_transport(self):
         self.run_java('KeyboardHostTest')
 

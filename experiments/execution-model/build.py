@@ -55,7 +55,7 @@ def main():
                                                'runtime-contract.json', 'native/headless_exec.c']]
     if args.desktop_base:
         recorded_sources += [HERE / n for n in ('prepare_desktop.py', 'native/desktop_exec.c',
-                                               'native/desktop_trace.c', 'native/pointer_protocol.h')]
+                                               'native/desktop_trace.c', 'native/pointer_protocol.h', 'native/pointer_sdl.h')]
     source_hashes = {str(p.relative_to(ROOT)).replace('\\', '/'): digest(p) for p in recorded_sources}
     work = ROOT / '.local/execution-model/builds' / uuid.uuid4().hex
     artifacts = ROOT / '.local/execution-model/artifacts'

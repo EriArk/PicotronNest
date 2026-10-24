@@ -10,7 +10,7 @@ does not link SDL, and cannot prove SDL event consumption or editor behavior.
 
 The separate `art.picotronnest.bridgetest` APK is developer test infrastructure,
 not a product dependency or second required end-user app. It contains original
-test code, the shared host sources, an owned x86_64 native fixture and NDK notices.
+test code, the shared host sources, an owned x86_64 native fixture and NDK/SDL notices.
 It has no permissions, proprietary payload, imported runtime or persistent home.
 Packaging uses an exact payload allowlist. No APK is published.
 
@@ -80,6 +80,11 @@ The later [host-menu fixture](HOST_MENU.md) adds the ninth scenario, with touch
 and controller menu actions, IME/native receipt and verified exit. Its harness
 also routes UI assertion failures back to instrumentation so reporting and
 owned-child cleanup can run even when a View assertion fails.
+
+The [secondary-button/wheel increment](POINTER_WHEEL.md) adds a tenth, direct
+transport scenario and native tests of the shared SDL event builder. SDL headers
+are checksum-pinned build inputs; no SDL library is linked into the fixture.
+The new private PNI2 wire format requires matching sender/observer builds.
 
 The [D-pad/IME increment](DPAD_AND_IME.md) passes all six scenarios on one APK in
 session `7245e501-c9da-4198-b8ae-35a60199bd11`. It records source-aware keyboard

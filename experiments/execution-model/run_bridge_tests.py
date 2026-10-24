@@ -12,7 +12,7 @@ PACKAGE = 'art.picotronnest.bridgetest'
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--serial', required=True)
-    parser.add_argument('--mode', choices=['all','normal','abrupt','partial','keyboard','cursor','combined','profile','menu'], default='all')
+    parser.add_argument('--mode', choices=['all','normal','abrupt','partial','keyboard','cursor','combined','profile','menu','pointer'], default='all')
     args = parser.parse_args()
     def adb(*command, timeout=15):
         return subprocess.run(['adb', '-s', args.serial, *command], check=True,
@@ -41,7 +41,7 @@ def main():
               ['ro.product.model', 'ro.build.version.release', 'ro.build.version.sdk', 'ro.product.cpu.abi']}
     device['selinux'] = adb('shell', 'getenforce').decode().strip()
     (evidence / 'device.json').write_text(json.dumps(device, indent=2), encoding='utf-8')
-    modes = (['normal', 'abrupt', 'partial', 'keyboard', 'cursor', 'combined', 'profile', 'profile-read', 'menu']
+    modes = (['normal', 'abrupt', 'partial', 'keyboard', 'cursor', 'combined', 'profile', 'profile-read', 'menu', 'pointer']
              if args.mode == 'all' else ['profile', 'profile-read'] if args.mode == 'profile' else [args.mode])
     profile_host_pid = None
     for mode in modes:
@@ -55,7 +55,7 @@ def main():
         except (ValueError, UnicodeDecodeError) as error:
             raise ValueError('No valid ' + mode + ' report; instrumentation output: '
                              + output.decode('utf-8', errors='replace')[-2000:]) from error
-        if mode in ('keyboard','cursor','combined','profile','profile-read','menu') and report.get('session') == session and report.get('screenshot') == mode + '-preview.png':
+        if mode in ('keyboard','cursor','combined','profile','profile-read','menu','pointer') and report.get('session') == session and report.get('screenshot') == mode + '-preview.png':
             screenshot = adb('exec-out', 'run-as', PACKAGE, 'cat', 'files/' + mode + '-preview.png')
             if not screenshot.startswith(b'\x89PNG\r\n\x1a\n'):
                 raise ValueError('Invalid emulator screenshot')

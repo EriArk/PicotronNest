@@ -22,6 +22,8 @@ public final class BridgeTestActivity extends MainActivity {
     static volatile boolean cursorTest;
     static volatile boolean profileTest;
     static volatile boolean menuTest;
+    static volatile boolean pointerTest;
+    static volatile long wheelX, wheelY, wheelStepsX, wheelStepsY;
     static SessionExit sessionExit;
     static volatile int exitRequests, finishedSessions;
     static volatile FrameReceiver activeReceiver;
@@ -77,8 +79,8 @@ public final class BridgeTestActivity extends MainActivity {
             controls.addView(label); controls.addView(hostMenu.button); header=controls;
         }
         addContentView(header, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
-                keyboardTest || cursorTest ? ViewGroup.LayoutParams.WRAP_CONTENT : 60));
-        if (keyboardTest || cursorTest) {
+                keyboardTest || cursorTest || pointerTest ? ViewGroup.LayoutParams.WRAP_CONTENT : 60));
+        if (keyboardTest || cursorTest || pointerTest) {
             label.setOnApplyWindowInsetsListener((view, insets) -> {
                 android.graphics.Insets bars=insets.getInsets(android.view.WindowInsets.Type.systemBars());
                 view.setPadding(bars.left + 12, bars.top, bars.right + 12, 12);
@@ -113,6 +115,15 @@ public final class BridgeTestActivity extends MainActivity {
             throw new IOException("native exit unconfirmed");
     }
     void showReceipt() {
+        if (pointerTest) {
+            label.setText("OWNED POINTER TRANSPORT - NO PICOTRON\nPNI2: right button + two-axis wheel\n"
+                    + "Native PID: " + nativePid + " | Packets: " + packets
+                    + "\nButtons: " + held + " | Down/up: " + downs + "/" + ups
+                    + "\nWheel units (1/1024): " + wheelX + ", " + wheelY
+                    + "\nWhole steps: " + wheelStepsX + ", " + wheelStepsY
+                    + "\nTransport injection; no physical mouse tested");
+            return;
+        }
         CursorInput shown=profileTest || menuTest ? desktop().cursor() : cursor;
         label.setText("OWNED BRIDGE FIXTURE — NO PICOTRON\n" + (cursorTest
                 ? "Relative cursor: " + (shown==null ? "preparing" : shown.mode())
@@ -163,8 +174,10 @@ public final class BridgeTestActivity extends MainActivity {
                     if (line.startsWith("INPUT ")) {
                         x = Integer.parseInt(fields[2]); y = Integer.parseInt(fields[3]);
                         held = Integer.parseInt(fields[4]); downs = Integer.parseInt(fields[5]); ups = Integer.parseInt(fields[6]);
+                        wheelX=Long.parseLong(fields[7]); wheelY=Long.parseLong(fields[8]);
+                        wheelStepsX=Long.parseLong(fields[9]); wheelStepsY=Long.parseLong(fields[10]);
                         packets = Integer.parseInt(fields[1]); // Publish the complete input snapshot last.
-                        if (cursorTest) {
+                        if (cursorTest || pointerTest) {
                             BridgeTestActivity view=current;
                             if (view!=null) view.runOnUiThread(view::showReceipt);
                         }

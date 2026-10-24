@@ -747,11 +747,62 @@ public final class BridgeInstrumentation extends Instrumentation {
         interaction.put("exit_requests",BridgeTestActivity.exitRequests).put("finished_sessions",BridgeTestActivity.finishedSessions);
         checks.put("controller_exit_once_waits_for_native_release_receipts_exit_and_reap_before_finish");
     }
+    private void pointerTransport() throws Exception {
+        FrameReceiver receiver=BridgeTestActivity.activeReceiver;
+        check(BridgeTestActivity.transcript.contains("sdl_event_tests=PASS"),"SDL event translation selftest");
+        checks.put("shared_SDL_event_builder_masks_chord_partial_release_fractional_steps_and_no_replay");
+        PointerState buttons=new PointerState((x,y,held) -> check(receiver.sendPointer(x,y,held,0,0),"pointer transport closed"));
+        ui(() -> buttons.update(5,6,2)); packets(1,5,6,2);
+        check(BridgeTestActivity.downs==1 && BridgeTestActivity.ups==0,"right press missing");
+        ui(() -> buttons.update(7,8,3)); packets(2,7,8,3);
+        ui(() -> buttons.update(7,8,2)); packets(3,7,8,2);
+        check(BridgeTestActivity.downs==2 && BridgeTestActivity.ups==1,"chord partial release");
+        checks.put("right_button_chord_and_independent_release_native_receipts");
+        ui(() -> {
+            check(receiver.sendPointer(7,8,2,512,-256),"fractional wheel 1");
+            check(receiver.sendPointer(7,8,2,512,-768),"fractional wheel 2");
+        });
+        packets(5,7,8,2);
+        check(BridgeTestActivity.wheelX==1024 && BridgeTestActivity.wheelY==-1024
+                && BridgeTestActivity.wheelStepsX==1 && BridgeTestActivity.wheelStepsY==-1,"signed fractional wheel sum");
+        checks.put("fractional_two_axis_wheel_preserved_while_right_held");
+        ui(() -> { buttons.release(); buttons.release(); }); packets(6,7,8,0);
+        check(BridgeTestActivity.downs==BridgeTestActivity.ups && BridgeTestActivity.wheelX==1024
+                && BridgeTestActivity.wheelY==-1024,"release replayed wheel or lost button");
+        checks.put("idempotent_both_button_cleanup_does_not_replay_wheel");
+        ui(() -> {
+            for (int i=0;i<16;i++) {
+                check(receiver.sendPointer(7,8,0,-256,128),"wheel burst");
+            }
+        });
+        packets(22,7,8,0);
+        check(BridgeTestActivity.wheelX==-3072 && BridgeTestActivity.wheelY==1024
+                && BridgeTestActivity.wheelStepsX==-3 && BridgeTestActivity.wheelStepsY==1,"burst wheel coalesced or lost");
+        checks.put("ordered_fractional_wheel_burst_survives_fragmented_native_reads");
+        ui(() -> buttons.update(47,26,3)); packets(23,47,26,3);
+        BridgeTestActivity.command('R');
+        await(() -> DesktopView.frameSize(27,48),"pointer transport resize");
+        ui(buttons::release); packets(24,26,26,0);
+        check(BridgeTestActivity.downs==4 && BridgeTestActivity.ups==4,"resize chord release");
+        checks.put("both_buttons_release_at_clamped_previous_frame_coordinates");
+        ui(() -> BridgeTestActivity.current.showReceipt()); screenshot();
+        interaction.put("wheel_unit",1024).put("wheel_x",BridgeTestActivity.wheelX).put("wheel_y",BridgeTestActivity.wheelY)
+                .put("wheel_steps_x",BridgeTestActivity.wheelStepsX).put("wheel_steps_y",BridgeTestActivity.wheelStepsY)
+                .put("input_source","direct session transport injection; no Android mouse adapter");
+        BridgeTestActivity.command('Q');
+        await(() -> BridgeTestActivity.result!=null || BridgeTestActivity.error!=null,"extended pointer process exit");
+        check(BridgeTestActivity.error==null && BridgeTestActivity.exitCode==0,"extended pointer fixture exit");
+        JSONObject result=BridgeTestActivity.result;
+        check(!result.has("error") && !result.has("pointer_error") && result.getInt("pointer_packets")==24
+                && result.getInt("peer_pid")==BridgeTestActivity.nativePid && !receiver.sendPointer(0,0,1,0,0),"closed session/receipt accounting");
+        checks.put("authenticated_native_receipts_clean_exit_and_closed_transport_rejection");
+    }
     @Override public void onStart() {
         JSONObject report = new JSONObject(); Bundle bundle = new Bundle();
         try {
             check(session != null && session.matches("[a-f0-9-]{36}"), "missing session UUID");
             BridgeTestActivity.menuTest=mode.equals("menu");
+            BridgeTestActivity.pointerTest=mode.equals("pointer");
             BridgeTestActivity.keyboardTest=mode.equals("keyboard") || mode.equals("combined") || BridgeTestActivity.menuTest;
             BridgeTestActivity.profileTest=mode.equals("profile") || mode.equals("profile-read");
             BridgeTestActivity.cursorTest=mode.equals("cursor") || mode.equals("combined") || BridgeTestActivity.profileTest || BridgeTestActivity.menuTest;
@@ -781,6 +832,7 @@ public final class BridgeInstrumentation extends Instrumentation {
             else if (mode.equals("cursor")) cursor();
             else if (mode.equals("combined")) combined();
             else if (mode.equals("menu")) menu();
+            else if (mode.equals("pointer")) pointerTransport();
             else if (BridgeTestActivity.profileTest) profile();
             else {
                 check(mode.equals("abrupt") || mode.equals("partial"), "unknown test mode");

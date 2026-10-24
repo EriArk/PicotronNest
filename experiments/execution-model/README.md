@@ -199,6 +199,10 @@ The ninth scenario covers [host menu/keyboard/exit commands](../../docs/HOST_MEN
 Use `--mode keyboard`, `--mode cursor`, `--mode combined` or `--mode profile`
 for focused checks; `profile` includes a second process reading the saved file.
 Use `--mode menu` for the host-command check, including its actual `menu.png`.
+The tenth scenario, `--mode pointer`, checks [secondary-button/wheel transport](../../docs/POINTER_WHEEL.md)
+and shared native SDL event construction. It injects the transport directly,
+not physical mouse events, and captures `pointer.png`. Its PNI2 sender and
+observer must be rebuilt together; old PNI1 observers are incompatible.
 The collector retains actual labeled emulator screenshots as `keyboard.png`,
 `cursor.png`, `combined.png`, `profile.png` and `profile-read.png` beside
 their private JSON reports. The official launcher attaches neither experimental

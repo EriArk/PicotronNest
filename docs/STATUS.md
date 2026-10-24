@@ -1,6 +1,6 @@
 # Project status
 
-**2026-10-24 — Host-command fixture verified; functional beta candidate and Retroid input gates remain open.**
+**2026-10-24 — Secondary-button/wheel transport verified; functional beta candidate and Retroid input gates remain open.**
 
 PicotronNest is an Android wrapper for the **official, user-imported Picotron runtime**.
 The repository contains a bounded archive inspector and a temporary target-36
@@ -13,6 +13,13 @@ the next gate.
 
 ## Latest evidence
 
+- Secondary-button/wheel transport: independent button edges, fractional two-axis
+  scroll, resize release and shared SDL event construction pass on the API 35
+  x86_64 emulator. All ten bridge scenarios pass on one final APK, alongside
+  35 lab and nine archive tests. The matching ARM64 observer builds; it was not
+  installed on Retroid. Android mouse routing and official input consumption
+  remain open. The private PNI2 format requires paired sender/observer builds.
+  [Evidence, actual screenshot scope and next step](POINTER_WHEEL.md).
 - Host-menu fixture: controller/touch menu and keyboard commands, Unicode
   receipt, exit cancellation and one verified native shutdown pass on the API 35
   x86_64 emulator. 34 lab and nine archive tests pass. This menu is not attached

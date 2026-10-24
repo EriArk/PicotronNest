@@ -6,6 +6,7 @@ import java.nio.ByteOrder;
 
 /** Small bounded diagnostic wire format, independent of Android rendering. */
 final class FrameProtocol {
+    static final int POINTER_BYTES = 28, WHEEL_UNIT = 1024, WHEEL_LIMIT = 32 * WHEEL_UNIT;
     static int[] header(byte[] bytes, int previous) throws IOException {
         ByteBuffer b = ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN);
         if (bytes.length != 16 || b.getInt() != 0x504e4631) throw new IOException("invalid frame magic");
@@ -38,9 +39,20 @@ final class FrameProtocol {
     }
 
     static byte[] pointerPacket(int sequence, int x, int y, int buttons) {
-        if (sequence <= 0 || x < 0 || y < 0 || x >= 2048 || y >= 2048 || buttons < 0 || buttons > 1)
+        return pointerPacket(sequence, x, y, buttons, 0, 0);
+    }
+
+    static void validatePointer(int x, int y, int buttons, int wheelX, int wheelY) {
+        if (x < 0 || y < 0 || x >= 2048 || y >= 2048 || buttons < 0 || buttons > 3
+                || wheelX < -WHEEL_LIMIT || wheelX > WHEEL_LIMIT || wheelY < -WHEEL_LIMIT || wheelY > WHEEL_LIMIT)
             throw new IllegalArgumentException("invalid pointer packet");
-        return ByteBuffer.allocate(20).order(ByteOrder.LITTLE_ENDIAN).putInt(0x504e4931)
-                .putInt(sequence).putInt(x).putInt(y).putInt(buttons).array();
+    }
+
+    /** PNI2: full button state (primary=1, secondary=2), signed wheel deltas in 1/1024 steps. */
+    static byte[] pointerPacket(int sequence, int x, int y, int buttons, int wheelX, int wheelY) {
+        validatePointer(x, y, buttons, wheelX, wheelY);
+        if (sequence <= 0) throw new IllegalArgumentException("invalid pointer sequence");
+        return ByteBuffer.allocate(POINTER_BYTES).order(ByteOrder.LITTLE_ENDIAN).putInt(0x504e4932)
+                .putInt(sequence).putInt(x).putInt(y).putInt(buttons).putInt(wheelX).putInt(wheelY).array();
     }
 }

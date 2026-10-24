@@ -52,6 +52,7 @@ final class FrameReceiver implements AutoCloseable {
             }
         } catch (IOException | ErrnoException error) { if (!closing) failure = error.toString(); }
         finally {
+            closing = true;
             DesktopView.pointer(null);
             if (pointer != null) pointer.close();
             // Interrupting a Java thread alone cannot unblock a socket write.
@@ -65,6 +66,14 @@ final class FrameReceiver implements AutoCloseable {
     }
 
     int pointerAccepted() { PointerSender sender=pointer; return sender==null ? 0 : sender.accepted(); }
+
+    /** Session transport only; callers must own capture and release before shutdown. */
+    boolean sendPointer(int x, int y, int buttons, int wheelX, int wheelY) {
+        PointerSender sender=pointer;
+        if (closing || sender==null || failure!=null || sender.failure()!=null || !worker.isAlive()) return false;
+        sender.send(x,y,buttons,wheelX,wheelY);
+        return sender.failure()==null;
+    }
 
     JSONObject evidence() throws Exception {
         worker.join(2000);

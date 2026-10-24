@@ -7,6 +7,7 @@ import subprocess
 import uuid
 import zipfile
 from build import HERE, ROOT, digest, run
+from prepare_headless import fetch, regular_files
 
 
 def main():
@@ -22,11 +23,18 @@ def main():
         directory.mkdir(parents=True, exist_ok=True)
     sources = sorted((HERE / 'src').rglob('*.java')) + sorted((HERE / 'tests/android').glob('*.java'))
     inputs = sources + [HERE / n for n in ['build_bridge_tests.py', 'build.py', 'tests/bridge_fixture.c',
-                                          'native/pointer_protocol.h', 'native/keyboard_protocol.h']]
+                                          'native/pointer_protocol.h', 'native/pointer_sdl.h', 'native/keyboard_protocol.h',
+                                          'prepare_headless.py', 'prepare_proot.py', 'headless.lock.json']]
     hashes = {p.relative_to(ROOT).as_posix(): digest(p) for p in inputs}
+    sdl_input = next(item for item in json.loads((HERE / 'headless.lock.json').read_text())['inputs']
+                     if item['file'] == 'SDL2-2.32.10.tar.gz')
+    regular_files(fetch(sdl_input), work / 'source')
+    sdl = work / 'source/SDL2-2.32.10'
+    shutil.copyfile(sdl / 'LICENSE.txt', work / 'assets/SDL2-LICENSE.txt')
     native = work / 'libbridge_fixture.so'
     run(llvm / 'clang.exe', '--target=x86_64-linux-android26', '-fPIE', '-pie', '-O2',
-        '-Wall', '-Wextra', '-Werror', '-Wl,-z,max-page-size=16384', HERE / 'tests/bridge_fixture.c', '-o', native)
+        '-Wall', '-Wextra', '-Werror', '-I' + str(sdl / 'include'),
+        '-Wl,-z,max-page-size=16384', HERE / 'tests/bridge_fixture.c', '-o', native)
     elf = subprocess.run([str(llvm / 'llvm-readelf.exe'), '-d', str(native)],
                          check=True, capture_output=True, text=True, timeout=10).stdout
     (work / 'fixture-elf.txt').write_text(elf, encoding='utf-8')
@@ -69,14 +77,15 @@ def main():
     with zipfile.ZipFile(apk) as archive:
         names = archive.namelist()
         if len(names) != len(set(names)) or {n for n in names if not n.startswith('META-INF/')} != {
-                'AndroidManifest.xml', 'classes.dex', 'assets/NDK-NOTICE.txt', 'lib/x86_64/libbridge_fixture.so'}:
+                'AndroidManifest.xml', 'classes.dex', 'assets/NDK-NOTICE.txt', 'assets/SDL2-LICENSE.txt', 'lib/x86_64/libbridge_fixture.so'}:
             raise ValueError('Unexpected bridge APK payload')
         import hashlib
         assert hashlib.sha256(archive.read('lib/x86_64/libbridge_fixture.so')).hexdigest() == digest(native)
     if any(digest(ROOT / name) != value for name, value in hashes.items()):
         raise ValueError('Sources changed while building')
     metadata = dict(apk_sha256=digest(apk), native_sha256=digest(native), source_sha256=hashes,
-                    target_sdk=36, abi='x86_64', official_runtime='NOT INCLUDED')
+                    target_sdk=36, abi='x86_64', official_runtime='NOT INCLUDED', sdl_headers=sdl_input,
+                    native_needed=sorted(re.findall(r'\(NEEDED\).*?\[([^\]]+)\]', elf)))
     (artifacts / 'build.json').write_text(json.dumps(metadata, indent=2) + '\n', encoding='utf-8')
     print(json.dumps(metadata, indent=2))
 

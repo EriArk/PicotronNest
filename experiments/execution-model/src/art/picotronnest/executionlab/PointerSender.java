@@ -17,7 +17,8 @@ final class PointerSender implements AutoCloseable {
             try {
                 while (!closing) {
                     int[] point = queue.take();
-                    output.write(FrameProtocol.pointerPacket(sent + 1, point[0], point[1], point[2]));
+                    if (sent == Integer.MAX_VALUE) throw new IOException("pointer sequence exhausted");
+                    output.write(FrameProtocol.pointerPacket(sent + 1, point[0], point[1], point[2], point[3], point[4]));
                     sent++;
                 }
             } catch (InterruptedException ended) { Thread.currentThread().interrupt(); }
@@ -26,12 +27,15 @@ final class PointerSender implements AutoCloseable {
         worker.start();
     }
 
-    synchronized void send(int x, int y, int buttons) {
+    void send(int x, int y, int buttons) { send(x, y, buttons, 0, 0); }
+
+    synchronized void send(int x, int y, int buttons, int wheelX, int wheelY) {
+        FrameProtocol.validatePointer(x, y, buttons, wheelX, wheelY);
         if (closing || failure != null) return;
-        if (!queue.offer(new int[]{x, y, buttons})) {
+        if (!queue.offer(new int[]{x, y, buttons, wheelX, wheelY})) {
             failure = "pointer queue overflow; release queued";
             queue.clear();
-            queue.offer(new int[]{x, y, 0});
+            queue.offer(new int[]{x, y, 0, 0, 0});
         }
         accepted++;
     }

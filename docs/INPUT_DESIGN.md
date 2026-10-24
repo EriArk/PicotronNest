@@ -76,3 +76,6 @@ select product defaults or infer a controller from a handheld model.
 The [host-menu fixture](HOST_MENU.md) adds explicit controller/touch keyboard
 and exit commands, with shared release and verified owned-process completion.
 It does not establish a finished controller-only Picotron workflow.
+The [secondary-button/wheel transport fixture](POINTER_WHEEL.md) adds independent
+button state and fractional scroll receipts with shared SDL event construction.
+Android mouse routing and configurable touch/controller actions remain open.

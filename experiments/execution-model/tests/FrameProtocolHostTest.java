@@ -45,10 +45,10 @@ public final class FrameProtocolHostTest {
         sender.awaitClosed();
         require(sender.sent() == 3 && sender.failure() == null);
         byte[] packets = output.toByteArray();
-        require(packets.length == 60);
+        require(packets.length == 84);
         ByteBuffer wire = ByteBuffer.wrap(packets).order(ByteOrder.LITTLE_ENDIAN);
-        require(wire.getInt(0) == 0x504e4931 && wire.getInt(4) == 1 && wire.getInt(16) == 1);
-        require(wire.getInt(44) == 3 && wire.getInt(48) == 120 && wire.getInt(52) == 140 && wire.getInt(56) == 0);
+        require(wire.getInt(0) == 0x504e4932 && wire.getInt(4) == 1 && wire.getInt(16) == 1);
+        require(wire.getInt(60) == 3 && wire.getInt(64) == 120 && wire.getInt(68) == 140 && wire.getInt(72) == 0);
         System.out.println("RGBA channels, aspect fit, sequence and size checks passed");
     }
 }

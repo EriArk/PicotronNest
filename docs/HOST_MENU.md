@@ -119,6 +119,6 @@ this APK.
 The [beta readiness gates](BETA_READINESS.md) distinguish a functional candidate
 from a hardware-validated beta. Menu settings/remapping UI, HAT/keyboard-only
 navigation, recovery after failed shutdown, official-runtime event consumption,
-secondary click/wheel, audio, persistent home and end-user runtime import remain
-open. The next input increment is secondary click and wheel with bounded native
-receipts; it must retain the existing release and coordinate contracts.
+secondary click/wheel device routing, audio, persistent home and end-user runtime
+import remain open. The subsequent [pointer transport increment](POINTER_WHEEL.md)
+adds bounded secondary/wheel native receipts; input-adapter integration remains.

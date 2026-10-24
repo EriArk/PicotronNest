@@ -35,8 +35,11 @@ release across Activity recreation/rotation, plus disk loading in a fresh host
 process. This does not prove persistence of the Picotron runtime or user home.
 The [host-menu fixture](HOST_MENU.md) exercises keyboard/exit access from touch
 and synthetic controller input, with native receipt and process completion checks.
-These experimental adapters are not attached to official Picotron. Secondary click, a complete controller
-workflow and audio are not implemented. No physical controller, hardware keyboard
+The [secondary-button/wheel fixture](POINTER_WHEEL.md) verifies direct transport
+delivery and shared SDL event construction; Android mouse/touch/controller routing
+for these actions is still open. These experimental adapters are not attached to
+official Picotron. A complete controller workflow and audio are not implemented.
+No physical controller, hardware keyboard
 or real IME typing acceptance is claimed.
 
 - [ ] A2.1 Touch taps, cursor movement, drag, secondary click and pointer boundaries land at expected Picotron coordinates.

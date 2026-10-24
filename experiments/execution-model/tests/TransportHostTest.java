@@ -61,7 +61,7 @@ public final class TransportHostTest {
                 OutputStream out = peer.getOutputStream();
                 for (byte value : frame(4, 2, 1)) out.write(value);
                 out.flush();
-                byte[] packets = new byte[80 * 20];
+                byte[] packets = new byte[80 * 28];
                 new DataInputStream(peer.getInputStream()).readFully(packets);
                 out.write(frame(2, 4, 2)); out.flush();
                 peer.shutdownOutput();
@@ -79,9 +79,10 @@ public final class TransportHostTest {
                 awaitSent(sender, 80);
                 ByteBuffer packets = ByteBuffer.wrap(guest.get(3, TimeUnit.SECONDS)).order(ByteOrder.LITTLE_ENDIAN);
                 for (int i = 0; i < 80; i++) {
-                    check(packets.getInt() == 0x504e4931 && packets.getInt() == i + 1, "packet order");
+                    check(packets.getInt() == 0x504e4932 && packets.getInt() == i + 1, "packet order");
                     check(packets.getInt() == i / 2 && packets.getInt() == i / 2 + 1, "coordinates");
                     check(packets.getInt() == (i % 2 == 0 ? 1 : 0), "short click edge lost");
+                    check(packets.getInt() == 0 && packets.getInt() == 0, "wheel fabricated");
                 }
                 sender.close(); sender.awaitClosed();
                 check(sender.failure() == null, "duplex error");
@@ -103,7 +104,7 @@ public final class TransportHostTest {
         BlockedOutput blocked = new BlockedOutput();
         PointerSender sender = new PointerSender(blocked);
         try {
-            sender.send(1, 1, 1);
+            sender.send(1, 1, 3, 512, -512);
             check(blocked.entered.await(2, TimeUnit.SECONDS), "writer did not block");
             for (int i = 0; i < 129; i++) sender.send(2, 2, 1);
             check(sender.failure().contains("overflow"), "overflow undetected");
@@ -112,7 +113,8 @@ public final class TransportHostTest {
             awaitSent(sender, 2);
         } finally { blocked.resume.countDown(); sender.close(); sender.awaitClosed(); }
         ByteBuffer packets = ByteBuffer.wrap(blocked.bytes.toByteArray()).order(ByteOrder.LITTLE_ENDIAN);
-        check(packets.remaining() == 40 && packets.getInt(36) == 0, "overflow did not finish with release");
+        check(packets.remaining() == 56 && packets.getInt(44) == 0 && packets.getInt(48) == 0
+                && packets.getInt(52) == 0, "overflow did not finish with both buttons released and no repeated wheel");
 
         PointerSender broken = new PointerSender(new OutputStream() {
             @Override public void write(int value) throws IOException { throw new IOException("owned broken pipe"); }

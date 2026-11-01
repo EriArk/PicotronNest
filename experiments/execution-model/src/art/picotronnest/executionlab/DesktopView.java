@@ -109,6 +109,39 @@ final class DesktopView extends View {
     }
     CursorInput cursor() { synchronized (DesktopView.class) { return cursor; } }
 
+    boolean inputReady() {
+        synchronized (DesktopView.class) { return attached.get()==this && pointer!=null && frame!=null; }
+    }
+    String pointerMode() {
+        synchronized (DesktopView.class) {
+            return mouseSelected ? "Mouse and touch" : selectedProfile==null ? "Direct touch" : selectedProfile.mode.toString();
+        }
+    }
+    void selectDirectTouch() {
+        if (android.os.Looper.myLooper()!=android.os.Looper.getMainLooper())
+            throw new IllegalStateException("pointer selection needs UI thread");
+        synchronized (DesktopView.class) {
+            if (!inputReady()) throw new IllegalStateException("pointer needs live view");
+            releaseInput();
+            if (cursor!=null) { cursor.close(); cursor=null; }
+            selectedProfile=null; disableMouse(); invalidate();
+        }
+    }
+    /** Readiness and selection share the transport lock: EOF cannot race a UI choice. */
+    boolean selectPointerMode(int mode, CursorProfile profile) {
+        if (android.os.Looper.myLooper()!=android.os.Looper.getMainLooper())
+            throw new IllegalStateException("pointer selection needs UI thread");
+        if (mode<0 || mode>2 || mode==2 && profile==null) throw new IllegalArgumentException("pointer mode");
+        synchronized (DesktopView.class) {
+            if (!inputReady()) return false;
+            releaseInput();
+            if (mode==0) selectDirectTouch();
+            else if (mode==1) enableMouse();
+            else selectCursorProfile(profile);
+            return true;
+        }
+    }
+
     /** Explicit experiment selection: absolute mouse/direct touch or relative cursor, never both. */
     void enableMouse() {
         if (android.os.Looper.myLooper()!=android.os.Looper.getMainLooper()) throw new IllegalStateException("mouse selection needs UI thread");

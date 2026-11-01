@@ -209,8 +209,14 @@ It captures `mouse.png`; physical mouse/Picotron behavior remains untested.
 The twelfth and thirteenth scenarios, `--mode actions`, check
 [saved secondary/wheel actions](../../docs/CURSOR_ACTIONS.md), touch controls,
 chord cleanup and loading in a new host process. They capture `actions.png` and
-`actions-read.png`; the default run includes all thirteen scenarios.
+`actions-read.png`.
+The fourteenth scenario, `--mode session`, exercises the
+[shared MainActivity pointer controls](../../docs/SESSION_INPUT.md), including
+invalid launch configuration, mode switching, recreation and disconnect.
+It captures `session.png`; the default run now includes all fourteen scenarios.
 The collector retains actual labeled emulator screenshots as `keyboard.png`,
 `cursor.png`, `combined.png`, `profile.png` and `profile-read.png` beside
-their private JSON reports. The official launcher attaches neither experimental
-adapter.
+their private JSON reports. The official-runtime lab now optionally exposes
+pointer selection using `--ez input_controls true`; a supplied validated profile
+enables the controller/touchpad choices. See the shared-controls document for
+the bounded configuration contract and remaining native keyboard integration.

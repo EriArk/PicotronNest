@@ -12,7 +12,7 @@ import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
 
-/** Optional owned-fixture adapter. No controller profile is selected by the official launcher. */
+/** Optional cursor adapter. A controller profile requires explicit session selection. */
 final class CursorInput implements InputManager.InputDeviceListener, AutoCloseable {
     static final int TOUCH_SOURCE = Integer.MIN_VALUE;
     static final class Bindings {

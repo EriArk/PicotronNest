@@ -1,6 +1,6 @@
 # Project status
 
-**2026-11-01 — Saved secondary/wheel actions verified in the owned fixture; functional beta candidate and Retroid input gates remain open.**
+**2026-11-01 — Shared pointer controls integrated into the desktop lab; official input acceptance and the functional beta gate remain open.**
 
 PicotronNest is an Android wrapper for the **official, user-imported Picotron runtime**.
 The repository contains a bounded archive inspector and a temporary target-36
@@ -13,6 +13,14 @@ the next gate.
 
 ## Latest evidence
 
+- Shared session input: the official-runtime lab now exposes optional direct-touch,
+  mouse and explicit cursor-profile/touchpad selection. The same MainActivity
+  controls pass an owned API 35 x86_64 check for mode changes, invalid configuration,
+  release, recreation and stale/disconnected controls. All fourteen bridge scenarios
+  have passing final-APK evidence across collections, with Gboard timeouts retained.
+  35 lab and nine archive host tests pass; both APKs build. No new official Picotron interaction or Retroid
+  test was performed. Keyboard/IME transport integration is next.
+  [Evidence, launch options and limits](SESSION_INPUT.md).
 - Cursor action fixture: saved secondary-button and four-direction wheel bindings,
   explicit touch controls, source-owned button chords, repeat suppression and
   focus/removal/recreation release pass through the native receiver. V1 records

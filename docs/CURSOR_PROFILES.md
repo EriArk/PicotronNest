@@ -1,7 +1,8 @@
 # Saved cursor profile and Activity restoration experiment
 
-This extends the owned [D-pad fixture](DPAD_AND_IME.md). The official launcher
-does not load or select these profiles. Retroid remains reserved; no official
+This extends the owned [D-pad fixture](DPAD_AND_IME.md). The subsequent
+[shared session controls](SESSION_INPUT.md) accept an explicitly supplied profile
+in the official-runtime lab; they do not load a profile automatically. Retroid remains reserved; no official
 Picotron input or physical controller acceptance is claimed.
 
 ## Contract
@@ -163,5 +164,5 @@ native process. This does not establish persistence of Picotron projects/home.
 A product settings UI, per-device profile selection, hardware reconnection and
 official SDL event consumption remain open. Subsequent owned fixtures cover
 [host commands](HOST_MENU.md) and [saved secondary/wheel actions](CURSOR_ACTIONS.md).
-The next integration is session-level selection in the official-runtime lab;
+Session-level selection is now available through [shared controls](SESSION_INPUT.md);
 the hardware gate remains [real Picotron pointer input](RETROID_INPUT_CHECK.md).

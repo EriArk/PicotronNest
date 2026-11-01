@@ -82,4 +82,7 @@ The [Android mouse fixture](ANDROID_MOUSE.md) adds opt-in absolute mouse routing
 through both View event paths. The [cursor action extension](CURSOR_ACTIONS.md)
 adds explicit secondary touch controls and optional saved secondary/wheel key
 bindings, with one scroll step per fresh press. Official-runtime integration,
-product controls and physical-device acceptance remain open.
+product controls and physical-device acceptance remain open. The subsequent
+[shared lab controls](SESSION_INPUT.md) expose explicit pointer selection in the
+official-runtime launcher, with the same UI/lifecycle code checked by the owned
+fixture. Keyboard/IME native transport integration is still open.

@@ -58,7 +58,14 @@ public final class BridgeInstrumentation extends Instrumentation {
         session = arguments.getString("session"); start();
     }
     private Intent activityIntent() {
-        return new Intent(getTargetContext(), BridgeTestActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        Intent intent=new Intent(getTargetContext(), BridgeTestActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        if (mode.equals("session")) {
+            try {
+                intent.putExtra("input_controls",true).putExtra("cursor_profile",android.util.Base64.encodeToString(
+                        actionsProfile(RelativePointer.Mode.DPAD).encode(),android.util.Base64.NO_WRAP));
+            } catch (IOException invalid) { throw new AssertionError(invalid); }
+        }
+        return intent;
     }
     private void normal() throws Exception {
         touch(MotionEvent.ACTION_DOWN, 5, 6, 48, 27);
@@ -257,12 +264,36 @@ public final class BridgeInstrumentation extends Instrumentation {
         checks.put("native_keyboard_counters_balanced_clean_exit");
     }
     private void screenshot() throws IOException {
-        android.graphics.Bitmap bitmap=getUiAutomation().takeScreenshot();
+        android.graphics.Bitmap bitmap=mode.equals("session") ? windowScreenshot() : getUiAutomation().takeScreenshot();
         check(bitmap!=null,"screenshot missing");
         try (FileOutputStream out=new FileOutputStream(new File(getTargetContext().getFilesDir(),mode+"-preview.png"))) {
             check(bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG,100,out),"screenshot encoding");
             screenshotSaved=true;
         } finally { bitmap.recycle(); }
+    }
+    private android.graphics.Bitmap windowScreenshot() throws IOException {
+        android.graphics.Bitmap[] image=new android.graphics.Bitmap[1];
+        java.util.concurrent.CountDownLatch copied=new java.util.concurrent.CountDownLatch(1);
+        int[] result={-1}, sample=new int[2];
+        ui(() -> {
+            android.view.Window window=BridgeTestActivity.current.getWindow();
+            android.view.View decor=window.getDecorView();
+            image[0]=android.graphics.Bitmap.createBitmap(decor.getWidth(),decor.getHeight(),android.graphics.Bitmap.Config.ARGB_8888);
+            android.widget.Button button=BridgeTestActivity.current.inputControls().modeButton;
+            button.getLocationInWindow(sample); sample[0]+=button.getWidth()/2; sample[1]+=button.getHeight()/4;
+            android.view.PixelCopy.request(window,image[0],status -> { result[0]=status; copied.countDown(); },
+                    new android.os.Handler(android.os.Looper.getMainLooper()));
+        });
+        try {
+            if (!copied.await(2,java.util.concurrent.TimeUnit.SECONDS) || result[0]!=android.view.PixelCopy.SUCCESS)
+                throw new IOException("window screenshot incomplete: "+result[0]);
+            int pixel=image[0].getPixel(sample[0],sample[1]);
+            check(android.graphics.Color.red(pixel)>100 && android.graphics.Color.green(pixel)>100
+                    && android.graphics.Color.blue(pixel)>100,"shared mode button missing from window capture");
+            return image[0];
+        } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt(); throw new IOException("window screenshot interrupted",interrupted);
+        }
     }
     private void pad(int action, float x, float y) {
         ui(() -> {
@@ -1020,14 +1051,101 @@ public final class BridgeInstrumentation extends Instrumentation {
                 && result.getInt("peer_pid")==BridgeTestActivity.nativePid && !receiver.sendPointer(0,0,1,0,0),"closed session/receipt accounting");
         checks.put("authenticated_native_receipts_clean_exit_and_closed_transport_rejection");
     }
+    private void selectInput(int index) {
+        ui(() -> {
+            LabInputControls panel=BridgeTestActivity.current.inputControls();
+            check(panel.modeButton.performClick(),"shared mode button");
+            check(panel.dialog()!=null,"shared mode dialog absent");
+            android.widget.ListView list=panel.dialog().getListView();
+            check(list.performItemClick(list.getChildAt(index),index,index),"shared mode selection");
+        });
+        await(() -> BridgeTestActivity.current.hasWindowFocus(),"pointer selection focus return");
+    }
+    private void sessionButton(boolean secondary,int action) {
+        ui(() -> {
+            LabInputControls panel=BridgeTestActivity.current.inputControls();
+            android.widget.Button button=secondary ? panel.secondaryButton : panel.primaryButton;
+            long now=SystemClock.uptimeMillis(); MotionEvent event=MotionEvent.obtain(now,now,action,10,10,0);
+            try { check(button.dispatchTouchEvent(event),"shared touch button"); } finally { event.recycle(); }
+        });
+    }
+    private void inputSession() throws Exception {
+        check(LabInputControls.parseProfile(null)==null,"optional profile");
+        for (String invalid:new String[]{"!","AA==",new String(new char[129]).replace('\0','A')}) {
+            try { LabInputControls.parseProfile(invalid); throw new AssertionError("invalid profile accepted"); }
+            catch (IOException expected) { }
+        }
+        checks.put("bounded_optional_profile_configuration_rejects_invalid_input");
+        await(() -> BridgeTestActivity.current.inputControls().modeButton.isEnabled(),"shared controls ready");
+        check(BridgeTestActivity.current.desktop().cursor()==null && BridgeTestActivity.current.desktop().mouse()==null,
+                "profile silently selected at launch");
+        touch(MotionEvent.ACTION_DOWN,5,6,48,27); packets(1,5,6,1);
+        selectInput(1); packets(2,5,6,0);
+        mouseEvent(101,MotionEvent.ACTION_DOWN,2,7,8,0,0,true); packets(3,7,8,2);
+        selectInput(2); packets(4,7,8,0);
+        gameKey(101,99,0,true); gameKey(101,97,0,true); packets(6,23,13,3);
+        selectInput(3); packets(7,23,13,0);
+        checks.put("shared_session_mode_selection_releases_direct_mouse_and_controller_capture");
+        await(() -> BridgeTestActivity.current.inputControls().primaryButton.isShown(),"shared touchpad controls visible");
+        ui(() -> { });
+        sessionButton(false,MotionEvent.ACTION_DOWN); packets(8,23,13,1);
+        sessionButton(true,MotionEvent.ACTION_DOWN); packets(9,23,13,3);
+        ui(() -> BridgeTestActivity.current.inputControls().wheelButtons[2].performClick()); packets(10,23,13,3);
+        check(BridgeTestActivity.wheelY==1024,"shared scroll control");
+        sessionButton(false,MotionEvent.ACTION_UP); packets(11,23,13,2);
+        BridgeTestActivity previous=BridgeTestActivity.current; LabInputControls stale=previous.inputControls();
+        int pid=BridgeTestActivity.nativePid;
+        ui(previous::recreate);
+        await(() -> BridgeTestActivity.current!=previous && BridgeTestActivity.current.hasWindowFocus()
+                && BridgeTestActivity.current.desktop().cursor()!=null,"shared panel recreation");
+        packets(12,23,13,0);
+        check(BridgeTestActivity.launches==1 && BridgeTestActivity.nativePid==pid
+                && BridgeTestActivity.current.desktop().cursor().mode()==RelativePointer.Mode.TOUCHPAD,"session mode restoration");
+        ui(() -> { stale.modeButton.performClick(); stale.wheelButtons[2].performClick(); }); packets(12,23,13,0);
+        check(stale.dialog()==null,"stale panel reopened");
+        checks.put("recreation_keeps_selection_and_one_child_releases_chord_and_rejects_stale_panel");
+        await(() -> BridgeTestActivity.current.inputControls().primaryButton.isShown(),"restored touch controls");
+        sessionButton(true,MotionEvent.ACTION_DOWN); packets(13,23,13,2);
+        selectInput(0); packets(14,23,13,0);
+        check(BridgeTestActivity.current.desktop().cursor()==null && BridgeTestActivity.current.desktop().mouse()==null,
+                "direct selection retained adapter");
+        touch(MotionEvent.ACTION_DOWN,4,5,48,27); touch(MotionEvent.ACTION_UP,4,5,48,27); packets(16,4,5,0);
+        selectInput(3);
+        await(() -> BridgeTestActivity.current.inputControls().primaryButton.isShown(),"final touchpad controls");
+        java.util.concurrent.CountDownLatch committed=new java.util.concurrent.CountDownLatch(1);
+        ui(() -> {
+            BridgeTestActivity.current.showReceipt();
+            android.view.View decor=BridgeTestActivity.current.getWindow().getDecorView();
+            check(decor.isHardwareAccelerated(),"screenshot requires hardware frame commit");
+            decor.getViewTreeObserver().registerFrameCommitCallback(committed::countDown);
+            decor.invalidate();
+        });
+        check(committed.await(2,java.util.concurrent.TimeUnit.SECONDS),"shared controls frame commit");
+        screenshot();
+        checks.put("shared_controls_frame_committed_before_screenshot");
+        checks.put("return_to_direct_touch_restores_inverse_mapping");
+        BridgeTestActivity.command('Q'); await(() -> BridgeTestActivity.result!=null || BridgeTestActivity.error!=null,"session exit");
+        await(() -> !BridgeTestActivity.current.inputControls().modeButton.isEnabled(),"ended session controls disabled");
+        ui(() -> {
+            BridgeTestActivity.current.inputControls().wheelButtons[2].performClick();
+            check(!BridgeTestActivity.current.desktop().selectPointerMode(2,actionsProfile(RelativePointer.Mode.DPAD)),
+                    "disconnected session accepted selection");
+        }); packets(16,4,5,0);
+        JSONObject result=BridgeTestActivity.result;
+        check(BridgeTestActivity.error==null && BridgeTestActivity.exitCode==0 && !result.has("error") && !result.has("pointer_error")
+                && result.getInt("peer_pid")==pid && result.getInt("pointer_packets")==16
+                && BridgeTestActivity.downs==BridgeTestActivity.ups && BridgeTestActivity.held==0,"shared session native accounting");
+        checks.put("native_receipts_clean_exit_and_disconnected_control_rejection");
+    }
     @Override public void onStart() {
         JSONObject report = new JSONObject(); Bundle bundle = new Bundle();
         try {
             check(session != null && session.matches("[a-f0-9-]{36}"), "missing session UUID");
             BridgeTestActivity.menuTest=mode.equals("menu");
+            BridgeTestActivity.sessionTest=mode.equals("session");
             BridgeTestActivity.mouseTest=mode.equals("mouse");
             BridgeTestActivity.actionsTest=mode.equals("actions") || mode.equals("actions-read");
-            BridgeTestActivity.pointerTest=mode.equals("pointer") || BridgeTestActivity.mouseTest || BridgeTestActivity.actionsTest;
+            BridgeTestActivity.pointerTest=mode.equals("pointer") || BridgeTestActivity.mouseTest || BridgeTestActivity.actionsTest || BridgeTestActivity.sessionTest;
             BridgeTestActivity.keyboardTest=mode.equals("keyboard") || mode.equals("combined") || BridgeTestActivity.menuTest;
             BridgeTestActivity.profileTest=mode.equals("profile") || mode.equals("profile-read");
             BridgeTestActivity.cursorTest=mode.equals("cursor") || mode.equals("combined") || BridgeTestActivity.profileTest || BridgeTestActivity.menuTest || BridgeTestActivity.actionsTest;
@@ -1046,6 +1164,13 @@ public final class BridgeInstrumentation extends Instrumentation {
                 stalled.close(); stalled.close();
             } finally { stalled.close(); }
             checks.put("close_with_connected_partial_header");
+            if (BridgeTestActivity.sessionTest) {
+                Activity invalid=startActivitySync(activityIntent().putExtra("cursor_profile","AA=="));
+                check(BridgeTestActivity.launches==0 && BridgeTestActivity.current.desktopView()==null
+                        && BridgeTestActivity.current.inputControls()==null,"invalid config started runtime or attached input");
+                ui(invalid::finish);
+                checks.put("invalid_launch_profile_rejected_before_runtime_start");
+            }
             startActivitySync(activityIntent());
             await(() -> DesktopView.drawnSequence() >= 2 && BridgeTestActivity.nativePid > 0, "fixture frames");
             await(() -> BridgeTestActivity.current.hasWindowFocus(), "initial Activity window focus");
@@ -1059,6 +1184,7 @@ public final class BridgeInstrumentation extends Instrumentation {
             else if (mode.equals("menu")) menu();
             else if (mode.equals("pointer")) pointerTransport();
             else if (mode.equals("mouse")) mouse();
+            else if (mode.equals("session")) inputSession();
             else if (BridgeTestActivity.actionsTest) actions();
             else if (BridgeTestActivity.profileTest) profile();
             else {
@@ -1084,7 +1210,7 @@ public final class BridgeInstrumentation extends Instrumentation {
             report.put("outcome", "PASS");
         } catch (Throwable failure) {
             try { report.put("outcome", "FAIL").put("failure", failure.toString()); } catch (Exception ignored) { }
-            if ((BridgeTestActivity.keyboardTest || BridgeTestActivity.cursorTest) && BridgeTestActivity.current!=null && BridgeTestActivity.current.hasWindowFocus()) {
+            if ((BridgeTestActivity.keyboardTest || BridgeTestActivity.cursorTest || BridgeTestActivity.pointerTest) && BridgeTestActivity.current!=null && BridgeTestActivity.current.hasWindowFocus()) {
                 try { screenshot(); } catch (Exception ignored) { }
             }
         } finally {

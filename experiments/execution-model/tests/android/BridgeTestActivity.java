@@ -25,6 +25,7 @@ public final class BridgeTestActivity extends MainActivity {
     static volatile boolean pointerTest;
     static volatile boolean mouseTest;
     static volatile boolean actionsTest;
+    static volatile boolean sessionTest;
     static volatile long wheelX, wheelY, wheelStepsX, wheelStepsY;
     static SessionExit sessionExit;
     static volatile int exitRequests, finishedSessions;
@@ -47,6 +48,11 @@ public final class BridgeTestActivity extends MainActivity {
         label.setText("OWNED BRIDGE FIXTURE — NO PICOTRON");
         label.setTextColor(android.graphics.Color.YELLOW);
         label.setBackgroundColor(android.graphics.Color.BLACK);
+        if (sessionTest) {
+            if (inputControls()==null) return; // Invalid launch settings were rejected by MainActivity.
+            inputControls().view.addView(label,0);
+            showReceipt(); return;
+        }
         View header=label;
         if (cursorTest && !keyboardTest && !profileTest) {
             android.widget.LinearLayout controls=new android.widget.LinearLayout(this);
@@ -149,6 +155,12 @@ public final class BridgeTestActivity extends MainActivity {
             throw new IOException("native exit unconfirmed");
     }
     void showReceipt() {
+        if (sessionTest) {
+            label.setText("OWNED SESSION FIXTURE - NO PICOTRON\nShared lab pointer controls\nNative PID: "+nativePid
+                    +" | Packets: "+packets+"\nDown/up: "+downs+"/"+ups+" | Held: "+held
+                    +"\nSynthetic input; physical controls untested");
+            return;
+        }
         if (pointerTest) {
             label.setText((actionsTest ? "OWNED CURSOR ACTIONS - NO PICOTRON\nSaved secondary + wheel bindings\n" : mouseTest ? "OWNED ANDROID MOUSE - NO PICOTRON\nMotionEvent -> adapter -> native PNI2\n"
                     : "OWNED POINTER TRANSPORT - NO PICOTRON\nPNI2: right button + two-axis wheel\n")
@@ -169,12 +181,9 @@ public final class BridgeTestActivity extends MainActivity {
                 : "Native UTF-8 receipt:\n" + receivedText));
     }
     DesktopView desktop() {
-        ViewGroup content = findViewById(android.R.id.content);
-        for (int i = 0; i < content.getChildCount(); i++) {
-            View view = content.getChildAt(i);
-            if (view instanceof DesktopView) return (DesktopView)view;
-        }
-        throw new AssertionError("real DesktopView absent");
+        DesktopView view=desktopView();
+        if (view==null) throw new AssertionError("real DesktopView absent");
+        return view;
     }
     static void command(char command) throws IOException {
         child.getOutputStream().write(command); child.getOutputStream().flush();

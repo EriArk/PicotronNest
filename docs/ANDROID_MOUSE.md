@@ -4,7 +4,8 @@
 
 `MouseInput` is an explicitly selected adapter in the owned bridge fixture. It
 routes absolute mouse MotionEvents through the existing PNI2 sender/decoder.
-The official-runtime launcher does not select it. There is no physical mouse,
+The later [shared controls](SESSION_INPUT.md) expose it as an explicit opt-in
+in the official-runtime launcher. There is no physical mouse,
 Bluetooth/USB hotplug or official Picotron input acceptance in this increment.
 
 Android delivers mouse drag/down/up to `onTouchEvent`, and hover, scroll and
@@ -129,8 +130,9 @@ SDK, original AVD, reports and screenshots remain under ignored `.local` paths.
 
 Configurable secondary-click and wheel actions now have a separate
 [touch/controller fixture](CURSOR_ACTIONS.md), with compatible saved bindings
-and shared release/source rules. The next integration is explicit session-level
-selection of these adapters in the official-runtime lab.
+and shared release/source rules. [Shared session controls](SESSION_INPUT.md) now
+expose explicit pointer selection in the official-runtime lab; native keyboard
+channel integration is next.
 Actual mouse reconnection, native pointer visibility, right-click behavior,
 double-click behavior and official workstation workflows still need hardware
 evidence. The [functional beta gate](BETA_READINESS.md) remains open.

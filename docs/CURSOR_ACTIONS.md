@@ -80,9 +80,9 @@ depend on scheduling and are not performance measurements.
 
 ## Remaining integration
 
-The official launcher still does not select the experimental cursor/keyboard/
-mouse adapters. Next, add explicit session-level input selection to the official
-runtime lab and exercise its shared setup/release path with the owned fixture.
+The subsequent [shared session controls](SESSION_INPUT.md) now expose opt-in
+pointer selection in the official-runtime lab and exercise the same setup/release
+path with the owned fixture. Keyboard/IME native-channel integration is next.
 Actual SDL consumption, physical controller/mouse behavior and phone usability
 remain hardware gates. Product profile editing, device selection/reconnection,
 game-control routing, audio, import and persistent projects remain open under

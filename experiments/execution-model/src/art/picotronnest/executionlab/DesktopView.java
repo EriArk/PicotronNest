@@ -24,6 +24,8 @@ final class DesktopView extends View {
     private static boolean mouseSelected;
     private MouseInput mouse;
     private int imeBottom;
+    private int keyboardShowGeneration;
+    private final int[] windowLocation=new int[2];
     private final PointerState touch = new PointerState((x, y, buttons) -> {
         if (pointer != null) pointer.send(x, y, buttons);
     });
@@ -184,16 +186,53 @@ final class DesktopView extends View {
         DesktopView view=attached.get();
         if (view!=null) view.post(view::requestApplyInsets);
     }
-    int viewportHeight() { return Math.max(0,getHeight()-imeBottom); }
-    @Override public android.view.WindowInsets onApplyWindowInsets(android.view.WindowInsets insets) {
+    static synchronized void removeKeyboard(KeyboardInput owner) {
+        if (keyboard==owner) keyboard(null);
+        else owner.disconnect();
+    }
+    boolean keyboardReady() {
+        synchronized (DesktopView.class) { return inputReady() && keyboard!=null && keyboard.active(); }
+    }
+    boolean showKeyboard() {
         synchronized (DesktopView.class) {
-            int bottom=keyboard!=null && android.os.Build.VERSION.SDK_INT>=30
-                    ? insets.getInsets(android.view.WindowInsets.Type.ime()).bottom : 0;
-            if (bottom!=imeBottom) { release(); imeBottom=bottom; invalidate(); }
+            if (!keyboardReady() || !hasWindowFocus()) return false;
+            releaseInput(); requestFocus();
+            android.view.inputmethod.InputMethodManager ime=(android.view.inputmethod.InputMethodManager)
+                    getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
+            ime.restartInput(this);
+            KeyboardInput owner=keyboard;
+            int request=keyboardShowGeneration;
+            // Apply the visibility request after focus/input rebinding; the insets controller
+            // owns animation reversal when an old Activity's IME is still hiding.
+            return post(() -> {
+                synchronized (DesktopView.class) {
+                    if (request!=keyboardShowGeneration || keyboard!=owner || !keyboardReady() || !hasWindowFocus()) return;
+                    if (android.os.Build.VERSION.SDK_INT>=30 && getWindowInsetsController()!=null)
+                        getWindowInsetsController().show(android.view.WindowInsets.Type.ime());
+                    else ime.showSoftInput(this,android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT);
+                }
+            });
         }
+    }
+    int viewportHeight() { return Math.max(0,getHeight()-imeBottom); }
+    private void updateImeViewport() {
+        int overlap=0;
+        if (keyboard!=null && android.os.Build.VERSION.SDK_INT>=30 && getRootWindowInsets()!=null) {
+            // A recreated/nested view can receive consumed child insets. Window geometry
+            // remains authoritative, including any space already removed by its parent.
+            int bottom=getRootWindowInsets().getInsets(android.view.WindowInsets.Type.ime()).bottom;
+            getLocationInWindow(windowLocation);
+            overlap=FrameProtocol.imeOverlap(windowLocation[1],getHeight(),getRootView().getHeight(),bottom);
+        }
+        if (overlap!=imeBottom) { release(); imeBottom=overlap; invalidate(); }
+    }
+    @Override public android.view.WindowInsets onApplyWindowInsets(android.view.WindowInsets insets) {
+        synchronized (DesktopView.class) { updateImeViewport(); }
         return super.onApplyWindowInsets(insets);
     }
     static synchronized void releaseInput() {
+        DesktopView view=attached.get();
+        if (view!=null) view.keyboardShowGeneration++;
         releasePointer();
         if (keyboard != null) keyboard.releaseAll();
     }
@@ -293,6 +332,7 @@ final class DesktopView extends View {
     @Override protected void onDraw(Canvas canvas) {
         canvas.drawColor(Color.BLACK);
         synchronized (DesktopView.class) {
+            updateImeViewport();
             if (frame != null && viewportHeight()>0) {
                 restoreCursor();
                 restoreMouse();

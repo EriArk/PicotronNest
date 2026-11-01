@@ -10,6 +10,7 @@ public class MainActivity extends Activity {
     private static final AtomicBoolean RUNNING = new AtomicBoolean();
     private DesktopView desktop;
     private LabInputControls inputControls;
+    private boolean keyboardControls;
     final DesktopView desktopView() { return desktop; }
     final LabInputControls inputControls() { return inputControls; }
 
@@ -28,11 +29,12 @@ public class MainActivity extends Activity {
 
     @Override public void onCreate(Bundle saved) {
         super.onCreate(saved);
+        keyboardControls=getIntent().getBooleanExtra("keyboard_controls",false);
         TextView text = new TextView(this);
         text.setText("PicotronNest execution probe\nResults are saved in app-private storage.");
         text.setPadding(24, 48, 24, 24);
         if (BuildConfig.DESKTOP) {
-            if (getIntent().getBooleanExtra("input_controls",false)) {
+            if (keyboardControls || getIntent().getBooleanExtra("input_controls",false)) {
                 CursorProfile profile;
                 try { profile=LabInputControls.parseProfile(getIntent().getStringExtra("cursor_profile")); }
                 catch (java.io.IOException invalid) {
@@ -40,7 +42,7 @@ public class MainActivity extends Activity {
                     setContentView(text); return; // Reject configuration before starting any runtime.
                 }
                 desktop=new DesktopView(this);
-                inputControls=new LabInputControls(this,desktop,profile);
+                inputControls=new LabInputControls(this,desktop,profile,keyboardControls);
                 android.widget.LinearLayout layout=new android.widget.LinearLayout(this);
                 layout.setOrientation(android.widget.LinearLayout.VERTICAL);
                 layout.addView(inputControls.view);
@@ -58,5 +60,5 @@ public class MainActivity extends Activity {
     }
 
     /** Test subclasses replace only the owned process, retaining the real lifecycle gate. */
-    protected void runProbe(android.content.Context app) { new ExecutionProbe(app).run(); }
+    protected void runProbe(android.content.Context app) { new ExecutionProbe(app,keyboardControls).run(); }
 }

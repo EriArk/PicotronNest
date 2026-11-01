@@ -4,8 +4,8 @@
 
 The SDL observer now has an optional native keyboard endpoint alongside its
 existing frame/pointer socket. This increment implements and tests the shared
-record reader and SDL event construction. The Android official-runtime launcher
-does **not** open this channel yet. No keyboard, IME or text-entry acceptance in
+record reader and SDL event construction. The subsequent [shared session integration](SESSION_KEYBOARD.md)
+opens the channel through an explicit Android lab opt-in. No keyboard, IME or text-entry acceptance in
 Picotron is claimed, and Retroid remains reserved.
 
 `keyboard_sdl.h` translates the existing 64-byte PNK1 records into bounded
@@ -32,8 +32,8 @@ when it becomes inactive after a peek; suppression is counted separately.
 
 The observer enables this endpoint only when its process environment explicitly
 contains `PICONEST_KEYBOARD_SOCKET`. It requires the frame socket, validates the
-abstract socket name and checks the server's UID. The host launch currently sets
-no such environment entry. No runtime filename, archive layout or Picotron code
+abstract socket name and checks the server's UID. The host sets this environment
+entry only for the shared keyboard opt-in. No runtime filename, archive layout or Picotron code
 has been changed. Neither text payloads nor typed strings are logged by the
 observer; fixture test strings remain synthetic.
 
@@ -57,8 +57,8 @@ keyboard receipt appears, it additionally requires:
 - balanced downs/ups, no held keys, pending events or buffered bytes;
 - consistent repeat/text event counts and no suppressed text.
 
-The current official host does not yet produce that receipt, so simply setting
-the native environment variable cannot produce a passing keyboard acceptance
+The shared Android channel owner now produces that receipt. Simply setting
+the native environment variable without host evidence cannot produce a passing keyboard acceptance
 report. Unit tests use synthetic reports to exercise rejection of mismatched
 peers, loss, pending input, inactive text and native errors. Zero-input success
 would still not prove usable keyboard or text entry.
@@ -150,10 +150,9 @@ lock keys, layout/AltGr handling and physical devices remain unproven. There is
 no global ordering guarantee across the two sockets; modifier-plus-pointer
 workflows need an explicit host coordination policy and acceptance checks.
 
-Next, share an authenticated Android keyboard-channel owner between the fixture
-and official session, attach/detach the adapter through the same lifecycle,
-produce the required receipt and provide explicit keyboard/IME access. Test
-peer mismatch, cancellation before connect, failed writes, focus release and
-modifier-plus-pointer ordering before enabling it for a hardware candidate.
+The [shared Android channel owner](SESSION_KEYBOARD.md) now supplies lifecycle,
+receipt and explicit IME access, with peer mismatch, cancellation, failed writes
+and recreation checks. Modifier-plus-pointer ordering remains the next input
+boundary before enabling a hardware candidate.
 Audio, persistent projects, SAF import and product setup still keep the
 [functional beta gate](BETA_READINESS.md) open.

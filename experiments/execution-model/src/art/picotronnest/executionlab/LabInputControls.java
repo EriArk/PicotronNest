@@ -20,7 +20,7 @@ final class LabInputControls implements AutoCloseable {
     private boolean closed, paused=true;
     private AlertDialog dialog;
     final LinearLayout view;
-    final Button modeButton, primaryButton, secondaryButton;
+    final Button modeButton, primaryButton, secondaryButton, keyboardButton;
     final Button[] wheelButtons=new Button[4];
     private final LinearLayout holds, wheels;
     private final Runnable refresh=new Runnable() {
@@ -29,6 +29,7 @@ final class LabInputControls implements AutoCloseable {
             boolean ready=desktop.inputReady();
             modeButton.setEnabled(ready);
             modeButton.setText(ready ? "Pointer: " + desktop.pointerMode() : "Pointer unavailable");
+            keyboardButton.setEnabled(desktop.keyboardReady());
             CursorInput cursor=desktop.cursor();
             boolean pad=ready && cursor!=null && cursor.mode()==RelativePointer.Mode.TOUCHPAD;
             holds.setVisibility(pad ? View.VISIBLE : View.GONE);
@@ -53,7 +54,7 @@ final class LabInputControls implements AutoCloseable {
         } catch (IllegalArgumentException invalid) { throw new IOException("invalid encoded cursor profile",invalid); }
     }
 
-    LabInputControls(Activity activity, DesktopView desktop, CursorProfile profile) {
+    LabInputControls(Activity activity, DesktopView desktop, CursorProfile profile, boolean keyboardControls) {
         this.activity=activity; this.desktop=desktop; this.profile=profile;
         if (profile!=null) {
             int[] controls=new int[8], actions=new int[5];
@@ -65,6 +66,12 @@ final class LabInputControls implements AutoCloseable {
         view=new LinearLayout(activity); view.setOrientation(LinearLayout.VERTICAL);
         modeButton=button("Pointer unavailable"); modeButton.setEnabled(false);
         modeButton.setOnClickListener(v -> open()); view.addView(modeButton);
+        keyboardButton=button("Show keyboard"); keyboardButton.setEnabled(false);
+        keyboardButton.setVisibility(keyboardControls ? View.VISIBLE : View.GONE);
+        keyboardButton.setOnClickListener(v -> {
+            if (!closed && !paused && activity.hasWindowFocus()) desktop.showKeyboard();
+        });
+        view.addView(keyboardButton);
         holds=new LinearLayout(activity); wheels=new LinearLayout(activity);
         primaryButton=hold("Hold primary",1); secondaryButton=hold("Hold secondary",2);
         holds.addView(primaryButton,cell()); holds.addView(secondaryButton,cell());
@@ -131,5 +138,7 @@ final class LabInputControls implements AutoCloseable {
         paused=true; handler.removeCallbacks(refresh); dismiss();
         if (!closed && desktop.inputReady()) DesktopView.releaseInput();
     }
-    @Override public void close() { if (!closed) { pause(); closed=true; modeButton.setEnabled(false); } }
+    @Override public void close() {
+        if (!closed) { pause(); closed=true; modeButton.setEnabled(false); keyboardButton.setEnabled(false); }
+    }
 }

@@ -65,6 +65,7 @@ final class FrameReceiver implements AutoCloseable {
         }
     }
 
+    int livePeerPid() { return closing ? 0 : peerPid; }
     int pointerAccepted() { PointerSender sender=pointer; return sender==null ? 0 : sender.accepted(); }
 
     /** Session transport only; callers must own capture and release before shutdown. */

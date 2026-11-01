@@ -31,6 +31,14 @@ final class FrameProtocol {
         return new float[]{scale, (viewWidth - width * scale) / 2, (viewHeight - height * scale) / 2};
     }
 
+    /** Window-space overlap, avoiding double subtraction when a parent already resized the view. */
+    static int imeOverlap(int viewTop, int viewHeight, int windowHeight, int imeBottom) {
+        if (viewHeight<0 || windowHeight<0 || imeBottom<0) throw new IllegalArgumentException("invalid IME geometry");
+        if (imeBottom==0) return 0;
+        long overlap=(long)viewTop+viewHeight-Math.max(0,windowHeight-imeBottom);
+        return (int)Math.max(0,Math.min(viewHeight,overlap));
+    }
+
     static int[] pointer(float x, float y, int width, int height, int viewWidth, int viewHeight, boolean captured) {
         float[] fit = fit(width, height, viewWidth, viewHeight);
         float px = (x - fit[1]) / fit[0], py = (y - fit[2]) / fit[0];

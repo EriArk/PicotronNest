@@ -31,6 +31,7 @@ public final class BridgeTestActivity extends MainActivity {
     static volatile int exitRequests, finishedSessions;
     static volatile FrameReceiver activeReceiver;
     static volatile KeyboardWriter activeKeyWriter;
+    static volatile KeyboardChannel activeKeyChannel;
     HostMenu hostMenu;
     static volatile CursorInput cursor;
     android.widget.Button primaryButton, modeButton;
@@ -159,7 +160,8 @@ public final class BridgeTestActivity extends MainActivity {
         if (sessionTest) {
             label.setText("OWNED SESSION FIXTURE - NO PICOTRON\nShared lab pointer controls\nNative PID: "+nativePid
                     +" | Packets: "+packets+"\nDown/up: "+downs+"/"+ups+" | Held: "+held
-                    +"\nSynthetic input; physical controls untested");
+                    +(keyboardTest ? "\nShared keyboard channel | SDL events: "+keySdlEvents+"\nUTF-8: "+receivedText
+                    : "\nSynthetic input; physical controls untested"));
             return;
         }
         if (pointerTest) {
@@ -192,23 +194,17 @@ public final class BridgeTestActivity extends MainActivity {
     @Override protected void runProbe(Context app) {
         launches++;
         String name = "picotronnest.test." + UUID.randomUUID();
-        KeyboardWriter keyWriter = null; android.net.LocalSocket keyClient = null; JSONObject completed = null;
+        JSONObject completed = null;
         try (FrameReceiver receiver = new FrameReceiver(name);
-             android.net.LocalServerSocket keyServer = keyboardTest ? new android.net.LocalServerSocket(name + ".keys") : null) {
+             KeyboardChannel keyChannel=keyboardTest ? new KeyboardChannel(app,name+".keys",receiver::livePeerPid) : null) {
             activeReceiver=receiver;
+            activeKeyChannel=keyChannel;
             String executable = new File(app.getApplicationInfo().nativeLibraryDir,"libbridge_fixture.so").getPath();
             child = new ProcessBuilder(keyboardTest ? new String[]{executable,name,name+".keys"} : new String[]{executable,name})
                     .redirectErrorStream(true).start();
-            if (keyServer != null) {
-                android.system.StructPollfd ready = new android.system.StructPollfd();
-                ready.fd = keyServer.getFileDescriptor(); ready.events = (short)android.system.OsConstants.POLLIN;
-                if (android.system.Os.poll(new android.system.StructPollfd[]{ready},5000) <= 0) throw new IOException("keyboard peer timeout");
-                keyClient = keyServer.accept(); keyClient.setSoTimeout(2000);
-                if (keyClient.getPeerCredentials().getUid() != android.os.Process.myUid()) throw new IOException("keyboard peer UID");
-                keyPeerPid = keyClient.getPeerCredentials().getPid();
-                keyWriter = new KeyboardWriter(keyClient.getOutputStream());
-                activeKeyWriter=keyWriter;
-                keyboard = new KeyboardInput(app,keyWriter); DesktopView.keyboard(keyboard);
+            if (keyChannel != null) {
+                keyChannel.awaitConnected();
+                keyPeerPid=keyChannel.peerPid(); activeKeyWriter=keyChannel.writer(); keyboard=keyChannel.input();
             }
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(child.getInputStream(), "UTF-8"))) {
                 String line;
@@ -248,23 +244,14 @@ public final class BridgeTestActivity extends MainActivity {
             if (!child.waitFor(2, TimeUnit.SECONDS)) throw new IOException("fixture did not exit");
             exitCode = child.exitValue();
             completed = receiver.evidence();
+            if (keyChannel!=null) {
+                JSONObject receipt=keyChannel.finish();
+                completed.put("keyboard_packets",receipt.getInt("packets")).put("keyboard_peer_pid",receipt.getInt("peer_pid"))
+                        .put("desktop_keyboard",receipt);
+                if (receipt.has("error")) completed.put("keyboard_error",receipt.getString("error"));
+            }
         } catch (Exception failure) { error = failure.toString(); }
         finally {
-            if (keyboardTest) DesktopView.keyboard(null);
-            if (keyWriter != null) keyWriter.close();
-            try {
-                try {
-                    if (keyClient != null) {
-                        try { keyClient.shutdownOutput(); } finally { keyClient.close(); }
-                    }
-                } finally {
-                    if (keyWriter != null) keyWriter.awaitClosed();
-                }
-                if (completed != null && keyWriter != null) {
-                    completed.put("keyboard_packets",keyWriter.sent()).put("keyboard_peer_pid",keyPeerPid);
-                    if (keyWriter.failure()!=null) completed.put("keyboard_error",keyWriter.failure());
-                }
-            } catch (Exception failure) { error = failure.toString(); }
             Process process = child;
             if (process != null && process.isAlive()) process.destroyForcibly();
         }

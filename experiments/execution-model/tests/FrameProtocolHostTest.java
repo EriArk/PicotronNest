@@ -8,6 +8,12 @@ public final class FrameProtocolHostTest {
         if (!value) throw new AssertionError("frame protocol regression");
     }
     public static void main(String[] args) throws Exception {
+        require(FrameProtocol.imeOverlap(0,2220,2220,822)==822);
+        require(FrameProtocol.imeOverlap(622,1532,2220,822)==756); // Recreated panel + navigation space.
+        require(FrameProtocol.imeOverlap(622,776,2220,822)==0); // Parent already ends at keyboard top.
+        require(FrameProtocol.imeOverlap(622,1532,2220,0)==0);
+        require(FrameProtocol.imeOverlap(1500,200,2220,822)==200);
+        require(FrameProtocol.imeOverlap(Integer.MAX_VALUE,200,2220,822)==200);
         byte[] rgba = {(byte)255, 0, 0, (byte)255, 0, 0, (byte)255, (byte)128};
         int[] pixels = new int[2];
         FrameProtocol.rgbaToArgb(rgba, pixels);

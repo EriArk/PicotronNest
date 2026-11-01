@@ -59,12 +59,13 @@ public final class BridgeInstrumentation extends Instrumentation {
     }
     private Intent activityIntent() {
         Intent intent=new Intent(getTargetContext(), BridgeTestActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        if (mode.equals("session")) {
+        if (mode.equals("session") || mode.equals("keysession")) {
             try {
                 intent.putExtra("input_controls",true).putExtra("cursor_profile",android.util.Base64.encodeToString(
                         actionsProfile(RelativePointer.Mode.DPAD).encode(),android.util.Base64.NO_WRAP));
             } catch (IOException invalid) { throw new AssertionError(invalid); }
         }
+        if (mode.equals("keysession")) intent.putExtra("keyboard_controls",true);
         return intent;
     }
     private void normal() throws Exception {
@@ -1140,16 +1141,111 @@ public final class BridgeInstrumentation extends Instrumentation {
                 && BridgeTestActivity.downs==BridgeTestActivity.ups && BridgeTestActivity.held==0,"shared session native accounting");
         checks.put("native_receipts_clean_exit_and_disconnected_control_rejection");
     }
+    private void keyboardChannelFailures() throws Exception {
+        KeyboardChannel waiting=new KeyboardChannel(getTargetContext(),"picotronnest.keywait."+UUID.randomUUID(),() -> 0);
+        waiting.close(); waiting.close();
+        check(!waiting.evidence().has("error") && waiting.writer()==null,"cancelled channel attached input");
+        checks.put("shared_keyboard_close_before_connect_idempotent");
+        String name="picotronnest.keyforeign."+UUID.randomUUID();
+        try (KeyboardChannel channel=new KeyboardChannel(getTargetContext(),name,() -> android.os.Process.myPid()+1);
+             android.net.LocalSocket peer=new android.net.LocalSocket()) {
+            peer.connect(new android.net.LocalSocketAddress(name));
+            try { channel.awaitConnected(); throw new AssertionError("foreign keyboard PID accepted"); }
+            catch (IOException expected) { }
+            JSONObject receipt=channel.finish();
+            check(channel.writer()==null && receipt.getString("error").contains("PID mismatch"),"foreign peer exposed input");
+        }
+        checks.put("same_UID_foreign_PID_rejected_before_adapter_creation");
+        name="picotronnest.keybroken."+UUID.randomUUID();
+        try (KeyboardChannel channel=new KeyboardChannel(getTargetContext(),name,android.os.Process::myPid);
+             android.net.LocalSocket peer=new android.net.LocalSocket()) {
+            peer.connect(new android.net.LocalSocketAddress(name)); channel.awaitConnected();
+            peer.shutdownInput();
+            channel.writer().key(224,true,false,2);
+            await(() -> channel.writer().failure()!=null,"broken keyboard write observed");
+            check(channel.finish().has("error") && !channel.input().active()
+                    && !channel.writer().text("stale"),"failed keyboard channel accepted input");
+        }
+        checks.put("failed_keyboard_write_disconnects_adapter_and_reports_loss");
+    }
+    private void keyboardSession() throws Exception {
+        await(() -> BridgeTestActivity.current.inputControls().keyboardButton.isEnabled(),"shared keyboard control ready");
+        int pid=BridgeTestActivity.nativePid;
+        check(BridgeTestActivity.activeKeyChannel.peerPid()==pid,"keyboard peer differs from frame peer");
+        ui(() -> BridgeTestActivity.current.desktop().requestFocus());
+        key(11,android.view.KeyEvent.KEYCODE_CTRL_LEFT,0,0,android.view.KeyEvent.META_CTRL_ON); keys(1,2);
+        ui(() -> BridgeTestActivity.current.inputControls().keyboardButton.performClick()); keys(2,0);
+        stableSessionIme();
+        android.view.inputmethod.InputConnection old=BridgeTestActivity.keyboard.latestConnection();
+        String text="Session: Привет 世界 👋";
+        ui(() -> check(old.commitText(text,1),"shared session Unicode commit"));
+        int count=2+KeyboardProtocol.text(text).size(); keys(count,0);
+        check(BridgeTestActivity.receivedText.equals(text),"shared session text receipt");
+        checks.put("shared_button_releases_modifier_opens_Gboard_and_commits_Unicode");
+        key(12,android.view.KeyEvent.KEYCODE_SHIFT_LEFT,0,0,android.view.KeyEvent.META_SHIFT_ON); keys(++count,1);
+        BridgeTestActivity previous=BridgeTestActivity.current;
+        LabInputControls stale=previous.inputControls(); DesktopView staleView=previous.desktop();
+        ui(previous::recreate);
+        await(() -> BridgeTestActivity.current!=previous && BridgeTestActivity.current.hasWindowFocus()
+                && BridgeTestActivity.current.inputControls().keyboardButton.isEnabled(),"keyboard session recreation");
+        keys(++count,0);
+        ui(() -> {
+            check(!old.commitText("STALE",1) && !staleView.showKeyboard(),"old view/IME reactivated");
+            stale.keyboardButton.performClick();
+        });
+        check(BridgeTestActivity.launches==1 && BridgeTestActivity.nativePid==pid,"keyboard recreation relaunched native child");
+        checks.put("recreation_releases_keys_retains_one_channel_and_rejects_stale_view_IME_and_button");
+        ui(() -> BridgeTestActivity.current.inputControls().keyboardButton.performClick());
+        await(() -> BridgeTestActivity.keyboard.latestConnection()!=old,"restored keyboard connection");
+        stableSessionIme();
+        android.view.inputmethod.InputConnection fresh=BridgeTestActivity.keyboard.latestConnection();
+        ui(() -> check(fresh.commitText(" ✓",1),"restored text commit")); keys(++count,0);
+        stableSessionIme();
+        ui(() -> BridgeTestActivity.current.showReceipt()); screenshot();
+        checks.put("restored_shared_keyboard_control_delivers_to_same_native_peer");
+        BridgeTestActivity.command('Q');
+        await(() -> BridgeTestActivity.result!=null || BridgeTestActivity.error!=null,"shared keyboard session exit");
+        await(() -> !BridgeTestActivity.current.inputControls().keyboardButton.isEnabled(),"ended keyboard control disabled");
+        ui(() -> check(!fresh.commitText("AFTER",1) && !BridgeTestActivity.current.desktop().showKeyboard(),"ended keyboard accepted input"));
+        JSONObject receipt=BridgeTestActivity.result.getJSONObject("desktop_keyboard");
+        check(BridgeTestActivity.error==null && BridgeTestActivity.exitCode==0 && !receipt.has("error")
+                && receipt.getInt("peer_pid")==pid && receipt.getInt("packets")==count && receipt.getInt("accepted")==count
+                && BridgeTestActivity.keyDowns==BridgeTestActivity.keyUps,"shared keyboard receipt/lifecycle mismatch");
+        checks.put("shared_channel_receipt_balanced_exit_and_stale_input_rejection");
+    }
+    private void stableSessionIme() {
+        long[] visibleSince={0};
+        await(() -> {
+            DesktopView view=BridgeTestActivity.current.desktop();
+            try {
+                int[] location=new int[2]; view.getLocationInWindow(location);
+                interaction.put("ime_view_height",view.getHeight()).put("ime_viewport_height",view.viewportHeight())
+                        .put("ime_view_y",location[1]).put("ime_root_height",view.getRootView().getHeight())
+                        .put("ime_root_bottom",view.getRootWindowInsets()==null ? -1
+                        : view.getRootWindowInsets().getInsets(android.view.WindowInsets.Type.ime()).bottom);
+            } catch (org.json.JSONException invalid) { throw new AssertionError(invalid); }
+            int[] location=new int[2]; view.getLocationInWindow(location);
+            int bottom=view.getRootWindowInsets()==null ? 0 : view.getRootWindowInsets().getInsets(android.view.WindowInsets.Type.ime()).bottom;
+            float[] fit=FrameProtocol.fit(48,27,view.getWidth(),Math.max(1,view.viewportHeight()));
+            boolean visible=view.getRootWindowInsets()!=null
+                    && view.getRootWindowInsets().isVisible(android.view.WindowInsets.Type.ime()) && bottom>0
+                    && view.viewportHeight()>0 && location[1]+fit[2]+27*fit[0]<=view.getRootView().getHeight()-bottom+1
+                    && BridgeTestActivity.keyboard.latestConnection()!=null;
+            if (!visible) { visibleSince[0]=0; return false; }
+            if (visibleSince[0]==0) visibleSince[0]=SystemClock.uptimeMillis();
+            return SystemClock.uptimeMillis()-visibleSince[0]>=750;
+        },"stable shared IME visibility and frame above keyboard");
+    }
     @Override public void onStart() {
         JSONObject report = new JSONObject(); Bundle bundle = new Bundle();
         try {
             check(session != null && session.matches("[a-f0-9-]{36}"), "missing session UUID");
             BridgeTestActivity.menuTest=mode.equals("menu");
-            BridgeTestActivity.sessionTest=mode.equals("session");
+            BridgeTestActivity.sessionTest=mode.equals("session") || mode.equals("keysession");
             BridgeTestActivity.mouseTest=mode.equals("mouse");
             BridgeTestActivity.actionsTest=mode.equals("actions") || mode.equals("actions-read");
             BridgeTestActivity.pointerTest=mode.equals("pointer") || BridgeTestActivity.mouseTest || BridgeTestActivity.actionsTest || BridgeTestActivity.sessionTest;
-            BridgeTestActivity.keyboardTest=mode.equals("keyboard") || mode.equals("combined") || BridgeTestActivity.menuTest;
+            BridgeTestActivity.keyboardTest=mode.equals("keyboard") || mode.equals("combined") || mode.equals("keysession") || BridgeTestActivity.menuTest;
             BridgeTestActivity.profileTest=mode.equals("profile") || mode.equals("profile-read");
             BridgeTestActivity.cursorTest=mode.equals("cursor") || mode.equals("combined") || BridgeTestActivity.profileTest || BridgeTestActivity.menuTest || BridgeTestActivity.actionsTest;
             report.put("session", session).put("mode", mode).put("host_pid", android.os.Process.myPid()).put("host_uid", android.os.Process.myUid())
@@ -1167,6 +1263,7 @@ public final class BridgeInstrumentation extends Instrumentation {
                 stalled.close(); stalled.close();
             } finally { stalled.close(); }
             checks.put("close_with_connected_partial_header");
+            if (mode.equals("keysession")) keyboardChannelFailures();
             if (BridgeTestActivity.sessionTest) {
                 Activity invalid=startActivitySync(activityIntent().putExtra("cursor_profile","AA=="));
                 check(BridgeTestActivity.launches==0 && BridgeTestActivity.current.desktopView()==null
@@ -1190,6 +1287,7 @@ public final class BridgeInstrumentation extends Instrumentation {
             else if (mode.equals("pointer")) pointerTransport();
             else if (mode.equals("mouse")) mouse();
             else if (mode.equals("session")) inputSession();
+            else if (mode.equals("keysession")) keyboardSession();
             else if (BridgeTestActivity.actionsTest) actions();
             else if (BridgeTestActivity.profileTest) profile();
             else {

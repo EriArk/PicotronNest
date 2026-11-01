@@ -37,12 +37,13 @@ The later [D-pad/IME fixture](DPAD_AND_IME.md) exercises the keyboard and cursor
 simultaneously, with controller-source filtering and an IME-aware viewport.
 
 Android key mapping, a limited IME connection and an owned native decoder now
-have emulator evidence below. The official Picotron launcher does not attach a keyboard channel. A
+have emulator evidence below. The later [shared session integration](SESSION_KEYBOARD.md)
+adds an opt-in keyboard channel to the official-runtime lab. A
 passing fixture must not be relabeled as successful SDL or Picotron consumption.
 The [native keyboard extension](NATIVE_KEYBOARD.md) now provides shared SDL
 event construction, text-input gating and a bounded socket reader, with an
-optional endpoint compiled into the observer. The Android channel owner and
-official-runtime consumption still need integration and validation.
+optional endpoint compiled into the observer. Its shared Android owner now has
+fixture evidence; official-runtime consumption and cross-channel ordering remain open.
 
 `KeyboardInput` maps Android letter, digit, punctuation, navigation, function
 and left/right modifier keys. Committed physical-key text is separate from

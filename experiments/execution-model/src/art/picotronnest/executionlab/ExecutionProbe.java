@@ -24,8 +24,9 @@ import org.json.JSONObject;
 final class ExecutionProbe {
     private static final int OUTPUT_LIMIT = 16384;
     private final Context app;
+    private final boolean keyboardControls;
 
-    ExecutionProbe(Context app) { this.app = app; }
+    ExecutionProbe(Context app, boolean keyboardControls) { this.app = app; this.keyboardControls=keyboardControls; }
 
     void run() {
         File root = new File(app.getFilesDir(), BuildConfig.DESKTOP ? "desktop-probes" :
@@ -87,7 +88,7 @@ final class ExecutionProbe {
         }
         if (BuildConfig.HEADLESS) {
             report.put("schema", BuildConfig.DESKTOP ? 4 : 3);
-            new HeadlessProbe(app, this).run(session, token, report, cases);
+            new HeadlessProbe(app, this, keyboardControls).run(session, token, report, cases);
         }
         report.put("phase", "COMPLETE");
         writeJson(reportFile, report);
@@ -111,6 +112,7 @@ final class ExecutionProbe {
         ProcessBuilder builder = new ProcessBuilder(command).redirectErrorStream(true);
         builder.environment().remove("LD_PRELOAD");
         builder.environment().remove("LD_LIBRARY_PATH");
+        builder.environment().remove("PICONEST_KEYBOARD_SOCKET");
         builder.environment().putAll(environment);
         final Process process;
         try { process = builder.start(); }

@@ -12,7 +12,7 @@ import android.view.inputmethod.BaseInputConnection;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputConnection;
 
-/** Experimental event adapter. Only the owned fixture attaches it, never the official launcher. */
+/** Experimental event adapter attached only by an authenticated keyboard-channel owner. */
 final class KeyboardInput implements InputManager.InputDeviceListener {
     private static final int IME_SOURCE = Integer.MIN_VALUE;
     private final KeyboardWriter writer;
@@ -27,7 +27,7 @@ final class KeyboardInput implements InputManager.InputDeviceListener {
         devices = (InputManager)context.getSystemService(Context.INPUT_SERVICE);
         devices.registerInputDeviceListener(this, new Handler(Looper.getMainLooper()));
     }
-    private boolean active() { return connected && writer.failure() == null; }
+    synchronized boolean active() { return connected && writer.failure() == null; }
     synchronized boolean event(KeyEvent event) {
         if (!active() || event.getAction() != KeyEvent.ACTION_DOWN && event.getAction() != KeyEvent.ACTION_UP) return false;
         // Controller navigation must not silently become editor arrow keys when cursor mode is disabled.

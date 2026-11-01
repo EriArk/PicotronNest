@@ -163,8 +163,8 @@ workflows remain [hardware checks](RETROID_INPUT_CHECK.md).
 
 The subsequent [native keyboard bridge](NATIVE_KEYBOARD.md) adds an optional
 observer endpoint and shared SDL keyboard/text event construction. The official
-Android session still does not open that channel. Next, share its authenticated
-channel owner and lifecycle with the fixture, attach the keyboard/IME adapter
-and verify modifier-plus-pointer ordering. Host-menu exit,
+Android session can now open that channel via the [shared keyboard opt-in](SESSION_KEYBOARD.md),
+with authenticated lifecycle and IME controls. Next, establish and verify
+modifier-plus-pointer ordering across the input channels. Host-menu exit,
 audio, persistent projects, SAF import and product setup remain under
 [beta readiness](BETA_READINESS.md); the hardware candidate gate is not met.

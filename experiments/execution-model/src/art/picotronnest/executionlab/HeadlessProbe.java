@@ -19,7 +19,10 @@ import org.json.JSONObject;
 final class HeadlessProbe {
     private final Context app;
     private final ExecutionProbe runner;
-    HeadlessProbe(Context app, ExecutionProbe runner) { this.app = app; this.runner = runner; }
+    private final boolean keyboardControls;
+    HeadlessProbe(Context app, ExecutionProbe runner, boolean keyboardControls) {
+        this.app = app; this.runner = runner; this.keyboardControls=keyboardControls;
+    }
 
     void run(File session, String token, JSONObject report, JSONArray cases) throws Exception {
         if (!Build.SUPPORTED_ABIS[0].equals("arm64-v8a")) throw new IOException("headless requires native ARM64");
@@ -82,9 +85,14 @@ final class HeadlessProbe {
                     new File(nativeDir, "libproot.so").getPath(), "--kill-on-exit",
                     "-r", root.getPath(), "-b", "/proc", "-b", "/dev/null", "-b", "/dev/urandom",
                     "-w", "/runtime", "/lib/ld-linux-aarch64.so.1", "--library-path", "/lib", "/probe/desktop-exec"};
-            try (FrameReceiver receiver = new FrameReceiver(socketName)) {
+            if (keyboardControls) env.put("PICONEST_KEYBOARD_SOCKET",socketName+".keys");
+            try (FrameReceiver receiver = new FrameReceiver(socketName);
+                 KeyboardChannel keyboard=keyboardControls ? new KeyboardChannel(app,socketName+".keys",receiver::livePeerPid) : null) {
                 cases.put(runner.runWithEnvironment("picotron_desktop_trace", 35000, env, command));
                 report.put("desktop_frames", receiver.evidence());
+                if (keyboard!=null) {
+                    report.put("desktop_keyboard",keyboard.finish());
+                }
             }
         }
     }

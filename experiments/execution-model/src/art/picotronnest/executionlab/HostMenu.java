@@ -41,12 +41,7 @@ final class HostMenu implements AutoCloseable {
     private void showKeyboard() {
         if (closed || !keyboardPending || exit.state()!=SessionExit.State.RUNNING) return;
         keyboardPending=false;
-        if (desktop.hasWindowFocus()) {
-            desktop.requestFocus();
-            InputMethodManager ime=(InputMethodManager)activity.getSystemService(Activity.INPUT_METHOD_SERVICE);
-            ime.restartInput(desktop); // Menu entry invalidated the old composition/connection.
-            ime.showSoftInput(desktop,0);
-        }
+        if (desktop.hasWindowFocus()) desktop.showKeyboard();
     }
 
     HostMenu(Activity activity, DesktopView desktop, SessionExit exit, int menuKey, int acceptKey,

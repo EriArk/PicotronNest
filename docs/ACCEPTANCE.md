@@ -42,7 +42,8 @@ the [cursor action fixture](CURSOR_ACTIONS.md) adds saved secondary/wheel bindin
 and explicit touch controls. [Shared session controls](SESSION_INPUT.md) now expose
 pointer adapters through an opt-in in the official-runtime lab; their integration
 is exercised with an owned process only. The [native keyboard bridge](NATIVE_KEYBOARD.md)
-adds shared event/reader tests; Android keyboard-channel integration, a
+adds shared event/reader tests; the [shared keyboard integration](SESSION_KEYBOARD.md)
+adds opt-in channel ownership and IME controls. Cross-channel ordering, a
 complete controller workflow and audio remain open.
 No physical mouse, controller, hardware keyboard
 or real IME typing acceptance is claimed.

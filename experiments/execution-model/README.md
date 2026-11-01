@@ -224,5 +224,9 @@ the bounded configuration contract and remaining native keyboard integration.
 The [native keyboard bridge](../../docs/NATIVE_KEYBOARD.md) adds shared SDL key/text
 construction and socket fragmentation/EOF self-tests to the owned native fixture.
 Live keyboard records now traverse that event builder. The ARM64 observer contains
-an optional `PICONEST_KEYBOARD_SOCKET` endpoint; the official Android launcher does
-not yet open it. No SDL/Picotron consumption claim follows from the fixture.
+an optional `PICONEST_KEYBOARD_SOCKET` endpoint. The [shared keyboard owner](../../docs/SESSION_KEYBOARD.md)
+opens it when the Activity receives `--ez keyboard_controls true` (default off),
+also exposing the Show keyboard button. `--mode keysession` checks the shared
+channel, button, recreation, IME geometry and stale-input rejection. The full
+collector now runs fifteen scenarios. No SDL/Picotron consumption claim follows
+from the fixture; modifier-plus-pointer ordering remains open.

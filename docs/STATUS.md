@@ -1,6 +1,6 @@
 # Project status
 
-**2026-11-01 — Native keyboard/Unicode event construction and channel failure handling pass owned emulator checks; official input acceptance and the functional beta gate remain open.**
+**2026-11-01 — Shared keyboard/IME channel and controls integrated into the opt-in desktop lab; fifteen owned emulator scenarios pass. Official input acceptance and the functional beta gate remain open.**
 
 PicotronNest is an Android wrapper for the **official, user-imported Picotron runtime**.
 The repository contains a bounded archive inspector and a temporary target-36
@@ -13,6 +13,15 @@ the next gate.
 
 ## Latest evidence
 
+- Shared keyboard session: the lab now exposes `keyboard_controls`, an authenticated
+  channel owner and Show keyboard control shared with the fixture. The keyboard
+  PID must match the frame peer before input is attached. Cancellation, wrong PID,
+  failed writes, recreation, stale IME rejection and final receipts pass on API 35
+  x86_64. Visual validation caught and fixed IME reopening/viewport errors after
+  recreation. All fifteen scenarios pass in one final-APK collection; 36 lab and
+  nine archive tests pass, and both APKs build. No new official Picotron or Retroid
+  test was performed. Cross-channel modifier/pointer ordering is next.
+  [Evidence, screenshot scope and remaining work](SESSION_KEYBOARD.md).
 - Native keyboard bridge: an opt-in SDL observer endpoint now shares bounded
   key/text event construction and nonblocking record reading with owned tests.
   The API 35 x86_64 keyboard scenario passes ten check groups, including repeats,

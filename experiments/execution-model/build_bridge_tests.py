@@ -23,7 +23,7 @@ def main():
         directory.mkdir(parents=True, exist_ok=True)
     sources = sorted((HERE / 'src').rglob('*.java')) + sorted((HERE / 'tests/android').glob('*.java'))
     inputs = sources + [HERE / n for n in ['build_bridge_tests.py', 'build.py', 'tests/bridge_fixture.c',
-                                          'native/pointer_protocol.h', 'native/pointer_sdl.h', 'native/keyboard_protocol.h',
+                                          'native/pointer_protocol.h', 'native/pointer_sdl.h', 'native/keyboard_protocol.h', 'native/keyboard_sdl.h', 'native/keyboard_channel.h',
                                           'prepare_headless.py', 'prepare_proot.py', 'headless.lock.json']]
     hashes = {p.relative_to(ROOT).as_posix(): digest(p) for p in inputs}
     sdl_input = next(item for item in json.loads((HERE / 'headless.lock.json').read_text())['inputs']

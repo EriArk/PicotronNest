@@ -161,9 +161,10 @@ Picotron input acceptance is claimed. The owned Bionic receiver proves transport
 receipt, not how Picotron consumes SDL events. Physical controls and real editor
 workflows remain [hardware checks](RETROID_INPUT_CHECK.md).
 
-The keyboard channel still exists only in the fixture: the official SDL observer
-does not yet connect/decode it. Next, wire that separate bounded channel into the
-native observer with shared SDL keyboard/text event construction and owned native
-regression checks, then attach the Android keyboard/IME adapter. Host-menu exit,
+The subsequent [native keyboard bridge](NATIVE_KEYBOARD.md) adds an optional
+observer endpoint and shared SDL keyboard/text event construction. The official
+Android session still does not open that channel. Next, share its authenticated
+channel owner and lifecycle with the fixture, attach the keyboard/IME adapter
+and verify modifier-plus-pointer ordering. Host-menu exit,
 audio, persistent projects, SAF import and product setup remain under
 [beta readiness](BETA_READINESS.md); the hardware candidate gate is not met.

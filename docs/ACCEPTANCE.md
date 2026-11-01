@@ -41,7 +41,8 @@ adds synthetic View-event routing, source ownership and lifecycle cleanup;
 the [cursor action fixture](CURSOR_ACTIONS.md) adds saved secondary/wheel bindings
 and explicit touch controls. [Shared session controls](SESSION_INPUT.md) now expose
 pointer adapters through an opt-in in the official-runtime lab; their integration
-is exercised with an owned process only. Keyboard/IME native integration, a
+is exercised with an owned process only. The [native keyboard bridge](NATIVE_KEYBOARD.md)
+adds shared event/reader tests; Android keyboard-channel integration, a
 complete controller workflow and audio remain open.
 No physical mouse, controller, hardware keyboard
 or real IME typing acceptance is claimed.

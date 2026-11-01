@@ -1,4 +1,4 @@
-/* Experimental owned-fixture keyboard decoder; not enabled in the SDL observer. */
+/* Bounded keyboard wire decoder shared by the SDL observer and owned fixture. */
 #ifndef PN_KEYBOARD_PROTOCOL_H
 #define PN_KEYBOARD_PROTOCOL_H
 #include <stdint.h>

@@ -39,8 +39,10 @@ simultaneously, with controller-source filtering and an IME-aware viewport.
 Android key mapping, a limited IME connection and an owned native decoder now
 have emulator evidence below. The official Picotron launcher does not attach a keyboard channel. A
 passing fixture must not be relabeled as successful SDL or Picotron consumption.
-The future SDL adapter needs actual text-input enablement, key-code/modifier
-translation and runtime observations before it can be enabled.
+The [native keyboard extension](NATIVE_KEYBOARD.md) now provides shared SDL
+event construction, text-input gating and a bounded socket reader, with an
+optional endpoint compiled into the observer. The Android channel owner and
+official-runtime consumption still need integration and validation.
 
 `KeyboardInput` maps Android letter, digit, punctuation, navigation, function
 and left/right modifier keys. Committed physical-key text is separate from

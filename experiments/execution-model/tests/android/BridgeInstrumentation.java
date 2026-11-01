@@ -261,6 +261,9 @@ public final class BridgeInstrumentation extends Instrumentation {
         check(result.getInt("keyboard_packets")==count && !result.has("keyboard_error")
                 && result.getInt("keyboard_peer_pid")==BridgeTestActivity.nativePid,"keyboard transport evidence");
         check(BridgeTestActivity.keyDowns==BridgeTestActivity.keyUps,"stuck native key");
+        check(BridgeTestActivity.transcript.contains("KEY_SDL_DONE events="+count+" ")
+                && BridgeTestActivity.transcript.contains("held=0 mods=0"),"SDL keyboard delivery accounting");
+        checks.put("shared_SDL_key_repeat_modifier_and_UTF8_events_delivered");
         checks.put("native_keyboard_counters_balanced_clean_exit");
     }
     private void screenshot() throws IOException {
@@ -1176,6 +1179,8 @@ public final class BridgeInstrumentation extends Instrumentation {
             await(() -> BridgeTestActivity.current.hasWindowFocus(), "initial Activity window focus");
             check(BridgeTestActivity.nativePid != android.os.Process.myPid(), "fixture is not a real child");
             check(BridgeTestActivity.transcript.contains("decoder_tests=PASS"), "shared native decoder tests");
+            check(BridgeTestActivity.transcript.contains("keyboard_sdl_tests=PASS"),"shared SDL keyboard event tests");
+            check(BridgeTestActivity.transcript.contains("keyboard_channel_tests=PASS"),"shared socket fragmentation and EOF tests");
             checks.put("owned_native_decoder_and_real_frames");
             if (mode.equals("normal")) normal();
             else if (mode.equals("keyboard")) keyboard();

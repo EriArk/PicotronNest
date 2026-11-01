@@ -68,6 +68,24 @@ def validate(report, build, census):
             require(uid == report['host_uid'] and pid > 0 and pid not in children and pid != report['host_pid'],
                     'desktop process identity invalid')
             children.add(pid)
+            require('PICONEST_KEYBOARD_ERROR' not in output, 'native keyboard channel failed')
+            if 'PICONEST_KEYBOARD_' in output or 'desktop_keyboard' in report:
+                require(build.get('desktop_keyboard_bridge') is True, 'keyboard bridge absent from build')
+                host = report.get('desktop_keyboard')
+                require(isinstance(host, dict) and 'error' not in host and host.get('peer_pid') == pid,
+                        'keyboard host peer evidence missing or invalid')
+                records = re.findall(r'^PICONEST_KEYBOARD_DONE packets=(\d+) downs=(\d+) ups=(\d+) repeats=(\d+) '
+                                     r'held=(\d+) events=(\d+) text_events=(\d+) text_bytes=(\d+) suppressed=(\d+) '
+                                     r'pending=(\d+) buffered=(\d+) failed=(\d+)$', output, re.M)
+                require(len(records) == 1 and output.count('PICONEST_KEYBOARD_CONNECTED') == 1,
+                        'keyboard connection/termination evidence missing or duplicated')
+                packets, downs, ups, repeats, held, events, texts, text_bytes, suppressed, pending, buffered, failed = map(int, records[0])
+                require(type(host.get('packets')) is int and type(host.get('accepted')) is int
+                        and host['packets'] == host['accepted'] == packets, 'keyboard packets lost or unconfirmed')
+                require(downs == ups and held == pending == buffered == failed == suppressed == 0,
+                        'keyboard state, pending input or text delivery unconfirmed')
+                require(events == downs + ups + repeats + texts and texts <= text_bytes <= 31 * texts,
+                        'keyboard SDL event accounting mismatch')
             if build.get('desktop_live'):
                 live = report.get('desktop_frames', {})
                 require('error' not in live and live.get('frames', 0) >= 10, 'live frame receiver failed')

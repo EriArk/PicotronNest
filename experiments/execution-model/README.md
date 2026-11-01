@@ -220,3 +220,9 @@ their private JSON reports. The official-runtime lab now optionally exposes
 pointer selection using `--ez input_controls true`; a supplied validated profile
 enables the controller/touchpad choices. See the shared-controls document for
 the bounded configuration contract and remaining native keyboard integration.
+
+The [native keyboard bridge](../../docs/NATIVE_KEYBOARD.md) adds shared SDL key/text
+construction and socket fragmentation/EOF self-tests to the owned native fixture.
+Live keyboard records now traverse that event builder. The ARM64 observer contains
+an optional `PICONEST_KEYBOARD_SOCKET` endpoint; the official Android launcher does
+not yet open it. No SDL/Picotron consumption claim follows from the fixture.

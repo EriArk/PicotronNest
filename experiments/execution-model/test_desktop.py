@@ -20,6 +20,33 @@ def desktop_fixture():
 
 
 class DesktopEvidence(unittest.TestCase):
+    def test_keyboard_requires_host_peer_and_native_delivery(self):
+        report, build, census = desktop_fixture()
+        build['desktop_keyboard_bridge'] = True
+        report['desktop_keyboard'] = dict(peer_pid=500, packets=4, accepted=4)
+        output = report['cases'][-1]['output'] + ('PICONEST_KEYBOARD_CONNECTED\n'
+            'PICONEST_KEYBOARD_DONE packets=4 downs=1 ups=1 repeats=1 held=0 events=4 '
+            'text_events=1 text_bytes=4 suppressed=0 pending=0 buffered=0 failed=0\n')
+        report['cases'][-1]['output'] = output
+        self.assertEqual(validate(report, build, census), 'arm64-v8a')
+        for old, new in [('ups=1', 'ups=0'), ('held=0', 'held=1'), ('events=4', 'events=3'),
+                         ('suppressed=0', 'suppressed=1'), ('pending=0', 'pending=1'),
+                         ('buffered=0', 'buffered=7'), ('failed=0', 'failed=1'),
+                         ('PICONEST_KEYBOARD_CONNECTED', 'missing')]:
+            changed = deepcopy(report)
+            changed['cases'][-1]['output'] = output.replace(old, new)
+            with self.subTest(change=new), self.assertRaises(ValueError): validate(changed, build, census)
+        for host in [None, dict(peer_pid=501, packets=4, accepted=4), dict(peer_pid=500, packets=3, accepted=4),
+                     dict(peer_pid=500, packets=True, accepted=4),
+                     dict(peer_pid=500, packets=4, accepted=4, error='write failed')]:
+            changed = deepcopy(report); changed['desktop_keyboard'] = host
+            with self.subTest(host=host), self.assertRaises(ValueError): validate(changed, build, census)
+        changed = deepcopy(report); del changed['desktop_keyboard']
+        changed['cases'][-1]['output'] = output.replace('PICONEST_KEYBOARD_CONNECTED\n', '')
+        with self.assertRaises(ValueError): validate(changed, build, census)
+        report['cases'][-1]['output'] += 'PICONEST_KEYBOARD_ERROR code=2\n'
+        with self.assertRaises(ValueError): validate(report, build, census)
+
     def test_live_peer_and_actual_draw_required(self):
         report, build, census = desktop_fixture()
         self.assertEqual(validate(report, build, census), 'arm64-v8a')

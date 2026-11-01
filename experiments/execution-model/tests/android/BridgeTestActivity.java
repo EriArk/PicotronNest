@@ -38,6 +38,7 @@ public final class BridgeTestActivity extends MainActivity {
     final android.widget.Button[] wheelButtons=new android.widget.Button[4];
     static volatile KeyboardInput keyboard;
     static volatile int keyPackets, keyScan, keyFlags, keyMods, keyDowns, keyUps, keyPeerPid;
+    static volatile int keySdlEvents, keySdlTexts;
     static volatile String receivedText = "";
     private TextView label;
 
@@ -178,7 +179,7 @@ public final class BridgeTestActivity extends MainActivity {
                     + (profileTest ? " (saved profile)\nPrimary: X | Precision: L1\nActivity creates: " + creates + " | Native PID: " + nativePid : "")
                     + "\nNative receipt: x=" + x + " y=" + y + " held=" + held
                     + (keyboardTest ? "\nNative UTF-8: " + receivedText : "")
-                : "Native UTF-8 receipt:\n" + receivedText));
+                : "Native SDL events: "+keySdlEvents+" | Text events: "+keySdlTexts+"\nNative UTF-8 receipt:\n" + receivedText));
     }
     DesktopView desktop() {
         DesktopView view=desktopView();
@@ -238,6 +239,9 @@ public final class BridgeTestActivity extends MainActivity {
                         keyScan=Integer.parseInt(fields[2]); keyFlags=Integer.parseInt(fields[3]); keyMods=Integer.parseInt(fields[4]);
                         keyDowns=Integer.parseInt(fields[5]); keyUps=Integer.parseInt(fields[6]);
                         keyPackets=Integer.parseInt(fields[1]);
+                    }
+                    if (line.startsWith("KEY_SDL ")) {
+                        keySdlEvents=Integer.parseInt(fields[1]); keySdlTexts=Integer.parseInt(fields[2]);
                     }
                 }
             }

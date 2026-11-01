@@ -1,6 +1,6 @@
 # Project status
 
-**2026-11-01 — Shared pointer controls integrated into the desktop lab; official input acceptance and the functional beta gate remain open.**
+**2026-11-01 — Native keyboard/Unicode event construction and channel failure handling pass owned emulator checks; official input acceptance and the functional beta gate remain open.**
 
 PicotronNest is an Android wrapper for the **official, user-imported Picotron runtime**.
 The repository contains a bounded archive inspector and a temporary target-36
@@ -13,6 +13,16 @@ the next gate.
 
 ## Latest evidence
 
+- Native keyboard bridge: an opt-in SDL observer endpoint now shares bounded
+  key/text event construction and nonblocking record reading with owned tests.
+  The API 35 x86_64 keyboard scenario passes ten check groups, including repeats,
+  all eight modifier bits, UTF-8, every partial-record split and EOF cleanup.
+  Live input produces 15 SDL event structures with no held keys at exit. All
+  fourteen bridge scenarios pass in one final-APK collection. 36 lab
+  and nine archive host tests pass; both APKs build with matching source hashes.
+  The official Android session does not open the channel yet; real SDL/Picotron
+  consumption, channel lifecycle and modifier-plus-pointer ordering remain open.
+  Retroid was not touched. [Evidence, setup correction and next step](NATIVE_KEYBOARD.md).
 - Shared session input: the official-runtime lab now exposes optional direct-touch,
   mouse and explicit cursor-profile/touchpad selection. The same MainActivity
   controls pass an owned API 35 x86_64 check for mode changes, invalid configuration,

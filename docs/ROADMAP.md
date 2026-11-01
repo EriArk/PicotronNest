@@ -75,8 +75,9 @@ and [relative touchpad/stick checks](CURSOR_SPIKE.md), extended by
 while hardware is reserved; they do not close the
 [official-runtime input check](RETROID_INPUT_CHECK.md).
 The [shared session controls](SESSION_INPUT.md) now expose opt-in pointer modes
-in the official-runtime lab. Native keyboard/text integration is the next
-bounded input step; official SDL consumption still requires hardware evidence.
+in the official-runtime lab. The [native keyboard endpoint](NATIVE_KEYBOARD.md)
+prepares event construction and record reading; Android channel/lifecycle
+integration is next. Official SDL consumption still requires hardware evidence.
 
 - Route touch taps, drag, long press/right-click, wheel if available, mouse motion/buttons and keyboard text.
 - Provide optional handheld cursor mode (e.g. right stick moves pointer; buttons can click), with remapping and accessible exit/keyboard commands.

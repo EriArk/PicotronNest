@@ -3,6 +3,8 @@
 #include "../native/pointer_protocol.h"
 #include "../native/pointer_sdl.h"
 #include "../native/keyboard_protocol.h"
+#include "../native/keyboard_sdl.h"
+#include "../native/keyboard_channel.h"
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <sys/time.h>
@@ -17,6 +19,122 @@
 
 static void put(unsigned char *p, uint32_t value) {
     for (int i = 0; i < 4; ++i) p[i] = (unsigned char)(value >> (i * 8));
+}
+/* Fixture keymap only. The observer calls the real SDL_GetKeyFromScancode. */
+static SDL_Keycode fixture_keycode(SDL_Scancode scan) {
+    return scan==SDL_SCANCODE_A ? SDLK_a : SDL_SCANCODE_TO_KEYCODE(scan);
+}
+static void key_record(unsigned char bytes[64],unsigned seq,unsigned scan,unsigned flags,unsigned mods) {
+    memset(bytes,0,64); put(bytes,0x504e4b31); put(bytes+4,seq); put(bytes+8,1);
+    put(bytes+12,scan); put(bytes+16,flags); put(bytes+20,mods);
+}
+static void keyboard_sdl_selftest(void) {
+    PNKeyboardSDL b={0}, saved; SDL_Event e; unsigned char bytes[64];
+    const SDL_Keymod expected_mods[8]={KMOD_LCTRL,KMOD_LSHIFT,KMOD_LALT,KMOD_LGUI,KMOD_RCTRL,KMOD_RSHIFT,KMOD_RALT,KMOD_RGUI};
+    for (unsigned i=0;i<8;++i) {
+        unsigned char held[512]={0}; held[224+i]=1;
+        if (pn_sdl_key_mods(held)!=expected_mods[i]) _exit(66);
+    }
+    key_record(bytes,1,225,1,1);
+    if (pn_keyboard_stage(&b,bytes,123,17,fixture_keycode) || !pn_keyboard_pop(&b,NULL)
+        || b.index || b.delivered[225] || !pn_keyboard_pop(&b,&e) || e.type!=SDL_KEYDOWN
+        || e.key.keysym.mod!=KMOD_LSHIFT || e.key.keysym.scancode!=SDL_SCANCODE_LSHIFT
+        || e.key.keysym.sym!=SDLK_LSHIFT || e.key.timestamp!=123 || e.key.windowID!=17
+        || e.key.state!=SDL_PRESSED || e.key.repeat || !b.delivered[225]) _exit(66);
+    key_record(bytes,2,229,1,1);
+    if (pn_keyboard_stage(&b,bytes,124,17,fixture_keycode) || !pn_keyboard_pop(&b,&e)
+        || e.key.keysym.mod!=(KMOD_LSHIFT|KMOD_RSHIFT)) _exit(66);
+    key_record(bytes,3,4,1,1);
+    if (pn_keyboard_stage(&b,bytes,125,17,fixture_keycode)) _exit(66);
+    saved=b;
+    if (!pn_keyboard_stage(&b,bytes,125,17,fixture_keycode) || memcmp(&b,&saved,sizeof(b))) _exit(67);
+    if (!pn_keyboard_pop(&b,&e) || e.key.keysym.sym!=SDLK_a || e.key.keysym.scancode!=SDL_SCANCODE_A) _exit(66);
+    key_record(bytes,4,4,3,1);
+    if (pn_keyboard_stage(&b,bytes,126,17,fixture_keycode) || !pn_keyboard_pop(&b,&e) || !e.key.repeat) _exit(66);
+    memset(bytes,0,64); put(bytes,0x504e4b31); put(bytes+4,5); put(bytes+8,2); put(bytes+24,31);
+    memset(bytes+28,'x',27); memcpy(bytes+55,"\xf0\x9f\x91\x8b",4);
+    if (pn_keyboard_stage(&b,bytes,127,17,fixture_keycode) || !pn_keyboard_pop(&b,&e)
+        || e.type!=SDL_TEXTINPUT || e.text.timestamp!=127 || e.text.windowID!=17
+        || memcmp(e.text.text,bytes+28,31) || e.text.text[31]) _exit(66);
+    saved=b; put(bytes+4,6); bytes[58]=0xff;
+    if (!pn_keyboard_stage(&b,bytes,128,17,fixture_keycode) || memcmp(&b,&saved,sizeof(b))) _exit(67);
+    memset(bytes,0,64); put(bytes,0x504e4b31); put(bytes+4,6); put(bytes+8,3);
+    if (pn_keyboard_stage(&b,bytes,128,17,fixture_keycode) || b.count!=3
+        || !pn_keyboard_pop(&b,&e) || e.type!=SDL_KEYUP || e.key.keysym.scancode!=SDL_SCANCODE_A
+        || e.key.keysym.mod!=(KMOD_LSHIFT|KMOD_RSHIFT)
+        || !pn_keyboard_pop(&b,&e) || e.key.keysym.mod!=KMOD_RSHIFT
+        || !pn_keyboard_pop(&b,&e) || e.key.keysym.mod || pn_sdl_key_mods(b.delivered)
+        || pn_keyboard_pop(&b,&e)) _exit(66);
+    // Maximum reset and disconnect must fit the same bounded queue and release every key.
+    memset(&b,0,sizeof(b));
+    for (unsigned scan=1;scan<512;++scan) b.protocol.held[scan]=b.delivered[scan]=1;
+    b.protocol.downs=511; put(bytes+4,1);
+    if (pn_keyboard_stage(&b,bytes,129,17,fixture_keycode) || b.count!=511) _exit(68);
+    unsigned releases=0;
+    while (pn_keyboard_pop(&b,&e)) { if (e.type!=SDL_KEYUP) _exit(68); ++releases; }
+    if (releases!=511 || b.protocol.ups!=511 || pn_sdl_key_mods(b.delivered)) _exit(68);
+    key_record(bytes,2,224,1,2);
+    if (pn_keyboard_stage(&b,bytes,130,17,fixture_keycode) || !pn_keyboard_pop(&b,&e) || e.key.keysym.mod!=KMOD_LCTRL) _exit(68);
+    unsigned packets=b.protocol.packets;
+    pn_keyboard_release(&b,131,17,fixture_keycode);
+    if (!pn_keyboard_pop(&b,&e) || e.type!=SDL_KEYUP || e.key.keysym.mod || b.protocol.packets!=packets
+        || b.protocol.downs!=b.protocol.ups || pn_sdl_key_mods(b.delivered)) _exit(68);
+    pn_keyboard_release(&b,132,17,fixture_keycode);
+    if (pn_keyboard_pop(&b,&e)) _exit(68);
+}
+static void keyboard_channel_selftest(void) {
+    unsigned char bytes[64]; SDL_Event event;
+    {
+        int pair[2]; PNKeyboardChannel channel={0};
+        if (socketpair(AF_UNIX,SOCK_STREAM|SOCK_CLOEXEC,0,pair)) _exit(70);
+        memset(bytes,0,64); put(bytes,0x504e4b31); put(bytes+4,1); put(bytes+8,2); put(bytes+24,4);
+        memcpy(bytes+28,"\xf0\x9f\x91\x8b",4);
+        channel.suppress_text=1;
+        if (write(pair[0],bytes,64)!=64 || pn_keyboard_read(&channel,pair[1],NULL,1,17,fixture_keycode)
+            || channel.suppressed!=1 || channel.bridge.events || channel.bridge.protocol.text_bytes!=4) _exit(70);
+        channel.suppress_text=0; put(bytes+4,2);
+        if (write(pair[0],bytes,64)!=64 || !pn_keyboard_read(&channel,pair[1],NULL,2,17,fixture_keycode)
+            || channel.bridge.events) _exit(70);
+        channel.suppress_text=1; // StopTextInput after a non-consuming peek also suppresses it.
+        if (pn_keyboard_read(&channel,pair[1],&event,3,17,fixture_keycode)
+            || channel.suppressed!=2 || channel.bridge.events) _exit(70);
+        close(pair[0]); close(pair[1]);
+    }
+    for (unsigned split=1;split<64;++split) {
+        int pair[2]; PNKeyboardChannel channel={0};
+        if (socketpair(AF_UNIX,SOCK_STREAM|SOCK_CLOEXEC,0,pair)) _exit(70);
+        key_record(bytes,1,224,1,2);
+        if (write(pair[0],bytes,split)!=(ssize_t)split
+            || pn_keyboard_read(&channel,pair[1],&event,1,17,fixture_keycode)
+            || channel.error || channel.used!=split || channel.bridge.protocol.packets) _exit(70);
+        if (write(pair[0],bytes+split,64-split)!=(ssize_t)(64-split)
+            || !pn_keyboard_read(&channel,pair[1],NULL,2,17,fixture_keycode)
+            || channel.bridge.delivered[224]
+            || !pn_keyboard_read(&channel,pair[1],&event,2,17,fixture_keycode)
+            || event.type!=SDL_KEYDOWN || event.key.keysym.mod!=KMOD_LCTRL || channel.used) _exit(70);
+        // EOF at every partial length releases a delivered modifier exactly once.
+        key_record(bytes,2,4,1,2);
+        if (write(pair[0],bytes,split)!=(ssize_t)split) _exit(70);
+        close(pair[0]);
+        if (!pn_keyboard_read(&channel,pair[1],&event,3,17,fixture_keycode)
+            || channel.error!=PN_KEY_PARTIAL || event.type!=SDL_KEYUP || event.key.keysym.mod
+            || channel.bridge.protocol.packets!=1 || channel.bridge.delivered[224]
+            || pn_keyboard_read(&channel,pair[1],&event,4,17,fixture_keycode)) _exit(70);
+        close(pair[1]);
+    }
+    for (int invalid=0;invalid<3;++invalid) {
+        int pair[2]; PNKeyboardChannel channel={0};
+        if (socketpair(AF_UNIX,SOCK_STREAM|SOCK_CLOEXEC,0,pair)) _exit(70);
+        if (invalid==1) {
+            key_record(bytes,1,4,1,0); bytes[63]=1;
+            if (write(pair[0],bytes,64)!=64) _exit(70);
+        }
+        if (invalid==2) close(pair[1]); else if (!invalid) close(pair[0]);
+        if (pn_keyboard_read(&channel,pair[1],&event,5,17,fixture_keycode)
+            || channel.error!=(invalid==1 ? PN_KEY_INVALID : invalid==2 ? PN_KEY_IO : PN_KEY_EOF)
+            || channel.bridge.protocol.packets) _exit(70);
+        if (invalid) close(pair[0]); if (invalid!=2) close(pair[1]);
+    }
 }
 static void sdl_selftest(void) {
     unsigned char bytes[PN_POINTER_BYTES] = {0};
@@ -46,6 +164,8 @@ static void sdl_selftest(void) {
 }
 static void selftest(void) {
     sdl_selftest();
+    keyboard_sdl_selftest();
+    keyboard_channel_selftest();
     PNKeyboard keyboard = {0}; unsigned char key[64] = {0};
     put(key,0x504e4b31); put(key+4,1); put(key+8,2); put(key+24,4);
     memcpy(key+28,"\xf0\x9f\x91\x8b",4);
@@ -123,7 +243,7 @@ int main(int argc, char **argv) {
     struct timeval timeout = {.tv_sec = 2};
     if (fd < 0 || setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout)) ||
         connect(fd, (struct sockaddr *)&addr, (socklen_t)(offsetof(struct sockaddr_un, sun_path) + 1 + strlen(argv[1])))) return 47;
-    printf("READY pid=%ld uid=%ld decoder_tests=PASS sdl_event_tests=PASS\n", (long)getpid(), (long)getuid());
+    printf("READY pid=%ld uid=%ld decoder_tests=PASS sdl_event_tests=PASS keyboard_sdl_tests=PASS keyboard_channel_tests=PASS\n", (long)getpid(), (long)getuid());
     int keys = -1;
     if (argc == 3) {
         keys = socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0);
@@ -131,6 +251,7 @@ int main(int argc, char **argv) {
         if (keys < 0 || connect(keys,(struct sockaddr *)&addr,
                 (socklen_t)(offsetof(struct sockaddr_un,sun_path)+1+strlen(argv[2])))) return 56;
     }
+    PNKeyboardSDL key_bridge={0};
     PNKeyboard keyboard = {0}; unsigned char key_bytes[64]; size_t key_used = 0;
     PNPointer pointer = {0};
     unsigned char bytes[PN_POINTER_BYTES]; size_t used = 0;
@@ -170,7 +291,13 @@ int main(int argc, char **argv) {
             if (n < 0 && errno != EAGAIN && errno != EINTR) return 58;
             if (n > 0) key_used += (size_t)n;
             if (key_used == sizeof(key_bytes)) {
-                if (pn_keyboard_apply(&keyboard,key_bytes)) return 59;
+                if (pn_keyboard_stage(&key_bridge,key_bytes,(Uint32)sequence,17,fixture_keycode)) return 59;
+                SDL_Event key_event;
+                while (pn_keyboard_pop(&key_bridge,&key_event)) {
+                    if (key_event.type!=SDL_KEYDOWN && key_event.type!=SDL_KEYUP && key_event.type!=SDL_TEXTINPUT) return 69;
+                }
+                keyboard=key_bridge.protocol;
+                printf("KEY_SDL %u %u\n",key_bridge.events,key_bridge.text_events);
                 if (pn_u32(key_bytes+8) == 2) {
                     printf("TEXT ");
                     for (unsigned i=0; i<pn_u32(key_bytes+24); ++i) printf("%02x",key_bytes[28+i]);
@@ -192,5 +319,8 @@ int main(int argc, char **argv) {
     if (keys >= 0) close(keys);
     printf("KEY_DONE packets=%u downs=%u ups=%u repeats=%u text_bytes=%u\n",
            keyboard.packets,keyboard.downs,keyboard.ups,keyboard.repeats,keyboard.text_bytes);
+    unsigned held=0; for (unsigned scan=1;scan<512;++scan) held+=key_bridge.delivered[scan];
+    printf("KEY_SDL_DONE events=%u text_events=%u held=%u mods=%u\n",key_bridge.events,key_bridge.text_events,held,
+           (unsigned)pn_sdl_key_mods(key_bridge.delivered));
     return used || key_used || pointer.buttons || keyboard.downs != keyboard.ups ? 53 : 0;
 }

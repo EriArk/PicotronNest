@@ -55,7 +55,8 @@ def main():
                                                'runtime-contract.json', 'native/headless_exec.c']]
     if args.desktop_base:
         recorded_sources += [HERE / n for n in ('prepare_desktop.py', 'native/desktop_exec.c',
-                                               'native/desktop_trace.c', 'native/pointer_protocol.h', 'native/pointer_sdl.h')]
+                                               'native/desktop_trace.c', 'native/pointer_protocol.h', 'native/pointer_sdl.h',
+                                               'native/keyboard_protocol.h', 'native/keyboard_sdl.h', 'native/keyboard_channel.h')]
     source_hashes = {str(p.relative_to(ROOT)).replace('\\', '/'): digest(p) for p in recorded_sources}
     work = ROOT / '.local/execution-model/builds' / uuid.uuid4().hex
     artifacts = ROOT / '.local/execution-model/artifacts'
@@ -172,6 +173,7 @@ def main():
         metadata['desktop_probe'] = True
         metadata['desktop_live'] = True
         metadata['desktop_pointer'] = True
+        metadata['desktop_keyboard_bridge'] = True
     (artifacts / 'build.json').write_text(json.dumps(metadata, indent=2) + '\n', encoding='utf-8')
     print(json.dumps(metadata, indent=2))
     print(f'Local APK: {apk}')

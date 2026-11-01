@@ -21,10 +21,14 @@ final class CursorInput implements InputManager.InputDeviceListener, AutoCloseab
         final int axisX, axisY, primary, precision;
         final boolean dpad;
         private final int[] directionKeys;
+        private final int[] actions;
         Bindings(int axisX, int axisY, int primary, int precision) {
             this(axisX,axisY,primary,precision,false,null);
         }
         private Bindings(int axisX, int axisY, int primary, int precision, boolean dpad, int[] keys) {
+            this(axisX,axisY,primary,precision,dpad,keys,new int[5]);
+        }
+        private Bindings(int axisX, int axisY, int primary, int precision, boolean dpad, int[] keys, int[] actions) {
             if ((keys==null && (axisX < 0 || axisY < 0 || axisX == axisY))
                     || primary <= 0 || precision <= 0 || primary == precision)
                 throw new IllegalArgumentException("cursor bindings");
@@ -36,6 +40,16 @@ final class CursorInput implements InputManager.InputDeviceListener, AutoCloseab
             }
             this.axisX=axisX; this.axisY=axisY; this.primary=primary; this.precision=precision;
             this.dpad=dpad; directionKeys=keys==null ? null : keys.clone();
+            if (actions==null || actions.length!=5) throw new IllegalArgumentException("cursor action bindings");
+            java.util.HashSet<Integer> unique=new java.util.HashSet<>();
+            unique.add(primary); unique.add(precision);
+            if (reserved!=null) for (int key:reserved) unique.add(key);
+            for (int code:actions) if (code<0 || code>65535 || code!=0 && !unique.add(code))
+                throw new IllegalArgumentException("overlapping cursor action bindings");
+            this.actions=actions.clone();
+        }
+        Bindings withActions(int secondary, int left, int right, int up, int down) {
+            return new Bindings(axisX,axisY,primary,precision,dpad,directionKeys,new int[]{secondary,left,right,up,down});
         }
         static Bindings dpadKeys(int left, int right, int up, int down, int primary, int precision) {
             return new Bindings(-1,-1,primary,precision,true,new int[]{left,right,up,down});
@@ -44,11 +58,13 @@ final class CursorInput implements InputManager.InputDeviceListener, AutoCloseab
             return new Bindings(axisX,axisY,primary,precision,true,null);
         }
         static Bindings profile(CursorProfile profile) {
-            if (profile.kind==CursorProfile.DPAD_KEYS) return dpadKeys(profile.control(2),profile.control(3),
+            Bindings result;
+            if (profile.kind==CursorProfile.DPAD_KEYS) result=dpadKeys(profile.control(2),profile.control(3),
                     profile.control(4),profile.control(5),profile.control(6),profile.control(7));
-            if (profile.kind==CursorProfile.DPAD_HAT) return dpadHat(profile.control(0),profile.control(1),
+            else if (profile.kind==CursorProfile.DPAD_HAT) result=dpadHat(profile.control(0),profile.control(1),
                     profile.control(6),profile.control(7));
-            return new Bindings(profile.control(0),profile.control(1),profile.control(6),profile.control(7));
+            else result=new Bindings(profile.control(0),profile.control(1),profile.control(6),profile.control(7));
+            return result.withActions(profile.action(0),profile.action(1),profile.action(2),profile.action(3),profile.action(4));
         }
         int direction(int code) {
             int[] keys=directionKeys==null ? STANDARD_DPAD : directionKeys;
@@ -68,6 +84,7 @@ final class CursorInput implements InputManager.InputDeviceListener, AutoCloseab
     private int width, height, viewWidth, viewHeight;
     private float[] fit;
     private long lastTick;
+    private final java.util.Map<Integer,Integer> wheelHeld=new java.util.HashMap<>();
     private final Runnable animation = new Runnable() {
         @Override public void run() {
             synchronized (CursorInput.this) {
@@ -80,11 +97,11 @@ final class CursorInput implements InputManager.InputDeviceListener, AutoCloseab
         }
     };
 
-    CursorInput(View view, PointerState.Sink sink, Bindings bindings, double speed,
+    CursorInput(View view, RelativePointer.Sink sink, Bindings bindings, double speed,
             double deadzone, double precision, boolean syntheticAxes) {
         this.view=view; this.bindings=bindings; this.syntheticAxes=syntheticAxes;
-        state=new RelativePointer((x,y,buttons) -> {
-            if (!closed) sink.send(x,y,buttons);
+        state=new RelativePointer((x,y,buttons,wx,wy) -> {
+            if (!closed) sink.send(x,y,buttons,wx,wy);
         },speed,deadzone,precision);
         devices=(InputManager)view.getContext().getSystemService(Context.INPUT_SERVICE);
         devices.registerInputDeviceListener(this,new Handler(Looper.getMainLooper()));
@@ -106,8 +123,15 @@ final class CursorInput implements InputManager.InputDeviceListener, AutoCloseab
         cancel(); bindings=next;
     }
     synchronized boolean primaryTouch(boolean down) {
+        return touchButton(1,down);
+    }
+    synchronized boolean touchButton(int bit, boolean down) {
         if (closed || state.mode()!=RelativePointer.Mode.TOUCHPAD) return false;
-        return state.button(TOUCH_SOURCE,down);
+        return state.button(TOUCH_SOURCE,bit,down);
+    }
+    synchronized boolean touchWheel(int dx, int dy) {
+        if (closed || state.mode()!=RelativePointer.Mode.TOUCHPAD) return false;
+        return state.wheel(TOUCH_SOURCE,dx,dy);
     }
     synchronized boolean touch(MotionEvent event) {
         if (closed || state.mode()!=RelativePointer.Mode.TOUCHPAD || fit==null) return false;
@@ -137,6 +161,10 @@ final class CursorInput implements InputManager.InputDeviceListener, AutoCloseab
                 || event.getAction()!=KeyEvent.ACTION_DOWN && event.getAction()!=KeyEvent.ACTION_UP) return false;
         boolean down=event.getAction()==KeyEvent.ACTION_DOWN;
         int direction=bindings.dpad ? bindings.direction(event.getKeyCode()) : 0;
+        if (down && event.getRepeatCount()>0) {
+            if (direction!=0 || event.getKeyCode()==bindings.primary || event.getKeyCode()==bindings.precision) return true;
+            for (int code:bindings.actions) if (code!=0 && code==event.getKeyCode()) return true;
+        }
         if (direction!=0) {
             // An explicitly selected hat profile consumes duplicate direction keys without moving twice.
             if (bindings.directionKeys==null) return true;
@@ -145,6 +173,20 @@ final class CursorInput implements InputManager.InputDeviceListener, AutoCloseab
             return accepted;
         }
         if (event.getKeyCode()==bindings.primary) return state.button(event.getDeviceId(),down);
+        if (bindings.actions[0]!=0 && event.getKeyCode()==bindings.actions[0]) return state.button(event.getDeviceId(),2,down);
+        for (int i=1;i<5;i++) if (bindings.actions[i]!=0 && event.getKeyCode()==bindings.actions[i]) {
+            int device=event.getDeviceId(), bit=1<<i, held=wheelHeld.containsKey(device) ? wheelHeld.get(device) : 0;
+            if (!down || event.isCanceled()) {
+                int next=held&~bit;
+                if (next==0) wheelHeld.remove(device); else wheelHeld.put(device,next);
+                return true;
+            }
+            if ((held&bit)!=0) return true;
+            if (!wheelHeld.containsKey(device) && wheelHeld.size()>=16) return false;
+            int dx=i==1 ? -1024 : i==2 ? 1024 : 0, dy=i==3 ? 1024 : i==4 ? -1024 : 0;
+            if (!state.wheel(device,dx,dy)) return false;
+            wheelHeld.put(device,held|bit); return true;
+        }
         if (event.getKeyCode()==bindings.precision) { state.precision(event.getDeviceId(),down); return true; }
         return false;
     }
@@ -177,7 +219,7 @@ final class CursorInput implements InputManager.InputDeviceListener, AutoCloseab
         if (!closed && state.moving() && !scheduled) { scheduled=true; view.postOnAnimation(animation); }
     }
     synchronized void cancel() {
-        touching=false; state.cancel(); view.removeCallbacks(animation); scheduled=false;
+        touching=false; state.cancel(); wheelHeld.clear(); view.removeCallbacks(animation); scheduled=false;
     }
     synchronized void draw(Canvas canvas) {
         if (closed || fit==null || state.mode()==RelativePointer.Mode.DISABLED) return;
@@ -186,6 +228,7 @@ final class CursorInput implements InputManager.InputDeviceListener, AutoCloseab
     }
     @Override public synchronized void onInputDeviceRemoved(int id) {
         state.remove(id);
+        wheelHeld.remove(id);
         if (!state.moving()) { view.removeCallbacks(animation); scheduled=false; }
     }
     @Override public void onInputDeviceAdded(int id) { }

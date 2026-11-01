@@ -747,6 +747,117 @@ public final class BridgeInstrumentation extends Instrumentation {
         interaction.put("exit_requests",BridgeTestActivity.exitRequests).put("finished_sessions",BridgeTestActivity.finishedSessions);
         checks.put("controller_exit_once_waits_for_native_release_receipts_exit_and_reap_before_finish");
     }
+    private CursorProfile actionsProfile(RelativePointer.Mode selected) {
+        return new CursorProfile(selected,CursorProfile.DPAD_KEYS,new int[]{-1,-1,21,22,19,20,99,102},
+                24,0.2,0.25,new int[]{97,104,105,100,96});
+    }
+    private void actionRepeat(int code) {
+        ui(() -> {
+            long now=SystemClock.uptimeMillis();
+            android.view.KeyEvent event=new android.view.KeyEvent(now,now,0,code,1,0,101,0,0,android.view.InputDevice.SOURCE_GAMEPAD);
+            check(BridgeTestActivity.current.desktop().dispatchKeyEvent(event),"action repeat routing");
+        });
+    }
+    private void secondaryTouch(int action) {
+        ui(() -> {
+            long now=SystemClock.uptimeMillis();
+            MotionEvent event=MotionEvent.obtain(now,now,action,10,10,0);
+            try { check(BridgeTestActivity.current.secondaryButton.dispatchTouchEvent(event),"secondary touch control"); }
+            finally { event.recycle(); }
+        });
+    }
+    private void wheelTouch(int direction) {
+        ui(() -> {
+            android.widget.Button button=BridgeTestActivity.current.wheelButtons[direction];
+            long now=SystemClock.uptimeMillis();
+            for (int action:new int[]{MotionEvent.ACTION_DOWN,MotionEvent.ACTION_UP}) {
+                MotionEvent event=MotionEvent.obtain(now,now,action,10,10,0);
+                try { check(button.dispatchTouchEvent(event),"wheel touch control"); } finally { event.recycle(); }
+            }
+        });
+    }
+    private void actions() throws Exception {
+        File path=new File(getTargetContext().getFilesDir(),"cursor-actions-"+session+".bin");
+        CursorProfileStore store=new CursorProfileStore(path);
+        CursorProfile expected=actionsProfile(RelativePointer.Mode.DPAD);
+        if (mode.equals("actions")) {
+            store.save(savedProfile(RelativePointer.Mode.DPAD));
+            byte[] before=java.nio.file.Files.readAllBytes(path.toPath());
+            check(store.load().action(0)==0 && before.length==72
+                    && java.util.Arrays.equals(before,java.nio.file.Files.readAllBytes(path.toPath())),"legacy load rewrote profile");
+            store.save(expected);
+            android.util.AtomicFile atomic=new android.util.AtomicFile(path);
+            FileOutputStream pending=atomic.startWrite(); pending.write(new byte[]{1,2,3}); pending.getFD().sync(); pending.close();
+            check(java.util.Arrays.equals(store.load().encode(),expected.encode()),"extended profile staging recovery");
+            checks.put("v1_load_without_write_v2_atomic_save_and_interrupted_staging_recovery");
+        }
+        CursorProfile loaded=store.load();
+        check(loaded.encode().length==92 && java.util.Arrays.equals(loaded.encode(),expected.encode()),"stored action bindings mismatch");
+        ui(() -> BridgeTestActivity.current.desktop().selectCursorProfile(loaded));
+        checks.put("saved_secondary_and_four_wheel_bindings_loaded");
+        if (mode.equals("actions-read")) {
+            gameKey(101,97,0,true); packets(1,23,13,2);
+            gameKey(101,100,0,true); packets(2,23,13,2); gameKey(101,100,1,true);
+            gameKey(101,97,1,true); packets(3,23,13,0);
+            check(BridgeTestActivity.wheelY==1024,"reloaded wheel binding");
+            checks.put("new_host_process_uses_persisted_bindings_with_native_receipts");
+        } else {
+            gameKey(101,99,0,true); packets(1,23,13,1);
+            gameKey(101,97,0,true); packets(2,23,13,3);
+            gameKey(101,99,1,true); packets(3,23,13,2);
+            gameKey(202,100,0,false); gameKey(202,97,1,false);
+            gameKey(101,100,0,true); packets(4,23,13,2);
+            actionRepeat(100); gameKey(101,100,0,true); gameKey(202,100,1,true); packets(4,23,13,2);
+            gameKey(101,100,1,true); gameKey(101,100,0,true); packets(5,23,13,2); gameKey(101,100,1,true);
+            int count=5;
+            for (int code:new int[]{104,105,96}) { gameKey(101,code,0,true); packets(++count,23,13,2); gameKey(101,code,1,true); }
+            gameKey(101,97,1,true); packets(9,23,13,0);
+            check(BridgeTestActivity.wheelX==0 && BridgeTestActivity.wheelY==1024,"mapped four-direction wheel totals");
+            checks.put("controller_chord_foreign_capture_rejection_four_wheel_directions_and_repeat_suppression");
+            gameKey(101,99,0,true); gameKey(101,97,0,true); packets(11,23,13,3);
+            ui(() -> BridgeTestActivity.current.desktop().cursor().onInputDeviceRemoved(202)); packets(11,23,13,3);
+            ui(() -> BridgeTestActivity.current.desktop().cursor().onInputDeviceRemoved(101)); packets(12,23,13,0);
+            actionRepeat(97); packets(12,23,13,0);
+            checks.put("owner_removal_releases_chord_and_repeat_cannot_repress_after_cancel");
+            gameKey(101,99,0,true); gameKey(101,97,0,true); packets(14,23,13,3);
+            AlertDialog[] dialog=new AlertDialog[1];
+            ui(() -> { dialog[0]=new AlertDialog.Builder(BridgeTestActivity.current).setMessage("Owned action focus test").create(); dialog[0].show(); });
+            packets(15,23,13,0); ui(() -> dialog[0].dismiss());
+            await(() -> BridgeTestActivity.current.hasWindowFocus(),"action focus return");
+            checks.put("actual_dialog_focus_loss_releases_both_buttons");
+            ui(() -> {
+                BridgeTestActivity.current.desktop().selectCursorProfile(actionsProfile(RelativePointer.Mode.TOUCHPAD));
+                BridgeTestActivity.cursor=BridgeTestActivity.current.desktop().cursor();
+            });
+            secondaryTouch(MotionEvent.ACTION_DOWN); packets(16,23,13,2);
+            padButton(MotionEvent.ACTION_DOWN); packets(17,23,13,3);
+            pad(MotionEvent.ACTION_DOWN,0,0); pad(MotionEvent.ACTION_MOVE,2,1); pad(MotionEvent.ACTION_UP,2,1); packets(18,25,14,3);
+            padButton(MotionEvent.ACTION_UP); packets(19,25,14,2);
+            for (int i=0;i<4;i++) { wheelTouch(i); packets(20+i,25,14,2); }
+            secondaryTouch(MotionEvent.ACTION_CANCEL); packets(24,25,14,0);
+            check(BridgeTestActivity.wheelX==0 && BridgeTestActivity.wheelY==1024,"touch wheel totals");
+            checks.put("real_touch_buttons_secondary_drag_chord_four_wheel_steps_and_cancel");
+            secondaryTouch(MotionEvent.ACTION_DOWN); packets(25,25,14,2);
+            BridgeTestActivity old=BridgeTestActivity.current; int pid=BridgeTestActivity.nativePid;
+            ui(old::recreate);
+            await(() -> BridgeTestActivity.current!=old && BridgeTestActivity.current.hasWindowFocus()
+                    && BridgeTestActivity.current.desktop().cursor()!=null,"action profile recreation"); packets(26,25,14,0);
+            check(BridgeTestActivity.nativePid==pid && BridgeTestActivity.launches==1,"action recreation duplicated child");
+            ui(() -> BridgeTestActivity.current.desktop().cursor().mode(RelativePointer.Mode.DPAD));
+            gameKey(101,97,0,true); packets(27,23,13,2);
+            gameKey(101,97,1,true); packets(28,23,13,0);
+            checks.put("Activity_recreation_releases_and_preserves_action_profile_same_native_process");
+        }
+        ui(() -> BridgeTestActivity.current.showReceipt()); screenshot();
+        interaction.put("profile_bytes",92).put("input_source","synthetic gamepad keys and touch Button dispatch; removal callbacks injected");
+        BridgeTestActivity.command('Q'); await(() -> BridgeTestActivity.result!=null || BridgeTestActivity.error!=null,"action process exit");
+        check(BridgeTestActivity.error==null && BridgeTestActivity.exitCode==0,"action native exit");
+        JSONObject result=BridgeTestActivity.result;
+        check(!result.has("error") && !result.has("pointer_error") && result.getInt("pointer_packets")==BridgeTestActivity.packets
+                && result.getInt("peer_pid")==BridgeTestActivity.nativePid && BridgeTestActivity.downs==BridgeTestActivity.ups
+                && BridgeTestActivity.held==0,"action native accounting");
+        checks.put("native_peer_balanced_buttons_exact_packets_and_clean_exit");
+    }
     private void mouseEvent(int device, int action, int buttons, float x, float y,
             float wheelX, float wheelY, int source, int tool, boolean expected) {
         ui(() -> {
@@ -915,10 +1026,11 @@ public final class BridgeInstrumentation extends Instrumentation {
             check(session != null && session.matches("[a-f0-9-]{36}"), "missing session UUID");
             BridgeTestActivity.menuTest=mode.equals("menu");
             BridgeTestActivity.mouseTest=mode.equals("mouse");
-            BridgeTestActivity.pointerTest=mode.equals("pointer") || BridgeTestActivity.mouseTest;
+            BridgeTestActivity.actionsTest=mode.equals("actions") || mode.equals("actions-read");
+            BridgeTestActivity.pointerTest=mode.equals("pointer") || BridgeTestActivity.mouseTest || BridgeTestActivity.actionsTest;
             BridgeTestActivity.keyboardTest=mode.equals("keyboard") || mode.equals("combined") || BridgeTestActivity.menuTest;
             BridgeTestActivity.profileTest=mode.equals("profile") || mode.equals("profile-read");
-            BridgeTestActivity.cursorTest=mode.equals("cursor") || mode.equals("combined") || BridgeTestActivity.profileTest || BridgeTestActivity.menuTest;
+            BridgeTestActivity.cursorTest=mode.equals("cursor") || mode.equals("combined") || BridgeTestActivity.profileTest || BridgeTestActivity.menuTest || BridgeTestActivity.actionsTest;
             report.put("session", session).put("mode", mode).put("host_pid", android.os.Process.myPid()).put("host_uid", android.os.Process.myUid())
                     .put("official_runtime", "NOT TESTED");
             // Cancellation before a client connects must terminate the waiting receiver.
@@ -947,6 +1059,7 @@ public final class BridgeInstrumentation extends Instrumentation {
             else if (mode.equals("menu")) menu();
             else if (mode.equals("pointer")) pointerTransport();
             else if (mode.equals("mouse")) mouse();
+            else if (BridgeTestActivity.actionsTest) actions();
             else if (BridgeTestActivity.profileTest) profile();
             else {
                 check(mode.equals("abrupt") || mode.equals("partial"), "unknown test mode");

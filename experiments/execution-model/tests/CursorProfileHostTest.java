@@ -37,5 +37,17 @@ public final class CursorProfileHostTest {
         }
         byte[] hat=new CursorProfile(RelativePointer.Mode.DPAD,2,controls[2],24,0.2,0.25).encode();
         ByteBuffer.wrap(hat).putInt(40,19); reject(hat);
+        int[] actions={97,104,105,100,96};
+        CursorProfile extended=new CursorProfile(RelativePointer.Mode.DPAD,1,controls[1],24,0.2,0.25,actions);
+        actions[0]=23; check(extended.action(0)==97);
+        byte[] v2=extended.encode(); check(v2.length==CursorProfile.ACTION_BYTES);
+        check(Arrays.equals(v2,CursorProfile.read(new ByteArrayInputStream(v2)).encode()));
+        CursorProfile legacy=CursorProfile.read(new ByteArrayInputStream(valid));
+        check(legacy.action(0)==0 && legacy.encode().length==72 && Arrays.equals(valid,legacy.encode()));
+        for (int length=72;length<v2.length;length++) reject(Arrays.copyOf(v2,length));
+        reject(Arrays.copyOf(v2,93));
+        for (int[] edit:new int[][]{{4,3},{72,23},{76,97},{80,-1},{84,65536},{88,21}}) {
+            byte[] bad=v2.clone(); ByteBuffer.wrap(bad).putInt(edit[0],edit[1]); reject(bad);
+        }
     }
 }

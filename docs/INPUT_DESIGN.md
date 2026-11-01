@@ -79,5 +79,7 @@ It does not establish a finished controller-only Picotron workflow.
 The [secondary-button/wheel transport fixture](POINTER_WHEEL.md) adds independent
 button state and fractional scroll receipts with shared SDL event construction.
 The [Android mouse fixture](ANDROID_MOUSE.md) adds opt-in absolute mouse routing
-through both View event paths. Configurable secondary/wheel touch/controller
-actions and official-runtime integration remain open.
+through both View event paths. The [cursor action extension](CURSOR_ACTIONS.md)
+adds explicit secondary touch controls and optional saved secondary/wheel key
+bindings, with one scroll step per fresh press. Official-runtime integration,
+product controls and physical-device acceptance remain open.

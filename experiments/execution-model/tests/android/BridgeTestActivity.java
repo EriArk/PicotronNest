@@ -24,6 +24,7 @@ public final class BridgeTestActivity extends MainActivity {
     static volatile boolean menuTest;
     static volatile boolean pointerTest;
     static volatile boolean mouseTest;
+    static volatile boolean actionsTest;
     static volatile long wheelX, wheelY, wheelStepsX, wheelStepsY;
     static SessionExit sessionExit;
     static volatile int exitRequests, finishedSessions;
@@ -32,6 +33,8 @@ public final class BridgeTestActivity extends MainActivity {
     HostMenu hostMenu;
     static volatile CursorInput cursor;
     android.widget.Button primaryButton, modeButton;
+    android.widget.Button secondaryButton;
+    final android.widget.Button[] wheelButtons=new android.widget.Button[4];
     static volatile KeyboardInput keyboard;
     static volatile int keyPackets, keyScan, keyFlags, keyMods, keyDowns, keyUps, keyPeerPid;
     static volatile String receivedText = "";
@@ -49,24 +52,54 @@ public final class BridgeTestActivity extends MainActivity {
             android.widget.LinearLayout controls=new android.widget.LinearLayout(this);
             controls.setOrientation(android.widget.LinearLayout.VERTICAL);
             controls.addView(label);
-            modeButton=new android.widget.Button(this); modeButton.setText("Switch touchpad / stick");
+            modeButton=new android.widget.Button(this); modeButton.setText(actionsTest ? "Switch touchpad / D-pad" : "Switch touchpad / stick");
             modeButton.setFocusable(false);
             modeButton.setOnClickListener(v -> {
-                if (cursor!=null) cursor.mode(cursor.mode()==RelativePointer.Mode.TOUCHPAD ? RelativePointer.Mode.STICK : RelativePointer.Mode.TOUCHPAD);
+                CursorInput input=actionsTest ? desktop().cursor() : cursor;
+                if (input!=null) input.mode(input.mode()==RelativePointer.Mode.TOUCHPAD
+                        ? (actionsTest ? RelativePointer.Mode.DPAD : RelativePointer.Mode.STICK) : RelativePointer.Mode.TOUCHPAD);
                 showReceipt();
             });
             primaryButton=new android.widget.Button(this); primaryButton.setText("Hold primary (touchpad)");
             primaryButton.setFocusable(false);
             primaryButton.setOnTouchListener((v,event) -> {
-                if (cursor==null) return false;
+                CursorInput input=actionsTest ? desktop().cursor() : cursor;
+                if (input==null) return false;
                 int action=event.getActionMasked();
-                if (action==android.view.MotionEvent.ACTION_DOWN) return cursor.primaryTouch(true);
+                if (action==android.view.MotionEvent.ACTION_DOWN) return input.primaryTouch(true);
                 if (action==android.view.MotionEvent.ACTION_UP || action==android.view.MotionEvent.ACTION_CANCEL) {
-                    cursor.primaryTouch(false); return true;
+                    input.primaryTouch(false); return true;
                 }
                 return true;
             });
             controls.addView(modeButton); controls.addView(primaryButton); header=controls;
+            if (actionsTest) {
+                secondaryButton=new android.widget.Button(this); secondaryButton.setText("Hold secondary (touchpad)");
+                secondaryButton.setFocusable(false);
+                secondaryButton.setOnTouchListener((v,event) -> {
+                    CursorInput input=desktop().cursor(); if (input==null) return false;
+                    int action=event.getActionMasked();
+                    if (action==android.view.MotionEvent.ACTION_DOWN) return input.touchButton(2,true);
+                    if (action==android.view.MotionEvent.ACTION_UP || action==android.view.MotionEvent.ACTION_CANCEL)
+                        return input.touchButton(2,false);
+                    return true;
+                });
+                controls.addView(secondaryButton);
+                android.widget.LinearLayout wheels=new android.widget.LinearLayout(this);
+                String[] labels={"Left","Right","Up","Down"};
+                for (int i=0;i<4;i++) {
+                    final int direction=i;
+                    android.widget.Button button=new android.widget.Button(this); wheelButtons[i]=button;
+                    button.setText(labels[i]); button.setFocusable(false);
+                    button.setOnClickListener(v -> {
+                        CursorInput input=desktop().cursor();
+                        if (input!=null) input.touchWheel(direction==0 ? -1024 : direction==1 ? 1024 : 0,
+                                direction==2 ? 1024 : direction==3 ? -1024 : 0);
+                    });
+                    wheels.addView(button,new android.widget.LinearLayout.LayoutParams(0,ViewGroup.LayoutParams.WRAP_CONTENT,1));
+                }
+                controls.addView(wheels);
+            }
         }
         if (menuTest) {
             if (sessionExit==null) sessionExit=new SessionExit(BridgeTestActivity::exitFixture);
@@ -117,13 +150,13 @@ public final class BridgeTestActivity extends MainActivity {
     }
     void showReceipt() {
         if (pointerTest) {
-            label.setText((mouseTest ? "OWNED ANDROID MOUSE - NO PICOTRON\nMotionEvent -> adapter -> native PNI2\n"
+            label.setText((actionsTest ? "OWNED CURSOR ACTIONS - NO PICOTRON\nSaved secondary + wheel bindings\n" : mouseTest ? "OWNED ANDROID MOUSE - NO PICOTRON\nMotionEvent -> adapter -> native PNI2\n"
                     : "OWNED POINTER TRANSPORT - NO PICOTRON\nPNI2: right button + two-axis wheel\n")
                     + "Native PID: " + nativePid + " | Packets: " + packets
                     + "\nButtons: " + held + " | Down/up: " + downs + "/" + ups
                     + "\nWheel units (1/1024): " + wheelX + ", " + wheelY
                     + "\nWhole steps: " + wheelStepsX + ", " + wheelStepsY
-                    + (mouseTest ? "\nSynthetic Android events; no physical mouse tested"
+                    + (actionsTest ? "\nSynthetic keys/touch; no physical controls tested" : mouseTest ? "\nSynthetic Android events; no physical mouse tested"
                     : "\nTransport injection; no physical mouse tested"));
             return;
         }

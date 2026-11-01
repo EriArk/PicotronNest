@@ -206,6 +206,10 @@ observer must be rebuilt together; old PNI1 observers are incompatible.
 The eleventh scenario, `--mode mouse`, exercises the [Android mouse adapter](../../docs/ANDROID_MOUSE.md)
 with synthetic MotionEvents through the real View and injected removal callbacks.
 It captures `mouse.png`; physical mouse/Picotron behavior remains untested.
+The twelfth and thirteenth scenarios, `--mode actions`, check
+[saved secondary/wheel actions](../../docs/CURSOR_ACTIONS.md), touch controls,
+chord cleanup and loading in a new host process. They capture `actions.png` and
+`actions-read.png`; the default run includes all thirteen scenarios.
 The collector retains actual labeled emulator screenshots as `keyboard.png`,
 `cursor.png`, `combined.png`, `profile.png` and `profile-read.png` beside
 their private JSON reports. The official launcher attaches neither experimental

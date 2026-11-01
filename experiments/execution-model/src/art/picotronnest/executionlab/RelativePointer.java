@@ -7,16 +7,23 @@ import java.util.Set;
 final class RelativePointer {
     enum Mode { DISABLED, TOUCHPAD, STICK, DPAD }
     static final int LEFT=1, RIGHT=2, UP=4, DOWN=8;
-    private final PointerState.Sink sink;
+    interface Sink { void send(int x, int y, int buttons, int wheelX, int wheelY); }
+    private final Sink sink;
     private final double speed, deadzone, precisionScale;
     private final Set<Integer> precise = new HashSet<>();
     private Mode mode = Mode.DISABLED;
     private int width, height;
     private double x, y, velocityX, velocityY;
     private Integer owner, driver;
-    private int directions;
+    private int directions, buttons;
 
     RelativePointer(PointerState.Sink sink, double speed, double deadzone, double precisionScale) {
+        this((x,y,b,wx,wy) -> {
+            if (wx!=0 || wy!=0) throw new IllegalStateException("legacy sink has no wheel channel");
+            sink.send(x,y,b);
+        },speed,deadzone,precisionScale);
+    }
+    RelativePointer(Sink sink, double speed, double deadzone, double precisionScale) {
         validateSettings(speed,deadzone,precisionScale);
         this.sink = sink; this.speed = speed; this.deadzone = deadzone; this.precisionScale = precisionScale;
     }
@@ -32,7 +39,7 @@ final class RelativePointer {
     boolean held() { return owner != null; }
     boolean moving() { return velocityX != 0 || velocityY != 0; }
     private boolean accepts(int source) { return width > 0 && mode != Mode.DISABLED && (owner == null || owner == source); }
-    private void publish() { sink.send(x(), y(), held() ? 1 : 0); }
+    private void publish() { sink.send(x(), y(), buttons, 0, 0); }
 
     void bounds(int width, int height) {
         if (width < 1 || height < 1 || width > 4096 || height > 4096) throw new IllegalArgumentException("cursor bounds");
@@ -49,12 +56,25 @@ final class RelativePointer {
         if (next != mode) { cancel(); mode = next; }
     }
     boolean button(int source, boolean down) {
+        return button(source,1,down);
+    }
+    boolean button(int source, int bit, boolean down) {
+        if (bit!=1 && bit!=2) return false;
         if (!accepts(source)) return false;
-        if (down && owner == null) {
+        int next=down ? buttons|bit : buttons&~bit;
+        if (next==buttons) return true;
+        if (down) {
             owner = source;
             if (driver != null && driver != source) stop();
-            publish();
-        } else if (!down && owner != null) { owner = null; publish(); }
+        }
+        buttons=next;
+        if (buttons==0) owner=null;
+        publish();
+        return true;
+    }
+    boolean wheel(int source, int dx, int dy) {
+        if (!accepts(source) || dx < -32768 || dx > 32768 || dy < -32768 || dy > 32768) return false;
+        if (dx!=0 || dy!=0) sink.send(x(),y(),buttons,dx,dy);
         return true;
     }
     boolean relative(int source, double dx, double dy) {
@@ -104,12 +124,12 @@ final class RelativePointer {
     }
     private void stop() { driver = null; directions=0; velocityX = velocityY = 0; }
     void remove(int source) {
-        if (owner != null && owner == source) { owner = null; publish(); }
+        if (owner != null && owner == source) { owner = null; buttons=0; publish(); }
         if (driver != null && driver == source) stop();
         precise.remove(source);
     }
     void cancel() {
-        if (owner != null) { owner = null; publish(); }
+        if (owner != null) { owner = null; buttons=0; publish(); }
         stop(); precise.clear();
     }
 }

@@ -70,7 +70,8 @@ capability-based profiles and shared release/coordinate rules. Exact default
 mappings remain undecided. [Keyboard/Unicode fixture work](KEYBOARD_SPIKE.md)
 and [relative touchpad/stick checks](CURSOR_SPIKE.md), extended by
 [D-pad with simultaneous IME](DPAD_AND_IME.md) and
-[saved profiles/Activity restoration](CURSOR_PROFILES.md), prepare limited adapters
+[saved profiles/Activity restoration](CURSOR_PROFILES.md) and
+[secondary/wheel action bindings](CURSOR_ACTIONS.md), prepare limited adapters
 while hardware is reserved; they do not close the
 [official-runtime input check](RETROID_INPUT_CHECK.md).
 

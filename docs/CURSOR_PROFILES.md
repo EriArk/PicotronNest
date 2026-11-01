@@ -21,7 +21,13 @@ primary key and precision key. Key profiles use axes -1/-1; axis profiles use
 zero for unused direction keys. These numeric codes are part of the v1 contract;
 reordering modes requires an explicit schema change.
 
-The parser reads at most 73 bytes. Truncation, trailing data, unknown versions,
+Schema v2 appends five integers (secondary, wheel left/right/up/down), for exactly
+92 bytes. Zero leaves an action unassigned. Saving a profile without these actions
+still writes v1; loading either version does not rewrite it. Nonzero action keys
+must be distinct from each other and all reserved direction/primary/precision keys.
+See the [action extension and device evidence](CURSOR_ACTIONS.md).
+
+The parser reads at most 73 bytes for v1 or 93 for v2. Truncation, trailing data, unknown versions,
 unknown/incompatible modes, conflicting keys, invalid axes and non-finite or
 out-of-range tuning values fail explicitly. It does not silently install defaults
 or rewrite an unsupported file. Pure-Java tests cover every truncated length,
@@ -154,7 +160,8 @@ an unfinished file; it does not simulate device power loss or real disk exhausti
 Fresh-process loading creates a new fixture session, not resurrection of a killed
 native process. This does not establish persistence of Picotron projects/home.
 
-A product settings UI, per-device profile selection, hardware reconnection,
-host menu/keyboard/exit commands and official SDL event consumption remain open.
-The next bounded emulator increment is accessible host commands with shared
-input release; the hardware gate remains [real Picotron pointer input](RETROID_INPUT_CHECK.md).
+A product settings UI, per-device profile selection, hardware reconnection and
+official SDL event consumption remain open. Subsequent owned fixtures cover
+[host commands](HOST_MENU.md) and [saved secondary/wheel actions](CURSOR_ACTIONS.md).
+The next integration is session-level selection in the official-runtime lab;
+the hardware gate remains [real Picotron pointer input](RETROID_INPUT_CHECK.md).

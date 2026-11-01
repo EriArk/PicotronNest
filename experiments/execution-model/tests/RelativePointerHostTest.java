@@ -44,6 +44,20 @@ public final class RelativePointerHostTest {
         boolean rejected=false;
         try { new RelativePointer((a,b,c) -> {},100,1,0.25); } catch (IllegalArgumentException expected) { rejected=true; }
         check(rejected,"profile validation");
+        List<int[]> extended=new ArrayList<>();
+        RelativePointer e=new RelativePointer((a,b,c,d,f) -> extended.add(new int[]{a,b,c,d,f}),100,0.2,0.25);
+        e.bounds(48,27); e.mode(RelativePointer.Mode.TOUCHPAD);
+        check(e.button(7,2,true) && e.button(7,1,true),"secondary chord");
+        check(!e.wheel(8,1024,0) && !e.button(8,2,false),"foreign wheel/release");
+        check(e.button(7,1,false) && e.held(),"partial release lost secondary");
+        check(e.wheel(7,-1024,512),"wheel with secondary held");
+        int[] wheel=extended.get(extended.size()-1);
+        check(wheel[2]==2 && wheel[3]==-1024 && wheel[4]==512,"wheel packet state");
+        int size=extended.size(); check(!e.wheel(7,32769,0) && !e.button(7,4,true) && extended.size()==size,"invalid action");
+        e.cancel(); e.cancel(); check(extended.size()==size+1 && !e.held(),"chord cancel duplicated");
+        int[] release=extended.get(size); check(release[2]==0 && release[3]==0 && release[4]==0,"release replayed wheel");
+        e.button(7,1,true); e.button(7,2,true); e.remove(8); check(e.held(),"foreign removal");
+        e.remove(7); check(!e.held(),"both buttons on removal");
         System.out.println("Relative cursor geometry, ownership, timing, precision and cancellation passed");
     }
 }

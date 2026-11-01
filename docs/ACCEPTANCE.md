@@ -38,7 +38,8 @@ and synthetic controller input, with native receipt and process completion check
 The [secondary-button/wheel fixture](POINTER_WHEEL.md) verifies direct transport
 delivery and shared SDL event construction. The [Android mouse fixture](ANDROID_MOUSE.md)
 adds synthetic View-event routing, source ownership and lifecycle cleanup;
-secondary/wheel touch/controller bindings remain open. These adapters are not attached to
+the [cursor action fixture](CURSOR_ACTIONS.md) adds saved secondary/wheel bindings
+and explicit touch controls. These adapters are not attached to
 official Picotron. A complete controller workflow and audio are not implemented.
 No physical mouse, controller, hardware keyboard
 or real IME typing acceptance is claimed.

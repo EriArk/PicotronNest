@@ -127,8 +127,10 @@ SDK, original AVD, reports and screenshots remain under ignored `.local` paths.
 
 ## Next integration
 
-Add configurable secondary-click and wheel actions to the touch/controller
-adapters, with compatible saved bindings and the same release/source rules.
+Configurable secondary-click and wheel actions now have a separate
+[touch/controller fixture](CURSOR_ACTIONS.md), with compatible saved bindings
+and shared release/source rules. The next integration is explicit session-level
+selection of these adapters in the official-runtime lab.
 Actual mouse reconnection, native pointer visibility, right-click behavior,
 double-click behavior and official workstation workflows still need hardware
 evidence. The [functional beta gate](BETA_READINESS.md) remains open.

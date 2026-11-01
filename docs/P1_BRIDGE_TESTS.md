@@ -1,5 +1,10 @@
 # Owned bridge tests without Retroid
 
+The latest [secondary/wheel action extension](CURSOR_ACTIONS.md) brings the
+default regression run to thirteen scenarios, all passing on the final API 35
+x86_64 fixture APK. It adds saved bindings, touch controls and fresh-process
+profile loading; official-runtime input acceptance remains open.
+
 ## Scope
 
 These tests exercise the actual Android `DesktopView`, `FrameReceiver`,

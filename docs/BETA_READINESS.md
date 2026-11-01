@@ -17,7 +17,7 @@ not substitute for integrating those contracts with official Picotron.
 | One Android APK and icon, modern target, no root or helper installation | Target-36 execution lab and audited runtime components exist; product packaging/setup is open |
 | User supplies their official compatible runtime through Android SAF | Bounded archive inspector and private developer provisioning exist; end-user selection, staging, activation, rejection/rollback and upgrade flow are open |
 | Original workstation video with correct fit and input coordinates | Real frames have Retroid lab evidence; supported orientations/resizes and integrated controls still need implementation/acceptance |
-| Touch, mouse/keyboard, phone IME and configurable handheld controls | Limited host adapters and [secondary/wheel transport](POINTER_WHEEL.md) have fixture evidence; official keyboard/text integration, mouse/secondary/wheel device routing, device selection/reconnection and cartridge-control routing are open |
+| Touch, mouse/keyboard, phone IME and configurable handheld controls | Limited host adapters, [secondary/wheel transport](POINTER_WHEEL.md) and [Android mouse routing](ANDROID_MOUSE.md) have fixture evidence; official integration, configurable secondary/wheel touch/controller actions, physical device selection/reconnection and cartridge-control routing are open |
 | Reachable keyboard, host menu, resume and deliberate exit | [Owned host-menu experiment](HOST_MENU.md); official-runtime shutdown and product integration are open |
 | Audible sound and interruption recovery | Android audio path and validation are open |
 | Persistent native home and projects | Persistent `-home`, save/reopen, `.p64`/`.p64.png` workflows, SAF project import/export and upgrade preservation are open |

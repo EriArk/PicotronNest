@@ -21,6 +21,8 @@ final class DesktopView extends View {
     private static KeyboardInput keyboard;
     private static CursorProfile selectedProfile;
     private CursorInput cursor;
+    private static boolean mouseSelected;
+    private MouseInput mouse;
     private int imeBottom;
     private final PointerState touch = new PointerState((x, y, buttons) -> {
         if (pointer != null) pointer.send(x, y, buttons);
@@ -35,6 +37,7 @@ final class DesktopView extends View {
             if (previous!=null) {
                 previous.release();
                 if (previous.cursor!=null) previous.cursor.close();
+                if (previous.mouse!=null) previous.mouse.close();
             }
             attached = new WeakReference<>(this);
         }
@@ -74,6 +77,7 @@ final class DesktopView extends View {
             if (attached.get()!=this) throw new IllegalStateException("detached cursor view");
             if (pointer==null || frame==null) throw new IllegalStateException("cursor needs connected frames");
             selectedProfile=null;
+            disableMouse();
             release(); if (cursor!=null) cursor.close();
             cursor=new CursorInput(this,pointer::send,bindings,speed,deadzone,precision,syntheticAxes);
             cursor.geometry(frame.getWidth(),frame.getHeight(),getWidth(),viewportHeight());
@@ -89,6 +93,7 @@ final class DesktopView extends View {
         synchronized (DesktopView.class) {
             if (attached.get()!=this) throw new IllegalStateException("detached cursor view");
             release();
+            disableMouse();
             if (cursor!=null) { cursor.close(); cursor=null; }
             selectedProfile=profile;
             restoreCursor(); invalidate();
@@ -104,13 +109,35 @@ final class DesktopView extends View {
     }
     CursorInput cursor() { synchronized (DesktopView.class) { return cursor; } }
 
+    /** Explicit experiment selection: absolute mouse/direct touch or relative cursor, never both. */
+    void enableMouse() {
+        if (android.os.Looper.myLooper()!=android.os.Looper.getMainLooper()) throw new IllegalStateException("mouse selection needs UI thread");
+        synchronized (DesktopView.class) {
+            if (attached.get()!=this || pointer==null || frame==null) throw new IllegalStateException("mouse needs live view");
+            release();
+            if (cursor!=null) { cursor.close(); cursor=null; }
+            selectedProfile=null; mouseSelected=true; restoreMouse();
+        }
+    }
+    MouseInput mouse() { synchronized (DesktopView.class) { return mouse; } }
+    private void disableMouse() {
+        mouseSelected=false;
+        if (mouse!=null) { mouse.close(); mouse=null; }
+    }
+    private void restoreMouse() {
+        if (attached.get()==this && mouseSelected && mouse==null && pointer!=null && frame!=null)
+            mouse=new MouseInput(getContext(),pointer::send);
+        if (mouse!=null && frame!=null) mouse.geometry(frame.getWidth(),frame.getHeight(),getWidth(),viewportHeight());
+    }
+
     static synchronized void pointer(PointerSender sender) {
         DesktopView view=attached.get();
         if (view!=null && view.cursor!=null) { view.cursor.disconnected(); view.cursor=null; }
+        if (view!=null && view.mouse!=null) { view.mouse.disconnected(); view.mouse=null; }
         pointer = null;
         releasePointer(); // Forget local capture; a closed session cannot receive a release.
         pointer = sender;
-        if (sender==null) selectedProfile=null; // A disconnected session must not reactivate input.
+        if (sender==null) { selectedProfile=null; mouseSelected=false; } // A disconnected session must not reactivate input.
     }
 
     static synchronized void releasePointer() {
@@ -158,12 +185,14 @@ final class DesktopView extends View {
 
     private void release() {
         touch.release();
+        if (mouse!=null) mouse.cancel();
         if (cursor!=null) cursor.cancel();
     }
 
     @Override public boolean onGenericMotionEvent(MotionEvent event) {
         synchronized (DesktopView.class) {
             if (attached.get()!=this) return false;
+            if (MouseInput.isMouse(event)) return mouseEvent(event);
             return pointer!=null && cursor!=null && viewportHeight()>0 && cursor.motion(event) || super.onGenericMotionEvent(event);
         }
     }
@@ -171,11 +200,15 @@ final class DesktopView extends View {
     @Override public boolean onTouchEvent(MotionEvent event) {
         synchronized (DesktopView.class) {
             if (attached.get()!=this || frame == null || pointer == null || viewportHeight()<=0) return false;
+            if (MouseInput.isMouse(event)) return mouseEvent(event);
+            if (mouse!=null && mouse.held()) return false;
+            if (mouse!=null && (!hasWindowFocus() || event.getToolType(0)!=MotionEvent.TOOL_TYPE_FINGER)) return false;
             if (cursor!=null) {
                 cursor.geometry(frame.getWidth(),frame.getHeight(),getWidth(),viewportHeight());
                 return cursor.touch(event);
             }
             int action = event.getActionMasked();
+            if (mouse!=null && action==MotionEvent.ACTION_DOWN) mouse.cancel();
             if (action == MotionEvent.ACTION_CANCEL || action == MotionEvent.ACTION_POINTER_DOWN) {
                 release();
                 return true;
@@ -194,6 +227,12 @@ final class DesktopView extends View {
 
     @Override public boolean performClick() { super.performClick(); return true; }
 
+    private boolean mouseEvent(MotionEvent event) {
+        if (pointer==null || frame==null || !hasWindowFocus() || touch.held()) return false;
+        restoreMouse();
+        return mouse!=null && mouse.motion(event);
+    }
+
     @Override protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
         if (w != oldw || h != oldh) { synchronized (DesktopView.class) { release(); } }
@@ -208,6 +247,7 @@ final class DesktopView extends View {
         synchronized (DesktopView.class) {
             release(); if (attached.get()==this && keyboard != null) keyboard.releaseAll();
             if (cursor!=null) { cursor.close(); cursor=null; }
+            if (mouse!=null) { mouse.close(); mouse=null; }
         }
         super.onDetachedFromWindow();
     }
@@ -222,6 +262,7 @@ final class DesktopView extends View {
         synchronized (DesktopView.class) {
             if (frame != null && viewportHeight()>0) {
                 restoreCursor();
+                restoreMouse();
                 float[] fit = FrameProtocol.fit(frame.getWidth(), frame.getHeight(), getWidth(), viewportHeight());
                 canvas.drawBitmap(frame, null, new RectF(fit[1], fit[2], fit[1] + frame.getWidth() * fit[0],
                         fit[2] + frame.getHeight() * fit[0]), paint);

@@ -23,6 +23,7 @@ public final class BridgeTestActivity extends MainActivity {
     static volatile boolean profileTest;
     static volatile boolean menuTest;
     static volatile boolean pointerTest;
+    static volatile boolean mouseTest;
     static volatile long wheelX, wheelY, wheelStepsX, wheelStepsY;
     static SessionExit sessionExit;
     static volatile int exitRequests, finishedSessions;
@@ -116,12 +117,14 @@ public final class BridgeTestActivity extends MainActivity {
     }
     void showReceipt() {
         if (pointerTest) {
-            label.setText("OWNED POINTER TRANSPORT - NO PICOTRON\nPNI2: right button + two-axis wheel\n"
+            label.setText((mouseTest ? "OWNED ANDROID MOUSE - NO PICOTRON\nMotionEvent -> adapter -> native PNI2\n"
+                    : "OWNED POINTER TRANSPORT - NO PICOTRON\nPNI2: right button + two-axis wheel\n")
                     + "Native PID: " + nativePid + " | Packets: " + packets
                     + "\nButtons: " + held + " | Down/up: " + downs + "/" + ups
                     + "\nWheel units (1/1024): " + wheelX + ", " + wheelY
                     + "\nWhole steps: " + wheelStepsX + ", " + wheelStepsY
-                    + "\nTransport injection; no physical mouse tested");
+                    + (mouseTest ? "\nSynthetic Android events; no physical mouse tested"
+                    : "\nTransport injection; no physical mouse tested"));
             return;
         }
         CursorInput shown=profileTest || menuTest ? desktop().cursor() : cursor;

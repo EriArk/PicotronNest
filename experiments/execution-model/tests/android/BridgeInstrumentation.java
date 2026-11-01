@@ -35,7 +35,7 @@ public final class BridgeInstrumentation extends Instrumentation {
         Throwable[] failure=new Throwable[1];
         runOnMainSync(() -> { try { action.run(); } catch (Throwable problem) { failure[0]=problem; } });
         waitForIdleSync();
-        if (failure[0]!=null) throw new AssertionError("UI action failed",failure[0]);
+        if (failure[0]!=null) throw new AssertionError("UI action failed: "+failure[0],failure[0]);
     }
     private void touch(int action, float x, float y, int width, int height) {
         ui(() -> {
@@ -747,6 +747,118 @@ public final class BridgeInstrumentation extends Instrumentation {
         interaction.put("exit_requests",BridgeTestActivity.exitRequests).put("finished_sessions",BridgeTestActivity.finishedSessions);
         checks.put("controller_exit_once_waits_for_native_release_receipts_exit_and_reap_before_finish");
     }
+    private void mouseEvent(int device, int action, int buttons, float x, float y,
+            float wheelX, float wheelY, int source, int tool, boolean expected) {
+        ui(() -> {
+            DesktopView view=BridgeTestActivity.current.desktop();
+            int w=DesktopView.frameSize(48,27) ? 48 : 27, h=w==48 ? 27 : 48;
+            float[] fit=FrameProtocol.fit(w,h,view.getWidth(),view.viewportHeight());
+            MotionEvent.PointerProperties property=new MotionEvent.PointerProperties(); property.id=0; property.toolType=tool;
+            MotionEvent.PointerCoords point=new MotionEvent.PointerCoords();
+            point.x=fit[1]+(x+0.1f)*fit[0]; point.y=fit[2]+(y+0.1f)*fit[0];
+            point.setAxisValue(MotionEvent.AXIS_HSCROLL,wheelX); point.setAxisValue(MotionEvent.AXIS_VSCROLL,wheelY);
+            long time=SystemClock.uptimeMillis();
+            MotionEvent event=MotionEvent.obtain(time,time,action,1,new MotionEvent.PointerProperties[]{property},
+                    new MotionEvent.PointerCoords[]{point},0,buttons,1,1,device,0,source,0);
+            try {
+                boolean touch=action==MotionEvent.ACTION_DOWN || action==MotionEvent.ACTION_UP
+                        || action==MotionEvent.ACTION_MOVE || action==MotionEvent.ACTION_CANCEL;
+                boolean actual=touch ? view.dispatchTouchEvent(event) : view.dispatchGenericMotionEvent(event);
+                check(actual==expected,"mouse dispatch action="+action+" expected="+expected+" actual="+actual);
+            } finally { event.recycle(); }
+        });
+    }
+    private void mouseEvent(int device, int action, int buttons, float x, float y, float wx, float wy, boolean accepted) {
+        mouseEvent(device,action,buttons,x,y,wx,wy,android.view.InputDevice.SOURCE_MOUSE,MotionEvent.TOOL_TYPE_MOUSE,accepted);
+    }
+    private void mouse() throws Exception {
+        mouseEvent(101,MotionEvent.ACTION_DOWN,2,5,6,0,0,false);
+        packets(0,0,0,0);
+        ui(() -> BridgeTestActivity.current.desktop().enableMouse());
+        mouseEvent(101,MotionEvent.ACTION_HOVER_MOVE,0,5,6,0,0,true); packets(1,5,6,0);
+        mouseEvent(101,MotionEvent.ACTION_DOWN,1,5,6,0,0,true); packets(2,5,6,1);
+        mouseEvent(101,MotionEvent.ACTION_BUTTON_PRESS,1,5,6,0,0,true); packets(2,5,6,1);
+        mouseEvent(101,MotionEvent.ACTION_MOVE,1,200,200,0,0,true); packets(3,47,26,1);
+        mouseEvent(202,MotionEvent.ACTION_UP,0,0,0,0,0,false); packets(3,47,26,1);
+        mouseEvent(101,MotionEvent.ACTION_BUTTON_PRESS,3,7,8,0,0,true); packets(4,7,8,3);
+        mouseEvent(101,MotionEvent.ACTION_BUTTON_RELEASE,2,7,8,0,0,true); packets(5,7,8,2);
+        checks.put("opt_in_absolute_hover_drag_clamp_chord_duplicate_and_foreign_release_routing");
+        mouseEvent(101,MotionEvent.ACTION_SCROLL,2,7,8,0.5f,-0.25f,true);
+        mouseEvent(101,MotionEvent.ACTION_SCROLL,2,7,8,0.5f,-0.75f,true); packets(7,7,8,2);
+        check(BridgeTestActivity.wheelX==1024 && BridgeTestActivity.wheelY==-1024,"Android wheel sign/fraction");
+        mouseEvent(101,MotionEvent.ACTION_BUTTON_RELEASE,0,7,8,0,0,true); packets(8,7,8,0);
+        mouseEvent(101,MotionEvent.ACTION_UP,0,7,8,0,0,true); packets(8,7,8,0);
+        checks.put("Android_two_axis_scroll_and_final_release_without_duplicate_or_wheel_replay");
+        mouseEvent(101,MotionEvent.ACTION_HOVER_MOVE,0,-50,-50,0,0,false);
+        mouseEvent(101,MotionEvent.ACTION_SCROLL,0,7,8,Float.NaN,0,false);
+        mouseEvent(101,MotionEvent.ACTION_SCROLL,0,7,8,33,0,false);
+        mouseEvent(101,MotionEvent.ACTION_HOVER_MOVE,0,Float.POSITIVE_INFINITY,8,0,0,false);
+        mouseEvent(101,MotionEvent.ACTION_DOWN,1,7,8,0,0,android.view.InputDevice.SOURCE_MOUSE,MotionEvent.TOOL_TYPE_STYLUS,false);
+        mouseEvent(101,MotionEvent.ACTION_BUTTON_PRESS,4,7,8,0,0,false);
+        packets(8,7,8,0); checks.put("letterbox_nonfinite_oversize_stylus_and_unsupported_button_rejected");
+        mouseEvent(101,MotionEvent.ACTION_SCROLL,0,7,8,1f/2048,0,true); packets(8,7,8,0);
+        mouseEvent(101,MotionEvent.ACTION_SCROLL,0,7,8,1f/2048,0,true); packets(9,7,8,0);
+        mouseEvent(101,MotionEvent.ACTION_SCROLL,0,7,8,1f/2048,0,true);
+        mouseEvent(202,MotionEvent.ACTION_SCROLL,0,7,8,1f/2048,0,true); packets(9,7,8,0);
+        mouseEvent(202,MotionEvent.ACTION_SCROLL,0,7,8,1f/2048,0,true); packets(10,7,8,0);
+        check(BridgeTestActivity.wheelX==1026,"sub-unit remainder/source isolation");
+        checks.put("sub_wire_unit_wheel_accumulation_without_cross_device_remainder");
+        mouseEvent(101,MotionEvent.ACTION_DOWN,2,7,8,0,0,true); packets(11,7,8,2);
+        ui(() -> BridgeTestActivity.current.desktop().mouse().onInputDeviceRemoved(202)); packets(11,7,8,2);
+        ui(() -> BridgeTestActivity.current.desktop().mouse().onInputDeviceRemoved(101)); packets(12,7,8,0);
+        mouseEvent(101,MotionEvent.ACTION_MOVE,2,7,8,0,0,false);
+        checks.put("owner_removal_callback_releases_foreign_removal_preserves_drag_stale_motion_rejected");
+        mouseEvent(101,MotionEvent.ACTION_DOWN,2,7,8,0,0,true); packets(13,7,8,2);
+        AlertDialog[] dialog=new AlertDialog[1];
+        ui(() -> { dialog[0]=new AlertDialog.Builder(BridgeTestActivity.current).setMessage("Owned mouse focus test").create(); dialog[0].show(); });
+        await(() -> !BridgeTestActivity.current.hasWindowFocus(),"mouse dialog focus loss"); packets(14,7,8,0);
+        mouseEvent(101,MotionEvent.ACTION_DOWN,2,7,8,0,0,false);
+        ui(() -> dialog[0].dismiss()); await(() -> BridgeTestActivity.current.hasWindowFocus(),"mouse dialog focus return");
+        mouseEvent(101,MotionEvent.ACTION_MOVE,2,7,8,0,0,false);
+        mouseEvent(101,MotionEvent.ACTION_HOVER_MOVE,0,7,8,0,0,true); packets(15,7,8,0);
+        checks.put("real_dialog_focus_cleanup_and_no_held_motion_reactivation");
+        mouseEvent(9,MotionEvent.ACTION_DOWN,0,3,4,0,0,android.view.InputDevice.SOURCE_TOUCHSCREEN,MotionEvent.TOOL_TYPE_FINGER,true); packets(16,3,4,1);
+        mouseEvent(101,MotionEvent.ACTION_DOWN,2,7,8,0,0,false);
+        mouseEvent(9,MotionEvent.ACTION_UP,0,3,4,0,0,android.view.InputDevice.SOURCE_TOUCHSCREEN,MotionEvent.TOOL_TYPE_FINGER,true); packets(17,3,4,0);
+        mouseEvent(101,MotionEvent.ACTION_HOVER_MOVE,0,7,8,0,0,true); packets(18,7,8,0);
+        mouseEvent(101,MotionEvent.ACTION_DOWN,2,7,8,0,0,true); packets(19,7,8,2);
+        mouseEvent(9,MotionEvent.ACTION_DOWN,0,3,4,0,0,android.view.InputDevice.SOURCE_TOUCHSCREEN,MotionEvent.TOOL_TYPE_FINGER,false);
+        mouseEvent(101,MotionEvent.ACTION_CANCEL,2,7,8,0,0,true); packets(20,7,8,0);
+        checks.put("touch_mouse_mutual_drag_ownership_and_hover_after_touch");
+        mouseEvent(101,MotionEvent.ACTION_DOWN,2,7,8,0,0,true); packets(21,7,8,2);
+        mouseEvent(101,MotionEvent.ACTION_UP,0,Float.NaN,8,0,0,false); packets(22,7,8,0);
+        checks.put("invalid_release_coordinates_still_clear_held_button");
+        mouseEvent(101,MotionEvent.ACTION_DOWN,1,47,26,0,0,true); packets(23,47,26,1);
+        mouseEvent(101,MotionEvent.ACTION_BUTTON_PRESS,3,47,26,0,0,true); packets(24,47,26,3);
+        BridgeTestActivity.command('R'); await(() -> DesktopView.frameSize(27,48),"mouse resized frame"); packets(25,26,26,0);
+        checks.put("frame_resize_releases_both_buttons_at_previous_coordinates");
+        mouseEvent(101,MotionEvent.ACTION_DOWN,2,5,6,0,0,true); packets(26,5,6,2);
+        BridgeTestActivity old=BridgeTestActivity.current; MouseInput stale=old.desktop().mouse(); int pid=BridgeTestActivity.nativePid;
+        ui(old::recreate);
+        await(() -> BridgeTestActivity.current!=old && BridgeTestActivity.current.hasWindowFocus()
+                && BridgeTestActivity.current.desktop().mouse()!=null,"mouse recreation/restoration"); packets(27,5,6,0);
+        ui(() -> stale.onInputDeviceRemoved(101));
+        mouseEvent(101,MotionEvent.ACTION_HOVER_MOVE,0,5,6,0,0,true); packets(28,5,6,0);
+        check(BridgeTestActivity.launches==1 && BridgeTestActivity.nativePid==pid,"mouse recreation duplicated runtime");
+        checks.put("Activity_recreation_releases_restores_selection_and_keeps_one_native_process");
+        mouseEvent(101,MotionEvent.ACTION_DOWN,2,5,6,0,0,true); packets(29,5,6,2);
+        ui(() -> BridgeTestActivity.current.desktop().relativeCursor(new CursorInput.Bindings(MotionEvent.AXIS_X,MotionEvent.AXIS_Y,
+                android.view.KeyEvent.KEYCODE_BUTTON_A,android.view.KeyEvent.KEYCODE_BUTTON_L1),24,0.2,0.25,true)); packets(30,5,6,0);
+        mouseEvent(101,MotionEvent.ACTION_DOWN,2,5,6,0,0,false);
+        ui(() -> BridgeTestActivity.current.desktop().enableMouse());
+        mouseEvent(101,MotionEvent.ACTION_HOVER_MOVE,0,5,6,0,0,true); packets(31,5,6,0);
+        checks.put("explicit_relative_cursor_switch_releases_and_disables_mouse_adapter");
+        ui(() -> BridgeTestActivity.current.showReceipt()); screenshot();
+        interaction.put("input_source","synthetic MotionEvents through real View dispatch; removal callbacks injected")
+                .put("wheel_x",BridgeTestActivity.wheelX).put("wheel_y",BridgeTestActivity.wheelY);
+        BridgeTestActivity.command('Q'); await(() -> BridgeTestActivity.result!=null || BridgeTestActivity.error!=null,"mouse exit");
+        check(BridgeTestActivity.error==null && BridgeTestActivity.exitCode==0,"mouse native exit");
+        JSONObject result=BridgeTestActivity.result;
+        check(!result.has("error") && !result.has("pointer_error") && result.getInt("pointer_packets")==31
+                && result.getInt("peer_pid")==pid && BridgeTestActivity.downs==BridgeTestActivity.ups && BridgeTestActivity.held==0,"mouse receipt accounting");
+        mouseEvent(101,MotionEvent.ACTION_DOWN,2,5,6,0,0,false);
+        checks.put("native_receipts_balanced_authenticated_clean_exit_and_closed_session_rejection");
+    }
     private void pointerTransport() throws Exception {
         FrameReceiver receiver=BridgeTestActivity.activeReceiver;
         check(BridgeTestActivity.transcript.contains("sdl_event_tests=PASS"),"SDL event translation selftest");
@@ -802,7 +914,8 @@ public final class BridgeInstrumentation extends Instrumentation {
         try {
             check(session != null && session.matches("[a-f0-9-]{36}"), "missing session UUID");
             BridgeTestActivity.menuTest=mode.equals("menu");
-            BridgeTestActivity.pointerTest=mode.equals("pointer");
+            BridgeTestActivity.mouseTest=mode.equals("mouse");
+            BridgeTestActivity.pointerTest=mode.equals("pointer") || BridgeTestActivity.mouseTest;
             BridgeTestActivity.keyboardTest=mode.equals("keyboard") || mode.equals("combined") || BridgeTestActivity.menuTest;
             BridgeTestActivity.profileTest=mode.equals("profile") || mode.equals("profile-read");
             BridgeTestActivity.cursorTest=mode.equals("cursor") || mode.equals("combined") || BridgeTestActivity.profileTest || BridgeTestActivity.menuTest;
@@ -833,6 +946,7 @@ public final class BridgeInstrumentation extends Instrumentation {
             else if (mode.equals("combined")) combined();
             else if (mode.equals("menu")) menu();
             else if (mode.equals("pointer")) pointerTransport();
+            else if (mode.equals("mouse")) mouse();
             else if (BridgeTestActivity.profileTest) profile();
             else {
                 check(mode.equals("abrupt") || mode.equals("partial"), "unknown test mode");

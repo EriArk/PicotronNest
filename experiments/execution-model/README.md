@@ -203,6 +203,9 @@ The tenth scenario, `--mode pointer`, checks [secondary-button/wheel transport](
 and shared native SDL event construction. It injects the transport directly,
 not physical mouse events, and captures `pointer.png`. Its PNI2 sender and
 observer must be rebuilt together; old PNI1 observers are incompatible.
+The eleventh scenario, `--mode mouse`, exercises the [Android mouse adapter](../../docs/ANDROID_MOUSE.md)
+with synthetic MotionEvents through the real View and injected removal callbacks.
+It captures `mouse.png`; physical mouse/Picotron behavior remains untested.
 The collector retains actual labeled emulator screenshots as `keyboard.png`,
 `cursor.png`, `combined.png`, `profile.png` and `profile-read.png` beside
 their private JSON reports. The official launcher attaches neither experimental

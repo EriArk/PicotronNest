@@ -86,6 +86,11 @@ transport scenario and native tests of the shared SDL event builder. SDL headers
 are checksum-pinned build inputs; no SDL library is linked into the fixture.
 The new private PNI2 wire format requires matching sender/observer builds.
 
+The [Android mouse adapter](ANDROID_MOUSE.md) adds an eleventh scenario. It
+dispatches synthetic mouse events through both View paths, tests source and
+touch capture exclusion, and checks focus, resize, recreation and removal cleanup.
+It does not establish real USB/Bluetooth input or disconnection behavior.
+
 The [D-pad/IME increment](DPAD_AND_IME.md) passes all six scenarios on one APK in
 session `7245e501-c9da-4198-b8ae-35a60199bd11`. It records source-aware keyboard
 routing, docked-IME viewport changes, shared native pointer/text evidence and the

@@ -120,9 +120,10 @@ Retroid was not installed to, launched or interacted with.
 
 ## Remaining integration
 
-Implement source-aware Android mouse routing and configurable secondary/wheel
-actions for touch/controller adapters, including focus loss, device removal and
-mode switches. Existing primary-only cursor profiles need an explicit compatible
+The subsequent [Android mouse adapter](ANDROID_MOUSE.md) adds source-aware View
+routing, focus/device cleanup and mode switching in the owned fixture. Configurable
+secondary/wheel actions for touch/controller adapters remain open. Existing
+primary-only cursor profiles need an explicit compatible
 extension before saving new bindings. Then verify official Picotron consumption
 and real editor/file workflows on the owner's freed device. This increment does
 not meet [the functional beta gate](BETA_READINESS.md); Retroid remains reserved.

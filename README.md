@@ -25,6 +25,8 @@ controls, fullscreen display and a persistent home for your work.
 
 - **Discover games in Splore.** Browse the native online catalog, download cartridges
   and open them in Picotron.
+- **Keep games close.** Open **Your games** beside the menu for a cover grid of
+  downloaded and local cartridges. Tap a cover to launch.
 - **Make room for the game.** Small floating icons and translucent touch controls
   sit over the picture. No permanent control bar squeezing the screen.
 - **Choose your controls.** Use a handheld gamepad, a mouse and keyboard, or your
@@ -55,36 +57,41 @@ games and control settings. Original PNGs are included for articles and websites
 Auto mode hides them when a gamepad is connected.*
 </div>
 
-The floating **menu** opens controls and settings. The **keyboard** icon lets you
+The floating **menu** opens controls and settings, including **Sound buffer**.
+Choose Auto, Low latency or More stable; a larger buffer adds sound delay.
+The **keyboard** icon lets you
 type. On a gamepad, **Start** goes to the game's pause menu; **Guide** opens the
 PicotronNest menu. Android **Back** also gives you a way out.
 
 ## Getting started
 
-**[Download beta 2 APK](https://github.com/EriArk/PicotronNest/releases/download/v0.1.0-beta.2/PicotronNest-0.1.0-beta.2-arm64.apk)**
-or open the [release page](https://github.com/EriArk/PicotronNest/releases/tag/v0.1.0-beta.2)
+**[Download beta 3 APK](https://github.com/EriArk/PicotronNest/releases/download/v0.1.0-beta.3/PicotronNest-0.1.0-beta.3-arm64.apk)**
+or open the [release page](https://github.com/EriArk/PicotronNest/releases/tag/v0.1.0-beta.3)
 for source archives, screenshots, notices and checksums.
 
-To try the published beta 2:
+To get started:
 
 1. Install the PicotronNest APK on your Android device.
 2. Get your own [Picotron copy from Lexaloffle](https://www.lexaloffle.com/picotron.php).
-   Beta 2 accepts the **Raspberry Pi 64-bit ZIP, version 0.3.0d2**.
-3. Open PicotronNest, choose **Import your runtime** and select that ZIP.
-4. Tap **Start Picotron**. After setup, opening the app takes you straight to Picotron.
+   Download the **Linux / Raspberry Pi 64-bit ARM64 ZIP**.
+3. Open PicotronNest and follow the three-step setup wizard to select that ZIP.
+4. Review the controls/save guidance and tap **Start Picotron**. After setup,
+   opening the app takes you straight to Picotron.
 
-**Picotron is not included.** Windows, macOS, PICO-8 and other runtime versions
-cannot be used in beta 2. There is no separate helper app to install.
+**Picotron is not included.** Windows, macOS, 32-bit and PICO-8 packages cannot
+be used. There is no separate helper app to install.
 
-The **beta 3 development candidate** adds a three-step setup wizard and accepts
-compatible older/newer ARM64 runtime packages without a fixed version allowlist.
-It is not published yet; see [onboarding and import evidence](docs/ONBOARDING.md).
+Beta 3 accepts compatible older/newer ARM64 runtime packages without a fixed
+version allowlist. Device checks used 0.3.0d2; accepting an archive does not prove
+every version works. See [onboarding and import evidence](docs/ONBOARDING.md).
+Install over an earlier beta to preserve your runtime and projects; do not clear data.
 
 ## Before you try the beta
 
 The current hardware check is **Retroid Pocket Classic, Android 14**. A 64-bit
 ARM Android device is required; other phones, tablets and handhelds still need
-testing. Audio playback and longer play sessions also need tester confirmation.
+testing. Audio listening and longer play sessions also need tester confirmation;
+the buffering changes do not establish that reported crackling is resolved.
 
 Splore catalog browsing, downloads and game launch have been checked on Retroid.
 Accounts, uploads and different network setups still need tester confirmation.

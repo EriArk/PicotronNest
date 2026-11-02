@@ -1,6 +1,6 @@
 # Project status
 
-**2026-11-02 - [0.1.0-beta.2 is published as a prerelease](https://github.com/EriArk/PicotronNest/releases/tag/v0.1.0-beta.2), with owner authorization. It adds native Splore networking and MIT licensing. All 12 uploaded assets match local SHA-256; the public APK download was independently verified. The real catalog, two cartridge downloads and game launch have scoped Retroid evidence.**
+**2026-11-02 - [0.1.0-beta.3 is published as a prerelease](https://github.com/EriArk/PicotronNest/releases/tag/v0.1.0-beta.3), with owner authorization, from `2dbdbf68f88c807b5adc785a147a31b1a096736b`. It adds guided setup, version-flexible imports, a cartridge launcher and audio buffering controls. All 12 uploaded assets match local SHA-256; an anonymous public APK download and the tag target were independently verified. Audio listening remains open.**
 
 PicotronNest is an Android wrapper for the **official, user-imported Picotron runtime**.
 The repository contains a bounded archive inspector and a temporary target-36
@@ -13,12 +13,12 @@ the shared input bundle has emulator evidence. Official Picotron interaction and
 Audible output acceptance, broader phone ergonomics and modern-device compatibility
 remain open. Native HTTP(S) and Android DNS are integrated; accounts, uploads,
 VPN/network-change behavior and raw socket workflows remain tester checks. Public
-beta 2 is now published; future releases require owner authorization. Windowed and
+beta 3 is now published; future releases require owner authorization. Windowed and
 fullscreen Splore have scoped Retroid evidence; list maximization is a separate action.
 
 ## Latest evidence
 
-- **Local beta 3 audio and library:** [implementation and evidence](AUDIO_AND_LIBRARY.md).
+- **Beta 3 audio and library:** [implementation and evidence](AUDIO_AND_LIBRARY.md).
   Persistent live buffer modes and sample-count pacing in the open-source SDL
   dummy backend. A button beside the hamburger shows cartridge covers and requests
   native launches. The 45 host checks, 13 tools checks and Android 15 AudioTrack
@@ -29,7 +29,7 @@ fullscreen Splore have scoped Retroid evidence; list maximization is a separate 
   counted one underrun and one adaptation to 100 ms, then exited cleanly.
   Phone listening and broader device/version coverage remain open.
 
-- **Local beta 3 candidate, not published:** [first-run wizard and runtime import](ONBOARDING.md).
+- **Beta 3 onboarding:** [first-run wizard and runtime import](ONBOARDING.md).
   Three explicit steps introduce the app, select the owner ZIP and explain controls
   and saves. Runtime admission now checks ELF architecture/dependencies instead of
   an exact version/hash allowlist. Old installations remain readable, replacement

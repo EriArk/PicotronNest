@@ -2,9 +2,8 @@
 
 ## First launch
 
-The published **beta 2** accepts only the Picotron **0.3.0d2 Raspberry Pi 64-bit
-ZIP**. It has the earlier import screen. The instructions below describe the
-**beta 3 development candidate**, which has not been published yet.
+These instructions describe published **beta 3**. The older beta 2 has an earlier
+import screen and accepts only the Picotron 0.3.0d2 Raspberry Pi 64-bit ZIP.
 
 1. Open PicotronNest and choose **Get started**. PicotronNest runs the real
    Picotron desktop, tools and games; your legally obtained Picotron is not included.

@@ -1,12 +1,14 @@
 # Build and release preparation
 
-The local development candidate is **0.1.0-beta.3**, application ID **art.picotronnest**,
+The current published prerelease is **0.1.0-beta.3**, application ID **art.picotronnest**,
 version code **1003**, ARM64, target SDK **36**, minimum SDK **26**. The minimum
 SDK is a manifest floor, not a claim that every Android 8+ device can execute the
 runtime. Retroid/Android 14 is the hardware evidence currently available.
 
-Beta 2 remains the published prerelease. Beta 3 is not published; its wizard and
-version-flexible import evidence are tracked in [ONBOARDING](ONBOARDING.md).
+Beta 3 was published with owner authorization from commit `2dbdbf6`; all 12
+attachment digests and the anonymous public APK download were verified. Its
+scoped evidence is tracked in [ONBOARDING](ONBOARDING.md) and
+[AUDIO_AND_LIBRARY](AUDIO_AND_LIBRARY.md).
 
 ## Build on Windows
 

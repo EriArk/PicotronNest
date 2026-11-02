@@ -1,14 +1,14 @@
 # Beta tester checklist
 
-Candidate: **0.1.0-beta.2**, ARM64, package `art.picotronnest`, target API 36.
-Supported import: your own **Picotron 0.3.0d2 Raspberry Pi 64-bit ZIP**.
+Published prerelease: **0.1.0-beta.3**, ARM64, package `art.picotronnest`, target API 36.
+Import: your own compatible **Linux / Raspberry Pi 64-bit ARM64 ZIP**. Device
+checks used Picotron **0.3.0d2**; other versions need individual validation.
 Retroid Pocket Classic / Android 14 has scoped development evidence; this is
 not a promise of compatibility with other Android execution policies.
 
-## Beta 3 development candidate
+## Beta 3 setup and upgrade
 
-Beta 3 (version code 1003) is a local candidate, not the published download.
-Use the session checks below and also check:
+Beta 3 has version code 1003. Use the session checks below and also check:
 
 - Fresh install: welcome, ZIP selection and ready steps; no automatic launch
   before pressing Start. Rotate or leave/return during each step.
@@ -56,7 +56,7 @@ See [onboarding evidence and limits](ONBOARDING.md).
 5. If applicable, check your VPN/Private DNS and Wi-Fi/mobile transitions. Account
    login and uploads are optional owner checks; never put credentials in reports.
 
-## Local beta 3: library and sound
+## Beta 3: library and sound
 
 - Open **Your games** beside the hamburger. Check both imported and Splore-downloaded
   cartridges, scroll the cover grid and launch one of each. Confirm actual gameplay,
@@ -90,5 +90,5 @@ are optional; check them for private content before posting.
 - Restoring a backup creates a separate folder; it does not overwrite your home.
 - Uninstalling removes private data. Back up first.
 
-For deeper checks, see [acceptance](ACCEPTANCE.md). Publishing a public APK is a
-separate owner decision; these instructions do not imply a public release exists.
+For deeper checks, see [acceptance](ACCEPTANCE.md). Beta 3 is published with owner
+authorization; unresolved checks above remain tester work.

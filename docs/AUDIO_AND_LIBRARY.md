@@ -1,6 +1,7 @@
 # Audio buffering and cartridge library
 
-Local beta 3 work; not a published release. Picotron itself remains unchanged.
+[Beta 3 is published](https://github.com/EriArk/PicotronNest/releases/tag/v0.1.0-beta.3)
+as a prerelease with owner authorization. Picotron itself remains unchanged.
 
 ## Sound
 
@@ -112,8 +113,10 @@ the reported crackling is eliminated; no one listened during the test.
 The final local product APK was installed over the existing product without
 clearing data; its installed SHA-256 matches
 `0be3e848c28e7e72b7664c7902ceb6b6fa5821284fa9bb7310fbf80cb2d08051`.
-The separately installed lab uses the same audio/library sources. Neither APK
-nor the private runtime/carts is published by this increment.
+The separately installed lab uses the same audio/library sources. The product
+APK is now published with matching source/dependency archives and notices; all
+12 uploaded digests and an anonymous APK download were verified. The lab APK,
+private runtime, user carts and their screenshots remain unpublished.
 
 Listening on the reporting friend's Android phone, Bluetooth, sustained sessions
 after the reprime fix and other Picotron versions remain separate acceptance checks.

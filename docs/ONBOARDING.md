@@ -1,7 +1,7 @@
 # First-run setup and version-flexible runtime import
 
-2026-11-02. Implemented for local **0.1.0-beta.3**, code **1003**.
-This is not a published release. The public beta 2 keeps its pinned importer.
+2026-11-02. Implemented in published prerelease **0.1.0-beta.3**, code **1003**.
+The older beta 2 retains its pinned importer.
 
 ## User journey
 
@@ -115,5 +115,5 @@ Retroid now has an in-place beta 3 product upgrade and existing-home launch chec
 Remaining hardware checks: clean wizard/import, original desktop/save/reopen, runtime
 replacement/rollback and interrupted-session recovery. Test any additional official
 versions individually when their legally obtained ARM64 packages are available.
-Published beta 2 device evidence does not establish beta 3 acceptance. Publishing
-beta 3 requires separate owner authorization.
+Published beta 2 device evidence does not establish beta 3 acceptance.
+Beta 3 is now published with owner authorization and these limitations stated.

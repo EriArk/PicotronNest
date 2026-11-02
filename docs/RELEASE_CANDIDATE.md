@@ -1,7 +1,8 @@
 # Product candidate evidence
 
-Current local candidate: **0.1.0-beta.3**, code 1003, not published. See
-[onboarding and runtime import](ONBOARDING.md) for its scoped evidence.
+Current published prerelease: [**0.1.0-beta.3**](https://github.com/EriArk/PicotronNest/releases/tag/v0.1.0-beta.3), code 1003.
+See [onboarding and runtime import](ONBOARDING.md) and
+[audio/library checks](AUDIO_AND_LIBRARY.md) for its scoped evidence.
 The publication and device results below describe earlier APKs.
 
 Published prerelease: [**0.1.0-beta.2**](https://github.com/EriArk/PicotronNest/releases/tag/v0.1.0-beta.2)

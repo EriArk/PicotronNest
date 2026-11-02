@@ -1,5 +1,12 @@
 # Reuse from PikoNest and upstream provenance
 
+Local beta 3 adds an original sample-count clock patch to SDL 2.32.10's dummy
+audio backend. Its source, headers and modification notice accompany the
+dependency source bundle/APK. Original SDL notices remain intact. The library's
+Lua service is original glue using official startup and `create_process` APIs;
+no proprietary desktop or Splore code is copied. See
+[audio and library](AUDIO_AND_LIBRARY.md).
+
 **Scope:** a map of ideas and code worth evaluating, not permission to copy entire systems blindly.
 
 2026-10-23: [P0b.2](P0_LINUX_LOADER.md) records a fresh read-only PikoNest review,

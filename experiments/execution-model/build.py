@@ -68,6 +68,7 @@ def main():
     if args.desktop_base:
         recorded_sources += [HERE / n for n in ('prepare_desktop.py', 'prepare_network.py', 'network.lock.json',
                                                'native/network_resolver.c', 'native/desktop_exec.c',
+                                               'patch_audio_clock.py', 'native/audio_clock.h', 'native/dummy_audio_clock.h',
                                                'native/desktop_trace.c', 'native/pointer_protocol.h', 'native/pointer_sdl.h',
                                                'native/keyboard_protocol.h', 'native/keyboard_sdl.h', 'native/keyboard_channel.h', 'native/ordered_input.h', 'native/audio_bridge.h', 'native/gamepad_protocol.h', 'native/gamepad_sdl.h')]
     source_hashes = {str(p.relative_to(ROOT)).replace('\\', '/'): digest(p) for p in recorded_sources}

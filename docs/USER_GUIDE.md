@@ -29,6 +29,9 @@ across runtime versions and preserved across app updates.
 
 ## Desktop and games
 
+- In beta 3, the four-square **Your games** button beside the hamburger opens
+  covers for downloaded and local cartridges. Tap one to launch it. Download
+  new games in native Splore; import local carts under Settings and projects.
 - Tap the original Picotron screen to point and click. Open the floating menu
   to choose direct touch, mouse or a controller pointer profile.
 - Use the keyboard icon to open Android's keyboard. Hide it with Android Back.
@@ -46,6 +49,12 @@ The touch gamepad supplements player one. Press different controls with differen
 fingers for combinations such as movement plus jump. Each control tracks one
 finger; it is not a multi-finger gesture surface. Desktop editing still uses the
 original Picotron tools.
+
+**Sound buffer** in the floating menu or management offers Auto, Low latency
+(40 ms) and More stable (160 ms). Changes apply immediately. Auto starts at
+80 ms and grows when Android reports underruns, up to 240 ms. Larger buffers
+can reduce interruptions at the cost of more delay; hardware/Bluetooth latency
+is additional. See [audio and library checks](AUDIO_AND_LIBRARY.md).
 
 ## Find games online
 

@@ -49,12 +49,15 @@ final class WorkstationOverlay extends FrameLayout {
         slider("Opacity",15,80,touchGamepad.opacityPercent(),value ->
             touchGamepad.configure(touchGamepad.mode(),touchGamepad.sizePercent(),value,touchGamepad.full()));
         Button settings=new Button(activity); settings.setText("Settings and projects"); controls.view.addView(settings);
+        Button sound=new Button(activity); sound.setText("Sound buffer: "+AudioSettings.label(activity)); controls.view.addView(sound);
+        sound.setOnClickListener(v -> AudioSettings.show(activity,() -> sound.setText("Sound buffer: "+AudioSettings.label(activity))));
         settings.setOnClickListener(v -> { closeDrawer(); activity.startActivity(new android.content.Intent(activity,RuntimeSetupActivity.class)); });
         LayoutParams panel=new LayoutParams(dp(320),-2,Gravity.TOP|Gravity.END);
         panel.topMargin=dp(68); panel.rightMargin=dp(12); addView(drawer,panel);
         icons=new LinearLayout(activity);
-        Icon menu=new Icon(activity,false,"Picotron controls"), keyboard=new Icon(activity,true,"Show keyboard");
+        Icon menu=new Icon(activity,0,"Picotron controls"), games=new Icon(activity,2,"Your games"), keyboard=new Icon(activity,1,"Show keyboard");
         icons.addView(menu,new LinearLayout.LayoutParams(dp(48),dp(48)));
+        LinearLayout.LayoutParams gamesGap=new LinearLayout.LayoutParams(dp(48),dp(48)); gamesGap.leftMargin=dp(8); icons.addView(games,gamesGap);
         LinearLayout.LayoutParams gap=new LinearLayout.LayoutParams(dp(48),dp(48)); gap.leftMargin=dp(8); icons.addView(keyboard,gap);
         LayoutParams position=new LayoutParams(-2,-2,Gravity.TOP|Gravity.END); position.topMargin=dp(12); position.rightMargin=dp(12);
         addView(icons,position);
@@ -69,6 +72,7 @@ final class WorkstationOverlay extends FrameLayout {
             }
         });
         keyboard.setOnClickListener(v -> { closeDrawer(); desktop.showKeyboard(); });
+        games.setOnClickListener(v -> { closeDrawer(); GameLibraryDialog.show(activity); });
         controls.keyboardButton.setOnClickListener(v -> { closeDrawer(); desktop.showKeyboard(); });
         setOnApplyWindowInsetsListener((v,insets) -> {
             if (android.os.Build.VERSION.SDK_INT>=30) {
@@ -110,16 +114,20 @@ final class WorkstationOverlay extends FrameLayout {
         if (view instanceof ViewGroup) for (int i=0;i<((ViewGroup)view).getChildCount();i++) skin(((ViewGroup)view).getChildAt(i));
     }
     private final class Icon extends View {
-        private final boolean keyboard;
+        private final int kind;
         private final Paint ink=new Paint(Paint.ANTI_ALIAS_FLAG);
-        Icon(Activity activity,boolean keyboard,String description) {
-            super(activity); this.keyboard=keyboard; setContentDescription(description); setClickable(true); setFocusable(true);
+        Icon(Activity activity,int kind,String description) {
+            super(activity); this.kind=kind; setContentDescription(description); setClickable(true); setFocusable(true);
         }
         @Override protected void onDraw(Canvas canvas) {
             float s=getWidth()/48f; canvas.save(); canvas.scale(s,s);
             ink.setStyle(Paint.Style.FILL); ink.setColor(isPressed() ? 0xe0405064 : 0x9917202b);
             canvas.drawRoundRect(1,1,47,47,14,14,ink); ink.setColor(0xe6ffffff); ink.setStrokeWidth(2); ink.setStrokeCap(Paint.Cap.ROUND);
-            if (!keyboard) for (int y=17;y<=31;y+=7) canvas.drawLine(15,y,33,y,ink);
+            if (kind==0) for (int y=17;y<=31;y+=7) canvas.drawLine(15,y,33,y,ink);
+            else if (kind==2) {
+                ink.setStyle(Paint.Style.STROKE);
+                for (int y=15;y<=26;y+=11) for (int x=15;x<=26;x+=11) canvas.drawRoundRect(x,y,x+7,y+7,2,2,ink);
+            }
             else {
                 ink.setStyle(Paint.Style.STROKE); canvas.drawRoundRect(11,15,37,33,3,3,ink); ink.setStyle(Paint.Style.FILL);
                 for (int y=20;y<=24;y+=4) for (int x=16;x<=32;x+=4) canvas.drawCircle(x,y,.9f,ink);

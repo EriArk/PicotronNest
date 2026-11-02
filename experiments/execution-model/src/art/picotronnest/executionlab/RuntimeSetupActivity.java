@@ -134,6 +134,7 @@ public class RuntimeSetupActivity extends Activity {
                 .setPositiveButton("Choose ZIP",(d,w) -> pick()).setNegativeButton("Cancel",null).show());
         if (selection!=null && !selection.previous.isEmpty()) button("Use previous runtime",!running,() -> job(null,true));
         button("Input settings",true,() -> startActivity(new Intent(this,InputSettingsActivity.class)));
+        button("Sound buffer",true,() -> AudioSettings.show(this,() -> { }));
         button("Projects and backups",!running,() -> startActivity(new Intent(this,ProjectFilesActivity.class)));
         button("About and diagnostics",true,() -> startActivity(new Intent(this,AboutActivity.class)));
         text("Runtime changes preserve your private home. Uninstalling removes private data. Save in Picotron before quitting from its menu.",15,MUTED);

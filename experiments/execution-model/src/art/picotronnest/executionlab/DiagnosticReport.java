@@ -40,7 +40,9 @@ final class DiagnosticReport {
             JSONObject original=source.optJSONObject(section); if (original==null) continue;
             JSONObject selected=new JSONObject();
             if (section.equals("desktop_frames")) numbers(original,selected,"frames","width","height","pointer_packets");
-            else if (section.equals("desktop_audio")) numbers(original,selected,"connections","received_bytes","written_bytes");
+            else if (section.equals("desktop_audio")) numbers(original,selected,"connections","received_bytes","written_bytes",
+                    "underruns","discarded_bytes","recreated_tracks","buffer_mode","buffer_ms","buffer_frames",
+                    "native_dropped_blocks","native_failed_streams","buffer_reprimes");
             else {
                 numbers(original,selected,"packets","accepted");
                 JSONObject ordered=original.optJSONObject("ordered");

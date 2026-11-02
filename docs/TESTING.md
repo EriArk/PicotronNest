@@ -56,6 +56,17 @@ See [onboarding evidence and limits](ONBOARDING.md).
 5. If applicable, check your VPN/Private DNS and Wi-Fi/mobile transitions. Account
    login and uploads are optional owner checks; never put credentials in reports.
 
+## Local beta 3: library and sound
+
+- Open **Your games** beside the hamburger. Check both imported and Splore-downloaded
+  cartridges, scroll the cover grid and launch one of each. Confirm actual gameplay,
+  not just a successful launch notification. Close the popup and check input resumes.
+- In **Picotron controls > Sound buffer**, compare Auto, Low latency and More stable.
+  Note crackling, delay, game/load conditions, speaker/headphone/Bluetooth route and
+  device model. Leave and return to the app; verify the preference survives relaunch.
+- Export diagnostics after a normal session exit. Underrun counters help investigation
+  but do not replace listening. No audible acceptance is claimed by automated tests.
+
 ## Report results
 
 Use **Settings and projects → About and diagnostics → Export diagnostic report**.

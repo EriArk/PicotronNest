@@ -118,16 +118,32 @@ final class HeadlessProbe {
                 report.put("managed_runtime",storage.selection.contract.id).put("managed_home","private persistent home");
             }
             if (keyboardControls) env.put("PICONEST_INPUT_SOCKET",socketName+".keys");
-            try (FrameReceiver receiver = new FrameReceiver(socketName,keyboardControls,storage!=null);
+            GameLibrary preparedLibrary=null;
+            if (storage!=null) try { preparedLibrary=new GameLibrary(storage.selection.home,session); }
+                catch (IOException error) { report.put("game_library","startup unavailable; original startup retained"); }
+            try (GameLibrary library=preparedLibrary;
+                 FrameReceiver receiver = new FrameReceiver(socketName,keyboardControls,storage!=null);
                  NetworkSupport network = new NetworkSupport(socketName+".dns",receiver::livePeerPid);
                  KeyboardChannel keyboard=keyboardControls ? new KeyboardChannel(app,socketName+".keys",receiver) : null;
                  AudioReceiver audio=storage==null ? null : new AudioReceiver(app,socketName+".audio",receiver)) {
                 network.checkStarted();
                 LabSession controls=keyboard==null ? null : new LabSession(keyboard);
                 try {
+                    if (library!=null) {
+                        java.util.ArrayList<String> bound=new java.util.ArrayList<>(java.util.Arrays.asList(command));
+                        library.bindings(bound,bound.indexOf("-w")); command=bound.toArray(new String[0]);
+                    }
                     JSONObject process=runner.runWithEnvironment("picotron_desktop_trace", storage==null ? 35000 : 0, env, command);
                     cases.put(process);
-                    if (audio!=null) report.put("desktop_audio",audio.finish());
+                    if (audio!=null) {
+                        JSONObject sound=audio.finish();
+                        java.util.regex.Matcher counters=java.util.regex.Pattern.compile("PICONEST_AUDIO_CLOSE dropped=([0-9]+) failed=([01])")
+                                .matcher(process.optString("output"));
+                        long dropped=0,failed=0; boolean found=false;
+                        while (counters.find()) { found=true; dropped+=Long.parseLong(counters.group(1)); failed+=Long.parseLong(counters.group(2)); }
+                        if (found) sound.put("native_dropped_blocks",dropped).put("native_failed_streams",failed);
+                        report.put("desktop_audio",sound);
+                    }
                     if (storage!=null) report.put("managed_session_closed",process.optString("outcome").equals("EXITED")
                             && process.optInt("exit_code",-1)==0 && process.optString("output").contains("PICONEST_TRACE_DONE"));
                     report.put("desktop_frames", receiver.evidence());

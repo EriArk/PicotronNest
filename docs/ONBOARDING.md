@@ -88,8 +88,9 @@ gates after startup settled.
 The signed product APK built successfully:
 `.local/release/candidate/PicotronNest-0.1.0-beta.3-arm64.apk`, SHA-256
 `d7c7797a5a15993be6414faf55296260617dfc967c68e6776f00b733e8c5189a`.
-Its build manifest records the exact source hashes. It has not been installed on
-hardware or published.
+Its build manifest records the exact source hashes. That wizard-only artifact
+was not installed on hardware or published. A later beta 3 with audio/library
+changes has in-place Retroid upgrade evidence; see [the follow-up](AUDIO_AND_LIBRARY.md).
 
 Reproduce owned Android checks after the emulator reports boot completion:
 
@@ -104,13 +105,14 @@ home-check child; it never claims to execute Picotron.
 
 The initial Retroid fixture run completed its storage/native-child checks but
 failed while collecting a screenshot because UI Automation was already occupied.
-That collection is not counted as a passing Android suite. The owner confirmed
-the handheld is busy; no further device operations or product install were made.
+That collection is not counted as a passing Android suite. The handheld was busy
+at that stage. The owner subsequently made it available for
+[audio/library and product-upgrade checks](AUDIO_AND_LIBRARY.md).
 
 ## Remaining acceptance
 
-Run the exact beta 3 product on an available ARM64 device: clean wizard/import,
-existing beta 2 upgrade without data reset, original desktop/save/reopen, runtime
+Retroid now has an in-place beta 3 product upgrade and existing-home launch check.
+Remaining hardware checks: clean wizard/import, original desktop/save/reopen, runtime
 replacement/rollback and interrupted-session recovery. Test any additional official
 versions individually when their legally obtained ARM64 packages are available.
 Published beta 2 device evidence does not establish beta 3 acceptance. Publishing

@@ -65,12 +65,15 @@ def main():
             android:theme="@android:style/Theme.Material.Light.NoActionBar">
             <activity android:name="art.picotronnest.executionlab.BridgeTestActivity" android:exported="false" />
             <activity android:name="art.picotronnest.executionlab.StorageSetupActivity" android:exported="false" />
+            <activity android:name="art.picotronnest.executionlab.AudioTestActivity" android:exported="false" />
             <activity android:name="art.picotronnest.executionlab.TouchGamepadTestActivity" android:exported="false" />
             <provider android:name="art.picotronnest.executionlab.StorageDocuments" android:authorities="art.picotronnest.bridgetest.storage" android:exported="false" />
         </application>
         <instrumentation android:name="art.picotronnest.executionlab.BridgeInstrumentation"
             android:targetPackage="art.picotronnest.bridgetest" />
         <instrumentation android:name="art.picotronnest.executionlab.StorageInstrumentation"
+            android:targetPackage="art.picotronnest.bridgetest" />
+        <instrumentation android:name="art.picotronnest.executionlab.AudioInstrumentation"
             android:targetPackage="art.picotronnest.bridgetest" />
         <instrumentation android:name="art.picotronnest.executionlab.TouchGamepadInstrumentation"
             android:targetPackage="art.picotronnest.bridgetest" />

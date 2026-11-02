@@ -23,5 +23,14 @@ public final class AudioProtocolHostTest {
         bytes[8]=1;
         try { AudioProtocol.header(new ByteArrayInputStream(bytes)); throw new AssertionError(); } catch (IOException expected) { }
         System.out.println("PASS PCM header, fragmentation, payload, EOF, size and format rejection");
+        AudioBufferPolicy policy=new AudioBufferPolicy(-1);
+        check(policy.mode()==AudioBufferPolicy.AUTO && policy.milliseconds()==80);
+        for (int i=0;i<100;i++) policy.underrun();
+        check(policy.milliseconds()==240 && !policy.underrun());
+        policy.select(AudioBufferPolicy.LOW); check(policy.milliseconds()==40 && !policy.underrun());
+        check(policy.frames(10000)==10000 && policy.frames(1)==1920);
+        policy.select(AudioBufferPolicy.STABLE); check(policy.milliseconds()==160 && !policy.underrun());
+        policy.select(AudioBufferPolicy.AUTO); check(policy.milliseconds()==80 && policy.underrun() && policy.milliseconds()==100);
+        System.out.println("PASS audio buffer preferences, hardware floor, bounded adaptive growth and reset");
     }
 }

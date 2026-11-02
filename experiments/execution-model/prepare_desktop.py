@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 import subprocess
 import zipfile
+import shutil
 
 from prepare_headless import HERE, ROOT, digest, fetch, regular_files, run_logged
 from prepare_proot import deb_payload
@@ -29,7 +30,7 @@ def prepare(destination, llvm, base_apk):
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_bytes(archive.read(name))
             files[name] = target
-    # Build-only sysroot and official SDL headers; SDL itself is not rebuilt or patched.
+    # Pinned sources and sysroot for the reviewed dummy-audio sample clock patch.
     for item in manifest['inputs']['inputs']:
         name = item['file']
         if name.endswith('.deb'):
@@ -39,6 +40,26 @@ def prepare(destination, llvm, base_apk):
             regular_files(fetch(item), destination / 'source')
     sysroot = destination / 'sysroot'
     lib = destination / 'assets/headless/lib'
+    from patch_audio_clock import build as build_audio_sdl, identity as audio_clock_identity
+    clock_identity = audio_clock_identity()
+    if manifest.get('audio_clock_patch') != clock_identity:
+        patched = build_audio_sdl(destination / 'source/SDL2-2.32.10', sysroot, destination, llvm)
+        target = lib / 'libSDL2-2.0.so.0'
+        shutil.copyfile(patched, target)
+        needed_text = subprocess.run([str(llvm / 'llvm-readelf.exe'), '-d', str(target)],
+                                     capture_output=True, text=True, check=True, timeout=10).stdout
+        import re
+        needed = re.findall(r'\(NEEDED\).*?\[([^\]]+)\]', needed_text)
+        if any('lib/' + name not in manifest['files'] for name in needed):
+            raise ValueError('Patched SDL dependency closure is incomplete')
+        manifest['files']['lib/libSDL2-2.0.so.0'] = {'sha256': digest(target), 'size': target.stat().st_size, 'needed': needed}
+    manifest['audio_clock_patch'] = clock_identity
+    notice = destination / 'SDL2-PicotronNest-CHANGES.txt'
+    notice.write_text('SDL 2.32.10 is modified by PicotronNest: dummy playback uses a fractional sample-count clock, '
+                      'including callback work in each period. Original SDL notices remain intact. '
+                      'Patch source: experiments/execution-model/patch_audio_clock.py and native/audio_clock.h, '
+                      'native/dummy_audio_clock.h in the PicotronNest source archive. Picotron itself is unchanged.\n')
+    files['assets/licenses/SDL2-PicotronNest-CHANGES.txt'] = notice
     common = [llvm / 'clang.exe', '--target=aarch64-linux-gnu', '--sysroot=' + str(sysroot),
               '-nostdlib', '-fuse-ld=lld', '-mno-outline-atomics', '-O2', '-Wall', '-Wextra', '-Werror',
               '-I' + str(destination / 'source/SDL2-2.32.10/include')]

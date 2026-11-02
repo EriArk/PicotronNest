@@ -12,7 +12,7 @@ The Android package contains these open-source compatibility components:
 | talloc | 2.5.0 | `TALLOC-LGPL-3.0.txt`, `TALLOC-COPYRIGHT.txt`, `GPL-3.0.txt` |
 | libandroid-shmem | 0.7 | `ANDROID-SHMEM-LICENSE.txt` |
 | glibc loader and libraries | Debian 2.36-9+deb12u14, ARM64 | `GLIBC-COPYRIGHT.txt`, `GLIBC-COPYING.txt`, `GLIBC-COPYING.LIB.txt`, `GLIBC-LICENSES.txt` |
-| SDL2 | 2.32.10, compiled from pinned source | `SDL2-LICENSE.txt`, `SDL2-EMBEDDED-NOTICES.txt` |
+| SDL2 | 2.32.10, compiled from pinned source with the PicotronNest dummy-audio clock patch | `SDL2-LICENSE.txt`, `SDL2-EMBEDDED-NOTICES.txt`, `SDL2-PicotronNest-CHANGES.txt` |
 | libcurl | 8.23.0, built for HTTP/HTTPS from pinned source | `CURL-COPYING.txt` |
 | Mbed TLS | 3.6.7 LTS, statically linked into libcurl | `MBEDTLS-NOTICES.txt` |
 | Android NDK CRT/compiler support | 28.2.13676358 | `NDK-NOTICE.txt` |
@@ -30,7 +30,10 @@ Exact URLs, checksums and source/recipe versions are recorded in
 talloc and shmem are extracted from pinned Termux packages. The packaging script
 adjusts bounded ELF dynamic strings (`libtalloc.so.2` → `libtalloc.so`, Termux
 library search path → `$ORIGIN`) without replacing program code. SDL2 is built
-with the configuration in `prepare_headless.py`; glibc uses pinned Debian files.
+with the configuration in `prepare_headless.py`; desktop builds apply the original
+`patch_audio_clock.py` adaptation to schedule dummy playback by sample count.
+The patch and its headers accompany the dependency source bundle. Original SDL
+copyright and license notices remain intact; glibc uses pinned Debian files.
 PicotronNest's SDL observer and Android frontend are original project code.
 
 Original PicotronNest code is licensed under [MIT](LICENSE), selected by the

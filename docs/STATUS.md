@@ -18,6 +18,17 @@ fullscreen Splore have scoped Retroid evidence; list maximization is a separate 
 
 ## Latest evidence
 
+- **Local beta 3 audio and library:** [implementation and evidence](AUDIO_AND_LIBRARY.md).
+  Persistent live buffer modes and sample-count pacing in the open-source SDL
+  dummy backend. A button beside the hamburger shows cartridge covers and requests
+  native launches. The 45 host checks, 13 tools checks and Android 15 AudioTrack
+  fixture pass. Retroid Android 14 runs the updated product without resetting its
+  existing home. Four supplied games reached interactive gameplay; a downloaded
+  cartridge launched from the product popup. A 25-minute pre-fix session exposed
+  underruns and led to a buffer-reprime fix. A separate 123-second Phoenix rerun
+  counted one underrun and one adaptation to 100 ms, then exited cleanly.
+  Phone listening and broader device/version coverage remain open.
+
 - **Local beta 3 candidate, not published:** [first-run wizard and runtime import](ONBOARDING.md).
   Three explicit steps introduce the app, select the owner ZIP and explain controls
   and saves. Runtime admission now checks ELF architecture/dependencies instead of
@@ -25,8 +36,9 @@ fullscreen Splore have scoped Retroid evidence; list maximization is a separate 
   and rollback retain the same home, and managed environments are separated by
   both app and runtime identity. The 43 host tests, 13 tools tests and three
   Android 15 owned storage/wizard phases pass; portrait screens were reviewed.
-  Hardware validation is deferred: the owner's
-  handheld is occupied. Public beta 2 retains its original import restriction.
+  The handheld is now available: an in-place beta 3 update launched the existing
+  official runtime. Fresh-import/replacement/rollback hardware checks remain
+  separate. Public beta 2 retains its original import restriction.
 
 
 - [Splore fullscreen follow-up](SPLORE_FULLSCREEN.md): the unchanged published

@@ -24,7 +24,7 @@ final class RuntimeStore {
             if (!hex(id) || version==null || !version.matches("[A-Za-z0-9.]{1,40}") || member==null
                     || !member.matches("[A-Za-z0-9_.-]{1,100}\\.zip") || sizes.length!=2 || hashes.length!=2)
                 throw new IllegalArgumentException("invalid runtime contract");
-            for (int i=0;i<2;i++) if (sizes[i]<=0 || sizes[i]>16*1024*1024 || !hex(hashes[i]))
+            for (int i=0;i<2;i++) if (sizes[i]<=0 || sizes[i]>128L*1024*1024 || !hex(hashes[i]))
                 throw new IllegalArgumentException("invalid runtime member contract");
             this.id=id; this.version=version; this.member=member; this.sizes=sizes.clone(); this.hashes=hashes.clone();
         }
@@ -40,9 +40,14 @@ final class RuntimeStore {
     }
     private final File root,objects,staging,home;
     private final IO io;
+    private final RuntimeCompatibility compatibility;
     private final Map<String,Contract> contracts=new LinkedHashMap<>();
     RuntimeStore(File directory,IO io,Contract... supported) throws IOException {
+        this(directory,io,null,supported);
+    }
+    RuntimeStore(File directory,IO io,RuntimeCompatibility compatibility,Contract... supported) throws IOException {
         this.io=io;
+        this.compatibility=compatibility;
         // Android's app-private parent may be the platform /data/user/0 alias.
         // Resolve that trusted parent once; reject links at/below the owned store.
         File absolute=directory.getAbsoluteFile();
@@ -51,7 +56,7 @@ final class RuntimeStore {
         directory(root); io.syncDirectory(root.getParentFile());
         objects=child(root,"objects"); staging=child(root,"staging"); home=child(root,"home");
         for (Contract contract:supported) if (contracts.put(contract.id,contract)!=null) throw new IOException("duplicate runtime contract");
-        if (contracts.isEmpty()) throw new IOException("no supported runtime");
+        if (contracts.isEmpty() && compatibility==null) throw new IOException("no supported runtime");
     }
     private static boolean hex(String s) { return s!=null && s.matches("[a-f0-9]{64}"); }
     private static File child(File parent,String name) throws IOException {
@@ -113,8 +118,27 @@ final class RuntimeStore {
     }
     private Contract contract(String id) throws IOException {
         Contract contract=contracts.get(id);
+        if (contract==null && compatibility!=null) {
+            File manifest=child(child(objects,id),"contract"); regular(manifest);
+            if (manifest.length()>1024) throw new IOException("runtime metadata oversized");
+            try (DataInputStream in=new DataInputStream(new FileInputStream(manifest))) {
+                if (in.readInt()!=0x504e4331 || !in.readUTF().equals(id)) throw new IOException("runtime metadata invalid");
+                String version=in.readUTF(),member=in.readUTF(); long[] sizes=new long[2]; String[] hashes=new String[2];
+                for (int i=0;i<2;i++) { sizes[i]=in.readLong(); hashes[i]=in.readUTF(); }
+                if (in.read()!=-1) throw new IOException("runtime metadata invalid");
+                try { contract=new Contract(id,version,member,sizes,hashes); }
+                catch (IllegalArgumentException invalid) { throw new IOException("runtime metadata invalid",invalid); }
+            }
+        }
         if (contract==null) throw new IOException("runtime version is not supported by this build");
         return contract;
+    }
+    private void writeContract(File candidate,Contract contract) throws IOException {
+        try (FileOutputStream out=new FileOutputStream(child(candidate,"contract")); DataOutputStream data=new DataOutputStream(out)) {
+            data.writeInt(0x504e4331); data.writeUTF(contract.id); data.writeUTF(contract.version); data.writeUTF(contract.member);
+            for (int i=0;i<2;i++) { data.writeLong(contract.sizes[i]); data.writeUTF(contract.hashes[i]); }
+            data.flush(); out.getFD().sync();
+        }
     }
     static String digest(File file) throws IOException {
         MessageDigest hash;
@@ -134,6 +158,7 @@ final class RuntimeStore {
             File file=child(object,NAMES[i]); regular(file);
             if (file.length()!=contract.sizes[i] || !digest(file).equals(contract.hashes[i])) throw new IOException("runtime integrity mismatch");
         }
+        if (compatibility!=null) compatibility.check(child(object,NAMES[0]));
         return object;
     }
     private Selection selected() throws IOException {
@@ -185,11 +210,32 @@ final class RuntimeStore {
             File[] retained=staging.listFiles();
             if (retained==null || retained.length>=4) throw new IOException("retained import quota reached; inspect before retry");
             File stage=child(staging,UUID.randomUUID().toString()); directory(stage); io.syncDirectory(staging);
+            try {
             File archive=child(stage,"source.zip");
             copy(source,archive,MAX_ARCHIVE,cancel); io.checkpoint("after_copy");
             Contract match=contracts.get(digest(archive));
             File packageFile=archive;
-            if (match==null) {
+            String prefix="picotron/";
+            if (match==null && compatibility!=null) {
+                try (RuntimeZip zip=new RuntimeZip(archive)) {
+                    prefix=runtimePrefix(zip);
+                    if (prefix==null) {
+                        int inspected=0; String found=null;
+                        for (String name:zip.members()) if (name.toLowerCase(Locale.ROOT).endsWith(".zip")) {
+                            if (++inspected>16) throw new IOException("Too many nested ZIPs. Select the Raspberry Pi ARM64 ZIP directly.");
+                            File nested=child(stage,"nested-"+inspected+".zip");
+                            try (InputStream member=zip.open(name)) { copy(member,nested,128L*1024*1024,cancel); }
+                            String nestedPrefix;
+                            try (RuntimeZip inner=new RuntimeZip(nested)) { nestedPrefix=runtimePrefix(inner); }
+                            if (nestedPrefix!=null) {
+                                if (found!=null) throw new IOException("Several Picotron packages were found. Select one ZIP directly.");
+                                found=name; prefix=nestedPrefix; packageFile=nested;
+                            }
+                        }
+                        if (found==null) throw new IOException("No Picotron executable and data pair found. Choose the Linux / Raspberry Pi ARM64 ZIP.");
+                    }
+                }
+            } else if (match==null) {
                 try (RuntimeZip zip=new RuntimeZip(archive)) {
                     for (Contract candidate:contracts.values()) if (zip.has(candidate.member)) {
                         if (match!=null) throw new IOException("ambiguous runtime packages");
@@ -205,9 +251,16 @@ final class RuntimeStore {
             try (RuntimeZip zip=new RuntimeZip(packageFile)) {
                 for (int i=0;i<2;i++) {
                     File target=child(candidate,NAMES[i]);
-                    try (InputStream member=zip.open("picotron/"+NAMES[i])) { copy(member,target,match.sizes[i],cancel); }
-                    if (target.length()!=match.sizes[i] || !digest(target).equals(match.hashes[i])) throw new IOException("runtime member mismatch");
+                    try (InputStream member=zip.open(prefix+NAMES[i])) { copy(member,target,match==null ? 128L*1024*1024 : match.sizes[i],cancel); }
+                    if (match!=null && (target.length()!=match.sizes[i] || !digest(target).equals(match.hashes[i]))) throw new IOException("runtime member mismatch");
                 }
+            }
+            if (compatibility!=null) compatibility.check(child(candidate,NAMES[0]));
+            if (match==null) {
+                long[] sizes=new long[2]; String[] hashes=new String[2];
+                for (int i=0;i<2;i++) { File file=child(candidate,NAMES[i]); sizes[i]=file.length(); hashes[i]=digest(file); }
+                match=new Contract(digest(packageFile),"Imported","imported.zip",sizes,hashes);
+                writeContract(candidate,match);
             }
             io.syncDirectory(candidate); checkCancel(cancel); io.checkpoint("before_object");
             File destination=child(objects,match.id);
@@ -220,16 +273,40 @@ final class RuntimeStore {
             String[] old=state();
             if (!old[0].equals(match.id)) activate(match.id,old[0]);
             Selection result=selected();
-            // Only this attempt's known source files are removed; failed attempts are retained.
-            Files.delete(archive.toPath());
-            if (!packageFile.equals(archive)) Files.delete(packageFile.toPath());
-            if (candidate.exists()) {
-                for (String name:NAMES) Files.delete(child(candidate,name).toPath());
-                Files.delete(candidate.toPath());
-            }
-            Files.delete(stage.toPath()); io.syncDirectory(staging);
+            clearAttempt(stage);
             return result;
+            } catch (IOException | RuntimeException error) {
+                // The provider's original and every installed object remain intact.
+                // Handled bad-file/cancel errors must not consume the crash-retention quota.
+                try { clearAttempt(stage); } catch (IOException cleanup) { error.addSuppressed(cleanup); }
+                throw error;
+            }
         }
+    }
+    private void clearAttempt(File stage) throws IOException {
+        File candidate=child(stage,"runtime");
+        if (candidate.exists()) {
+            for (String name:new String[]{"picotron","picotron.dat","contract"}) {
+                File file=child(candidate,name); if (file.exists()) { regular(file); Files.delete(file.toPath()); }
+            }
+            Files.delete(candidate.toPath()); // Refuses unknown contents; never recursively deletes.
+        }
+        File[] files=stage.listFiles(); if (files==null) throw new IOException("import staging unavailable");
+        for (File file:files) {
+            if (!file.getName().matches("source\\.zip|package\\.zip|nested-[0-9]+\\.zip")) throw new IOException("unknown staging content retained");
+            regular(child(stage,file.getName())); Files.delete(file.toPath());
+        }
+        Files.delete(stage.toPath()); io.syncDirectory(staging);
+    }
+    private static String runtimePrefix(RuntimeZip zip) throws IOException {
+        String prefix=null;
+        for (String name:zip.members()) if (name.equals("picotron") || name.endsWith("/picotron")) {
+            String value=name.substring(0,name.length()-8);
+            if (!zip.has(value+"picotron.dat")) continue;
+            if (prefix!=null) throw new IOException("Several Picotron executable/data pairs were found. Select one package.");
+            prefix=value;
+        }
+        return prefix;
     }
     private static void checkCancel(Cancel cancel) throws IOException {
         if (cancel.cancelled() || Thread.currentThread().isInterrupted()) throw new IOException("import cancelled; active runtime preserved");

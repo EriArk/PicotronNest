@@ -31,14 +31,19 @@ final class HeadlessProbe {
         File imported = storage==null ? new File(app.getFilesDir(), "headless-import/" + contract.getString("archive_sha256"))
                 : storage.selection.runtime;
         if (storage==null && !new File(imported, "ready").isFile()) throw new IOException("owner runtime has not been provisioned");
-        if (storage!=null && !storage.selection.contract.id.equals(contract.getString("archive_sha256")))
-            throw new IOException("managed runtime does not match this lab closure");
+        if (storage!=null) {
+            RuntimeStore.Contract selected=storage.selection.contract;
+            JSONObject members=new JSONObject();
+            for (int i=0;i<RuntimeStore.NAMES.length;i++) members.put(RuntimeStore.NAMES[i],
+                    new JSONObject().put("size",selected.sizes[i]).put("sha256",selected.hashes[i]));
+            contract=new JSONObject().put("archive_sha256",selected.id).put("version",selected.version).put("files",members);
+        }
         File root;
         boolean reuse=storage!=null;
         if (reuse) {
             File environments=new File(app.getFilesDir().getCanonicalFile(),"managed-environments");
             if (!environments.mkdir() && !environments.isDirectory()) throw new IOException("environment storage unavailable");
-            root=new File(environments,ExecutionProbe.sha256(new File(app.getApplicationInfo().sourceDir)));
+            root=new File(environments,ExecutionProbe.sha256(new File(app.getApplicationInfo().sourceDir))+"-"+storage.selection.contract.id);
             if (!root.getCanonicalFile().equals(root.getAbsoluteFile())) throw new IOException("aliased environment");
             if (!root.mkdir() && !root.isDirectory()) throw new IOException("environment unavailable");
         } else {
@@ -164,7 +169,7 @@ final class HeadlessProbe {
         File parent = target.getParentFile();
         if (!parent.mkdirs() && !parent.isDirectory()) throw new IOException("stage parent failed");
         long size = expected.getLong("size");
-        if (size <= 0 || size > 16 * 1024 * 1024) throw new IOException("stage size invalid");
+        if (size <= 0 || size > 128L * 1024 * 1024) throw new IOException("stage size invalid");
         try (FileOutputStream out = new FileOutputStream(target)) {
             byte[] buffer = new byte[8192];
             int n;

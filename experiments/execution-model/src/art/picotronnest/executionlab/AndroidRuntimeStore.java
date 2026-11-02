@@ -21,9 +21,9 @@ final class AndroidRuntimeStore {
             }
         }
     }
-    static void retainInterruptedEnvironment(Context context) throws IOException {
+    static void retainInterruptedEnvironment(Context context,String runtimeId) throws IOException {
         File files=context.getFilesDir().getCanonicalFile();
-        File current=new File(files,"managed-environments/"+RuntimeStore.digest(new File(context.getApplicationInfo().sourceDir)));
+        File current=new File(files,"managed-environments/"+RuntimeStore.digest(new File(context.getApplicationInfo().sourceDir))+"-"+runtimeId);
         if (!current.getCanonicalFile().equals(current.getAbsoluteFile())) throw new IOException("aliased environment path");
         if (!current.exists()) return;
         File retained=new File(files,"retained-environments");
@@ -90,7 +90,14 @@ final class AndroidRuntimeStore {
             JSONObject file=json.getJSONObject("files").getJSONObject(RuntimeStore.NAMES[i]);
             sizes[i]=file.getLong("size"); hashes[i]=file.getString("sha256");
         }
-        return new RuntimeStore(new File(context.getFilesDir(),"runtime-store"),IO,new RuntimeStore.Contract(
+        java.util.Set<String> libraries=new java.util.HashSet<>();
+        try (InputStream in=context.getAssets().open("headless-components.json")) {
+            java.io.ByteArrayOutputStream out=new java.io.ByteArrayOutputStream(); byte[] buffer=new byte[4096]; int n;
+            while ((n=in.read(buffer))!=-1) { if (out.size()+n>65536) throw new IOException("component manifest oversized"); out.write(buffer,0,n); }
+            JSONObject files=new JSONObject(out.toString("UTF-8")).getJSONObject("files");
+            for (java.util.Iterator<String> keys=files.keys();keys.hasNext();) { String name=keys.next(); if (name.startsWith("lib/")) libraries.add(name.substring(4)); }
+        }
+        return new RuntimeStore(new File(context.getFilesDir(),"runtime-store"),IO,new RuntimeCompatibility(libraries),new RuntimeStore.Contract(
                 json.getString("archive_sha256"),json.getString("version"),json.getString("member"),sizes,hashes));
     }
 }

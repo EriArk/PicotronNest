@@ -20,6 +20,8 @@ def main():
     if (not args.serial.startswith('emulator-') or adb('shell', 'getprop', 'ro.kernel.qemu').strip() != b'1'
             or adb('shell', 'getprop', 'ro.product.cpu.abi').strip() != b'x86_64'):
         raise ValueError('Only the owned x86_64 emulator is permitted')
+    if adb('shell', 'getprop', 'sys.boot_completed').strip() != b'1':
+        raise ValueError('Wait for the emulator to finish booting before collecting evidence')
     build = json.loads((ROOT / '.local/bridge-tests/artifacts/build.json').read_text())
     if any(digest(ROOT / name) != value for name, value in build['source_sha256'].items()):
         raise ValueError('Rebuild changed sources')
@@ -51,10 +53,14 @@ def main():
         if any(int(line.split()[1]) != report['host_pid'] for line in owned):
             raise ValueError('Surviving owned child')
         (evidence / (mode + '-census.txt')).write_text('\n'.join(owned))
-        image = adb('exec-out', 'run-as', PACKAGE, 'cat', 'files/storage-' + mode + '.png')
-        if not image.startswith(b'\x89PNG\r\n\x1a\n'):
-            raise ValueError('Invalid screenshot')
-        (evidence / (mode + '.png')).write_bytes(image)
+        screenshots = [('storage-' + mode, mode)]
+        if mode == 'write':
+            screenshots += [(name, name) for name in ('wizard-welcome', 'wizard-import', 'wizard-ready')]
+        for remote, local in screenshots:
+            image = adb('exec-out', 'run-as', PACKAGE, 'cat', 'files/' + remote + '.png')
+            if not image.startswith(b'\x89PNG\r\n\x1a\n'):
+                raise ValueError('Invalid screenshot')
+            (evidence / (local + '.png')).write_bytes(image)
         print(mode + ': PASS; child=' + str(report['native_pid']) + '; exit=' + str(report['exit_code']))
     print('Evidence: ' + str(evidence))
 

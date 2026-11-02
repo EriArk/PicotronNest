@@ -1,9 +1,12 @@
 # Build and release preparation
 
-The product candidate is **0.1.0-beta.2**, application ID **art.picotronnest**,
-version code **1002**, ARM64, target SDK **36**, minimum SDK **26**. The minimum
+The local development candidate is **0.1.0-beta.3**, application ID **art.picotronnest**,
+version code **1003**, ARM64, target SDK **36**, minimum SDK **26**. The minimum
 SDK is a manifest floor, not a claim that every Android 8+ device can execute the
 runtime. Retroid/Android 14 is the hardware evidence currently available.
+
+Beta 2 remains the published prerelease. Beta 3 is not published; its wizard and
+version-flexible import evidence are tracked in [ONBOARDING](ONBOARDING.md).
 
 ## Build on Windows
 

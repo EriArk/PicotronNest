@@ -65,16 +65,20 @@ PicotronNest menu. Android **Back** also gives you a way out.
 or open the [release page](https://github.com/EriArk/PicotronNest/releases/tag/v0.1.0-beta.2)
 for source archives, screenshots, notices and checksums.
 
-To try the beta:
+To try the published beta 2:
 
 1. Install the PicotronNest APK on your Android device.
 2. Get your own [Picotron copy from Lexaloffle](https://www.lexaloffle.com/picotron.php).
-   This candidate accepts the **Raspberry Pi 64-bit ZIP, version 0.3.0d2**.
+   Beta 2 accepts the **Raspberry Pi 64-bit ZIP, version 0.3.0d2**.
 3. Open PicotronNest, choose **Import your runtime** and select that ZIP.
 4. Tap **Start Picotron**. After setup, opening the app takes you straight to Picotron.
 
 **Picotron is not included.** Windows, macOS, PICO-8 and other runtime versions
-cannot be used in this candidate. There is no separate helper app to install.
+cannot be used in beta 2. There is no separate helper app to install.
+
+The **beta 3 development candidate** adds a three-step setup wizard and accepts
+compatible older/newer ARM64 runtime packages without a fixed version allowlist.
+It is not published yet; see [onboarding and import evidence](docs/ONBOARDING.md).
 
 ## Before you try the beta
 

@@ -37,6 +37,60 @@ public final class RuntimeStoreChecks {
         }
     }
     static byte[] bytes(String text) { return text.getBytes(java.nio.charset.StandardCharsets.UTF_8); }
+    static byte[] elf(String library,int machine) {
+        byte[] data=new byte[1024]; java.nio.ByteBuffer b=java.nio.ByteBuffer.wrap(data).order(java.nio.ByteOrder.LITTLE_ENDIAN);
+        b.putInt(0,0x464c457f); data[4]=2; data[5]=1; data[6]=1;
+        b.putShort(16,(short)3); b.putShort(18,(short)machine); b.putInt(20,1);
+        b.putLong(32,64); b.putShort(52,(short)64); b.putShort(54,(short)56); b.putShort(56,(short)3);
+        b.putInt(64,1); b.putLong(72,0); b.putLong(80,0x1000); b.putLong(96,1024); b.putLong(104,1024);
+        byte[] loader=bytes("/lib/ld-linux-aarch64.so.1\0");
+        b.putInt(120,3); b.putLong(128,300); b.putLong(152,loader.length); System.arraycopy(loader,0,data,300,loader.length);
+        b.putInt(176,2); b.putLong(184,400); b.putLong(208,64);
+        b.putLong(400,5); b.putLong(408,0x1000+600); b.putLong(416,10); b.putLong(424,100);
+        b.putLong(432,1); b.putLong(440,0); byte[] name=bytes(library+"\0"); System.arraycopy(name,0,data,600,name.length);
+        return data;
+    }
+    static void flexible(File directory,RuntimeStore.IO io) throws Exception {
+        RuntimeCompatibility policy=new RuntimeCompatibility(Arrays.asList("libSDL2-2.0.so.0","libc.so.6"));
+        File root=new File(directory,"flexible"); RuntimeStore store=new RuntimeStore(root,io,policy);
+        byte[] one=zip(new String[]{"old/picotron","old/picotron.dat"},new byte[][]{elf("libSDL2-2.0.so.0",183),bytes("owned data one")});
+        byte[] two=zip(new String[]{"new/picotron","new/picotron.dat"},new byte[][]{elf("libSDL2-2.0.so.0",183),bytes("owned data two")});
+        RuntimeStore.Selection first=install(store,one); Files.write(new File(first.home,"keep").toPath(),bytes("keep"));
+        RuntimeStore.Selection second=install(store,zip(new String[]{"arbitrary-new-version.zip"},new byte[][]{two}));
+        check(!first.contract.id.equals(second.contract.id),"dynamic hashes did not identify separate versions");
+        RuntimeStore fresh=new RuntimeStore(root,io,policy);
+        check(fresh.inspect().contract.id.equals(second.contract.id),"dynamic metadata not persisted");
+        check(fresh.rollback().contract.id.equals(first.contract.id),"dynamic rollback");
+        check(new File(first.home,"keep").isFile(),"dynamic upgrade changed home");
+        for (byte[] bad:new byte[][]{elf("libSDL2-2.0.so.0",62),elf("libnotbundled.so",183),bytes("not ELF")}) {
+            rejected(() -> install(fresh,zip(new String[]{"picotron","picotron.dat"},new byte[][]{bad,bytes("owned data")})));
+            check(fresh.inspect().contract.id.equals(first.contract.id),"incompatible package changed active");
+        }
+        for (int retry=0;retry<6;retry++) {
+            rejected(() -> fresh.install(new ByteArrayInputStream(two),() -> true));
+            rejected(() -> install(fresh,bytes("broken ZIP")));
+        }
+        check(install(fresh,two).contract.id.equals(second.contract.id),"handled errors exhausted retry quota");
+        fresh.rollback();
+        File raw=new File(directory,"elf"); byte[] malformed=elf("libSDL2-2.0.so.0",183);
+        java.nio.ByteBuffer.wrap(malformed).order(java.nio.ByteOrder.LITTLE_ENDIAN).putLong(32,Long.MAX_VALUE);
+        Files.write(raw.toPath(),malformed); rejected(() -> policy.check(raw));
+        malformed=elf("libSDL2-2.0.so.0",183); byte[] newer=bytes("GLIBC_2.99"); System.arraycopy(newer,0,malformed,800,newer.length);
+        Files.write(raw.toPath(),malformed); rejected(() -> policy.check(raw));
+        byte[] ambiguous=zip(new String[]{"a/picotron","a/picotron.dat","b/picotron","b/picotron.dat"},
+                new byte[][]{elf("libSDL2-2.0.so.0",183),bytes("a"),elf("libSDL2-2.0.so.0",183),bytes("b")});
+        rejected(() -> install(new RuntimeStore(new File(directory,"ambiguous"),io,policy),ambiguous));
+        Files.write(new File(first.runtime,"contract").toPath(),bytes("corrupt metadata")); rejected(fresh::inspect);
+        // Existing beta installations have no metadata file; their pinned contract
+        // remains a read-compatible migration path, without rewriting their objects.
+        byte[] legacyArchive=zip(new String[]{"picotron/picotron","picotron/picotron.dat"},new byte[][]{elf("libSDL2-2.0.so.0",183),bytes("legacy")});
+        RuntimeStore metadataSource=new RuntimeStore(new File(directory,"legacy-metadata"),io,policy);
+        RuntimeStore.Contract legacy=install(metadataSource,legacyArchive).contract;
+        File legacyRoot=new File(directory,"legacy");
+        RuntimeStore old=new RuntimeStore(legacyRoot,io,legacy); install(old,legacyArchive);
+        check(!new File(old.inspect().runtime,"contract").exists(),"fixture is not a legacy object");
+        check(new RuntimeStore(legacyRoot,io,policy,legacy).inspect()!=null,"legacy store unreadable after flexible upgrade");
+    }
     static RuntimeStore.Selection install(RuntimeStore store,byte[] archive) throws Exception {
         return store.install(new ByteArrayInputStream(archive),() -> false);
     }
@@ -103,7 +157,8 @@ public final class RuntimeStoreChecks {
         File bad=new File(directory,"link.zip"); Files.write(bad.toPath(),link);
         rejected(() -> { try (RuntimeZip ignored=new RuntimeZip(bad)) { check(ignored.has("unused"),"link accepted"); } });
         check(Arrays.equals(content,Files.readAllBytes(project.toPath())),"final project mismatch");
-        return "import_nested_direct upgrade rollback idempotence preservation exclusive_lease five_interruptions cancel read_failure unfinished_session corruption unsafe_ZIP symlink_ZIP";
+        flexible(directory,io);
+        return "import_nested_direct upgrade rollback idempotence preservation exclusive_lease five_interruptions cancel read_failure unfinished_session corruption unsafe_ZIP symlink_ZIP dynamic_versions_persist_rollback ELF_arch_dependencies_bounds newer_glibc ambiguous_packages";
     }
     public static void main(String[] args) throws Exception {
         if (args.length!=1) throw new IllegalArgumentException("fresh test root required");

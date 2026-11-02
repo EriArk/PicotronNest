@@ -2,13 +2,30 @@
 
 ## First launch
 
-Install the APK, then open PicotronNest. Choose **Import your runtime** and select
-your legally obtained Picotron **0.3.0d2 Raspberry Pi 64-bit ZIP**. Keep the ZIP
-intact; you do not need to unpack it yourself. When validation finishes, choose
-**Start Picotron**. Later app launches go straight to Picotron.
+The published **beta 2** accepts only the Picotron **0.3.0d2 Raspberry Pi 64-bit
+ZIP**. It has the earlier import screen. The instructions below describe the
+**beta 3 development candidate**, which has not been published yet.
 
-Other versions and Windows/macOS/PICO-8 downloads are not accepted by this first
-candidate. A rejected import does not replace your working runtime or projects.
+1. Open PicotronNest and choose **Get started**. PicotronNest runs the real
+   Picotron desktop, tools and games; your legally obtained Picotron is not included.
+2. Download your **Linux / Raspberry Pi 64-bit (ARM64) ZIP** from your Picotron
+   purchase. Choose **Import your runtime** and select the ZIP as downloaded.
+   You do not need root, Termux, a helper app or manual extraction.
+3. Read the short controls/save reminder, then choose **Start Picotron**.
+   Importing alone does not start the desktop. Later app launches go straight
+   to your installed Picotron, unless an interrupted session needs recovery.
+
+Beta 3 checks architecture, package structure and required libraries instead of
+allowlisting a Picotron version. Older/newer ARM64 builds can be imported if they
+pass those checks. Import success does not guarantee that an untested version
+will run correctly. Windows, macOS, 32-bit and PICO-8 downloads are unsuitable.
+
+A rejected or cancelled import keeps your existing selection and saved projects.
+Close Picotron before replacing it through **Settings and projects > Import your
+runtime**. Back up your home first: Picotron itself may change files between
+versions. **Use previous runtime** switches back to the prior imported build;
+it does not undo changes a runtime made to project files. Your home is shared
+across runtime versions and preserved across app updates.
 
 ## Desktop and games
 

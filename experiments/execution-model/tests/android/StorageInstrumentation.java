@@ -18,6 +18,12 @@ public final class StorageInstrumentation extends Instrumentation {
     private int nativePid,exitCode=-1;
     private String output="";
     private final JSONArray checks=new JSONArray();
+    private void screenshot(String name) throws IOException {
+        android.graphics.Bitmap bitmap=getUiAutomation().takeScreenshot();
+        try (OutputStream out=new FileOutputStream(new File(getTargetContext().getFilesDir(),name+".png"))) {
+            RuntimeStoreChecks.check(bitmap!=null && bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG,100,out),"wizard screenshot");
+        } finally { if (bitmap!=null) bitmap.recycle(); }
+    }
     @Override public void onCreate(Bundle args) { super.onCreate(args); session=args.getString("session"); mode=args.getString("mode"); start(); }
     private Button button(View view,String label) {
         if (view instanceof Button && ((Button)view).getText().toString().equals(label)) return (Button)view;
@@ -36,6 +42,12 @@ public final class StorageInstrumentation extends Instrumentation {
             SystemClock.sleep(20);
         }
         throw new AssertionError("setup did not settle");
+    }
+    private void recreateSetup() {
+        StorageSetupActivity old=StorageSetupActivity.current; runOnMainSync(old::recreate);
+        long deadline=SystemClock.uptimeMillis()+7000;
+        while (StorageSetupActivity.current==old && SystemClock.uptimeMillis()<deadline) SystemClock.sleep(20);
+        RuntimeStoreChecks.check(StorageSetupActivity.current!=old,"setup recreation absent"); settled();
     }
     private void importUri(byte[] bytes) {
         StorageDocuments.payload=bytes;
@@ -66,6 +78,8 @@ public final class StorageInstrumentation extends Instrumentation {
             RuntimeStore store=new RuntimeStore(new File(root,"installed"),AndroidRuntimeStore.IO,one.contract,two.contract);
             StorageSetupActivity.store=store;
             if (mode.equals("write")) {
+                getTargetContext().getSharedPreferences("onboarding",0).edit().clear().commit();
+                StorageSetupActivity.launches=0;
                 checks.put(RuntimeStoreChecks.run(new File(root,"regressions"),AndroidRuntimeStore.IO));
                 // Actual Linux filesystem links must not redirect the private home.
                 File aliasRoot=new File(root,"alias-store"); RuntimeStore aliased=new RuntimeStore(aliasRoot,AndroidRuntimeStore.IO,one.contract);
@@ -79,11 +93,29 @@ public final class StorageInstrumentation extends Instrumentation {
                 IntentFilter filter=new IntentFilter(Intent.ACTION_OPEN_DOCUMENT);
                 filter.addCategory(Intent.CATEGORY_OPENABLE); filter.addDataType("*/*");
                 Instrumentation.ActivityMonitor picker=addMonitor(filter,null,true);
+                screenshot("wizard-welcome");
+                runOnMainSync(() -> {
+                    Button welcome=button(StorageSetupActivity.current.getWindow().getDecorView(),"Get started");
+                    if (welcome!=null) welcome.performClick();
+                });
+                recreateSetup();
+                waitForIdleSync(); SystemClock.sleep(300);
+                screenshot("wizard-import");
                 runOnMainSync(() -> button(StorageSetupActivity.current.getWindow().getDecorView(),"Import your runtime").performClick());
                 waitForIdleSync(); RuntimeStoreChecks.check(picker.getHits()==1,"document picker action absent"); removeMonitor(picker);
                 importUri(one.outer);
                 RuntimeStoreChecks.check(store.inspect().contract.id.equals(one.contract.id),"URI import not activated");
+                recreateSetup();
+                screenshot("wizard-ready");
+                runOnMainSync(() -> {
+                    RuntimeStoreChecks.check(StorageSetupActivity.launches==0,"wizard launched before user finished");
+                    Button start=button(StorageSetupActivity.current.getWindow().getDecorView(),"Start Picotron");
+                    RuntimeStoreChecks.check(start!=null && start.isEnabled(),"ready step missing");
+                    start.performClick();
+                });
+                RuntimeStoreChecks.check(StorageSetupActivity.launches==1,"wizard launch action absent");
                 checks.put("shared_setup_picker_action_nonseekable_content_URI_import");
+                checks.put("welcome_import_ready_recreation_explicit_launch_and_completion_preference");
                 StorageDocuments.stalled=true;
                 long cancelAt=SystemClock.elapsedRealtime()+200;
                 try {
@@ -92,10 +124,7 @@ public final class StorageInstrumentation extends Instrumentation {
                 } finally { StorageDocuments.stalled=false; }
                 RuntimeStoreChecks.check(SystemClock.elapsedRealtime()<cancelAt+2000 && store.inspect().contract.id.equals(one.contract.id),"stalled provider cancellation");
                 checks.put("nonseekable_stalled_provider_cancel_preserves_active_runtime");
-                StorageSetupActivity old=StorageSetupActivity.current; runOnMainSync(old::recreate);
-                long deadline=SystemClock.uptimeMillis()+7000;
-                while (StorageSetupActivity.current==old && SystemClock.uptimeMillis()<deadline) SystemClock.sleep(20);
-                RuntimeStoreChecks.check(StorageSetupActivity.current!=old,"setup recreation absent"); settled();
+                recreateSetup();
                 nativeHome(store,"write"); checks.put("setup_recreation_and_native_persistent_home_write");
             } else if (mode.equals("read")) {
                 RuntimeStoreChecks.check(store.inspect().contract.id.equals(one.contract.id),"new process lost active runtime");
@@ -108,7 +137,7 @@ public final class StorageInstrumentation extends Instrumentation {
             } else if (mode.equals("recovery")) {
                 RuntimeStoreChecks.rejected(() -> store.begin()); RuntimeStoreChecks.rejected(() -> store.rollback());
                 RuntimeStoreChecks.check(store.inspect().recoveryRequired,"unfinished session not exposed to setup");
-                runOnMainSync(() -> RuntimeStoreChecks.check(!button(StorageSetupActivity.current.getWindow().getDecorView(),"Import your runtime").isEnabled(),"recovery UI allowed import"));
+                runOnMainSync(() -> RuntimeStoreChecks.check(button(StorageSetupActivity.current.getWindow().getDecorView(),"Import your runtime")==null,"recovery UI allowed import"));
                 importUri(two.archive);
                 RuntimeStoreChecks.check(store.inspect().contract.id.equals(one.contract.id),"unfinished session allowed replacement");
                 RuntimeStoreChecks.check(new File(store.inspect().home,"owned-home-proof.txt").isFile(),"unfinished home lost");

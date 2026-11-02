@@ -1,9 +1,29 @@
-# First beta tester checklist
+# Beta tester checklist
 
 Candidate: **0.1.0-beta.2**, ARM64, package `art.picotronnest`, target API 36.
 Supported import: your own **Picotron 0.3.0d2 Raspberry Pi 64-bit ZIP**.
 Retroid Pocket Classic / Android 14 has scoped development evidence; this is
 not a promise of compatibility with other Android execution policies.
+
+## Beta 3 development candidate
+
+Beta 3 (version code 1003) is a local candidate, not the published download.
+Use the session checks below and also check:
+
+- Fresh install: welcome, ZIP selection and ready steps; no automatic launch
+  before pressing Start. Rotate or leave/return during each step.
+- Cancel the picker/import, choose an unsuitable ZIP and retry with a valid one.
+  Rejections should explain the reason and keep existing projects/selection.
+- Update an existing beta 2 installation without clearing data. Confirm it skips
+  onboarding, opens the existing home and preserves saved projects.
+- Import an older/newer legally obtained ARM64 build, note the exact Picotron
+  version separately, and check launch/save/reopen. Static admission is not
+  runtime compatibility proof. Back up first; test with disposable projects.
+- Close Picotron, change the runtime, use previous runtime and reopen the saved
+  project. Confirm the selected version actually runs and cached older executable
+  files are not reused. Check interrupted-session recovery as well.
+
+See [onboarding evidence and limits](ONBOARDING.md).
 
 ## A short first session
 
@@ -46,7 +66,7 @@ An installation or screenshot alone does not establish a playable session.
 Please do not upload purchased runtime archives or personal carts. Screenshots
 are optional; check them for private content before posting.
 
-## Known limits
+## Published beta 2 limits
 
 - Only the pinned 0.3.0d2 Raspberry Pi 64-bit runtime is accepted.
 - Native Splore browsing/download/play and HTTPS have scoped Retroid evidence.

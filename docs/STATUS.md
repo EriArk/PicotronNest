@@ -18,6 +18,17 @@ fullscreen Splore have scoped Retroid evidence; list maximization is a separate 
 
 ## Latest evidence
 
+- **Local beta 3 candidate, not published:** [first-run wizard and runtime import](ONBOARDING.md).
+  Three explicit steps introduce the app, select the owner ZIP and explain controls
+  and saves. Runtime admission now checks ELF architecture/dependencies instead of
+  an exact version/hash allowlist. Old installations remain readable, replacement
+  and rollback retain the same home, and managed environments are separated by
+  both app and runtime identity. The 43 host tests, 13 tools tests and three
+  Android 15 owned storage/wizard phases pass; portrait screens were reviewed.
+  Hardware validation is deferred: the owner's
+  handheld is occupied. Public beta 2 retains its original import restriction.
+
+
 - [Splore fullscreen follow-up](SPLORE_FULLSCREEN.md): the unchanged published
   beta 2 on Retroid / Android 14 passed fullscreen toggle, list maximize/restore,
   category/item selection, IME viewport and return to desktop. The native app

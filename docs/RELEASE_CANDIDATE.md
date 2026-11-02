@@ -1,5 +1,9 @@
 # Product candidate evidence
 
+Current local candidate: **0.1.0-beta.3**, code 1003, not published. See
+[onboarding and runtime import](ONBOARDING.md) for its scoped evidence.
+The publication and device results below describe earlier APKs.
+
 Published prerelease: [**0.1.0-beta.2**](https://github.com/EriArk/PicotronNest/releases/tag/v0.1.0-beta.2)
 from commit `a22ca4b726ea608a869a007d34146af6fc2993a1` adds the owner-selected MIT license, native
 Splore networking, Android DNS/system trust and a screenshot bundle. See

@@ -1,18 +1,30 @@
 # Project status
 
-**2026-11-02 — Runtime import, atomic activation/rollback and persistent-home integration added to the laboratory. Owned storage and input scenarios pass; real Picotron save/reopen and the functional beta gate remain open.**
+**2026-11-02 — Callback audio to Android and managed sessions without diagnostic duration/quota limits are implemented. Both APKs build and the focused PCM test passes. Audible output and physical acceptance are delegated to the owner/testers; the functional candidate gate remains open.**
 
 PicotronNest is an Android wrapper for the **official, user-imported Picotron runtime**.
 The repository contains a bounded archive inspector and a temporary target-36
 Android execution lab. Its owned Linux guest has now run through packaged
 PRoot on Retroid and an Android emulator. The official owner-imported ARM64
-Picotron now also executes an owned Lua probe on Retroid. There is no product
-launcher or product APK. Original desktop frames stream into an Android View;
-the shared input bundle is built and emulator-tested. Real Picotron interaction,
-audio, actual save/reopen in the new persistent home and product completion remain open.
+Picotron now also executes an owned Lua probe on Retroid. The development APK
+now opens runtime setup from its icon and launches managed sessions; there is no
+release-ready product APK. Original desktop frames stream into an Android View;
+the shared input bundle has emulator evidence. Real Picotron interaction,
+audible output, actual save/reopen and product completion remain open.
 
 ## Latest evidence
 
+- Audio/session bundle: callback PCM converts to 48 kHz S16 stereo and reaches
+  an authenticated Android AudioTrack receiver, with focus/duck/background rules
+  and bounded buffering. Managed sessions skip diagnostic probes, remove the
+  20/30/35-second timers and 16-launch quota, reuse a verified environment and
+  run with a foreground notification. Icon launch enters setup or the active
+  workstation. Both APKs compile; one focused PCM protocol test passes.
+  No emulator suite, physical session or listening check was run this increment.
+  [Implementation, artifacts, limits and reproduction](AUDIO_AND_SESSIONS.md).
+  Per owner direction, deep/physical tests belong to the owner/testers; development
+  proceeds with builds and short critical checks. Next: user-facing input
+  configuration, project transfer/backup and session recovery.
 - Storage bundle: the shared setup screen imports a pinned owner runtime via
   Android documents; separate objects, active/previous pointers and home are
   protected by a cross-process lease and conservative unfinished-session marker.
@@ -22,7 +34,7 @@ audio, actual save/reopen in the new persistent home and product completion rema
   preserved file across runtime replacement; this is not real `.p64` acceptance.
   The owner's archive also passes the new importer privately on Windows.
   [Evidence, screenshot, limits and reproduction](STORAGE_BUNDLE.md).
-  Retroid remains untouched. Next is the audio transport/interruption bundle.
+  Retroid remains untouched. The subsequent audio/session bundle is recorded above.
 - Integrated input bundle: keyboard, IME and pointer traffic now share one bounded,
   acknowledged native sequence. The shared panel adds source-owned editor keys
   and session commands; quit waits for real process completion and matching
@@ -206,7 +218,9 @@ Do not upgrade a status because code compiles, ADB starts an activity, a process
 
 ## Next action
 
-Prepare audio transport, format and interruption handling together. Continue without
+Implement user-facing input configuration, project transfer/backup and session
+recovery as the next functional bundle. Use builds and focused checks; reserve
+deep and physical testing for the owner/testers. Continue without
 occupying Retroid until the [functional candidate gate](BETA_READINESS.md) is met
 or a concrete hardware dependency prevents further integration.
 The [three-session hardware procedure](RETROID_INPUT_CHECK.md) remains prepared;

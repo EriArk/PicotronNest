@@ -27,19 +27,19 @@ public class RuntimeSetupActivity extends Activity {
                     +(selection==null ? "Import your Raspberry Pi 64-bit ZIP (0.3.0d2)." : "Verified runtime: "+selection.contract.version)
                     +(recovery ? "\nPrevious session was not confirmed closed. Recovery inspection is required before another session or import." : "")
                     +"\n\nProjects use a separate private home. Runtime changes preserve it. Uninstalling the app removes private data."
-                    +"\n\nThis is a bounded development session; sound and full product setup remain unfinished.");
+                    +"\n\nYour session continues until you exit from Session menu. Sound is muted while the app is in the background.");
             pick.setEnabled(!BUSY.get() && !recovery); start.setEnabled(!BUSY.get() && !recovery && selection!=null && BuildConfig.DESKTOP && Build.SUPPORTED_ABIS[0].equals("arm64-v8a"));
             rollback.setEnabled(!BUSY.get() && !recovery && selection!=null && !selection.previous.isEmpty()); cancel.setEnabled(BUSY.get());
             handler.postDelayed(this,200);
         }
     };
-    protected String heading() { return "PicotronNest storage lab"; }
+    protected String heading() { return "PicotronNest"; }
     protected RuntimeStore openStore(android.content.Context app) throws Exception { return AndroidRuntimeStore.open(app); }
     @Override public void onCreate(Bundle saved) {
         super.onCreate(saved);
         LinearLayout layout=new LinearLayout(this); layout.setOrientation(LinearLayout.VERTICAL); layout.setPadding(24,72,24,24);
         status=new TextView(this); layout.addView(status);
-        pick=button(layout,"Import your runtime"); start=button(layout,"Start development session");
+        pick=button(layout,"Import your runtime"); start=button(layout,"Start Picotron");
         rollback=button(layout,"Use previous runtime"); cancel=button(layout,"Cancel import");
         setContentView(layout);
         pick.setOnClickListener(v -> startActivityForResult(new Intent(Intent.ACTION_OPEN_DOCUMENT)

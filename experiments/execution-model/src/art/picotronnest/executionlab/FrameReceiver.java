@@ -20,12 +20,17 @@ final class FrameReceiver implements AutoCloseable {
     private volatile PointerSender pointer;
     private volatile boolean closing;
     private final boolean orderedInput;
+    private final boolean managed;
 
     FrameReceiver(String name) throws IOException {
         this(name,false);
     }
     FrameReceiver(String name,boolean orderedInput) throws IOException {
+        this(name,orderedInput,false);
+    }
+    FrameReceiver(String name,boolean orderedInput,boolean managed) throws IOException {
         this.orderedInput=orderedInput;
+        this.managed=managed;
         server = new LocalServerSocket(name);
         DesktopView.begin();
         worker = new Thread(this::receive, "desktop-frames");
@@ -44,7 +49,7 @@ final class FrameReceiver implements AutoCloseable {
             if (client.getPeerCredentials().getUid() != android.os.Process.myUid())
                 throw new IOException("frame peer UID mismatch");
             peerPid = client.getPeerCredentials().getPid();
-            client.setSoTimeout(5000);
+            client.setSoTimeout(managed ? 0 : 5000); // Sleeping/idle managed sessions may stop presenting frames.
             if (!orderedInput) {
                 pointer = new PointerSender(client.getOutputStream());
                 DesktopView.pointer(pointer);

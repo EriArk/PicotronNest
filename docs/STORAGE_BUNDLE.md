@@ -21,7 +21,10 @@ retain disposable homes; only the desktop command binds the durable directory
 to guest `/home`, preserving the existing official `picotron -home /home` command.
 The dependency closure and bounded watchdog are unchanged. Existing developer
 provisioning remains available for older probes. Start is disabled on x86_64.
-This is still a bounded development session, not the final long-lived launcher.
+This evidence records the original bounded development session. The subsequent
+[audio/session increment](AUDIO_AND_SESSIONS.md) removes managed-session timers
+and the diagnostic launch quota, adds environment reuse and makes setup the
+default icon entry point. The storage acceptance limits below still apply.
 
 Private layout under `files/runtime-store`:
 

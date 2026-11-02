@@ -33,7 +33,7 @@ final class ExecutionProbe {
     }
 
     void run() {
-        File root = new File(app.getFilesDir(), BuildConfig.DESKTOP ? "desktop-probes" :
+        File root = new File(app.getFilesDir(), managedRuntime ? "managed-sessions" : BuildConfig.DESKTOP ? "desktop-probes" :
                 (BuildConfig.HEADLESS ? "headless-probes" : "execution-probes"));
         try {
             mkdir(root);
@@ -41,7 +41,7 @@ final class ExecutionProbe {
                  FileLock lock = guard.getChannel().tryLock()) {
                 if (lock == null) throw new IOException("another probe owns the lock");
                 File[] previous = root.listFiles(File::isDirectory);
-                if (previous == null || previous.length >= 16) throw new IOException("session quota reached");
+                if (previous == null || !managedRuntime && previous.length >= 16) throw new IOException("session quota reached");
                 for (File prior : previous) {
                     if (!new File(prior, "complete").isFile()) {
                         throw new IOException("unfinished session retained; inspect before retry");
@@ -71,6 +71,9 @@ final class ExecutionProbe {
             .put("host_pid", android.os.Process.myPid()).put("host_uid", android.os.Process.myUid())
             .put("picotron_execution", "NOT TESTED");
         writeJson(reportFile, report);
+        JSONArray cases = new JSONArray();
+        report.put("cases", cases);
+        if (storage==null) {
         File packaged = new File(app.getApplicationInfo().nativeLibraryDir, "libexecution_probe.so");
         File copy = new File(session, "private-probe");
         copyFixture(packaged, copy);
@@ -78,8 +81,6 @@ final class ExecutionProbe {
         String hash = sha256(packaged);
         if (!hash.equals(sha256(copy))) throw new IOException("fixture copy hash mismatch");
         report.put("fixture_sha256", hash);
-        JSONArray cases = new JSONArray();
-        report.put("cases", cases);
         cases.put(runCase("packaged_identity", 6000, packaged.getAbsolutePath(), "identity"));
         writeJson(reportFile, report);
         cases.put(runCase("private_direct", 6000, copy.getAbsolutePath(), "identity"));
@@ -93,8 +94,9 @@ final class ExecutionProbe {
             report.put("schema", 2);
             new LinuxProbe(app, this).run(session, token, report, cases);
         }
+        }
         if (BuildConfig.HEADLESS) {
-            report.put("schema", BuildConfig.DESKTOP ? 4 : 3);
+            report.put("schema", storage!=null ? 5 : BuildConfig.DESKTOP ? 4 : 3);
             new HeadlessProbe(app, this, keyboardControls).run(session, token, report, cases,storage);
         }
         if (storage!=null && !report.optBoolean("managed_session_closed")) throw new IOException("managed session completion unconfirmed");
@@ -122,6 +124,8 @@ final class ExecutionProbe {
         builder.environment().remove("LD_LIBRARY_PATH");
         builder.environment().remove("PICONEST_KEYBOARD_SOCKET");
         builder.environment().remove("PICONEST_INPUT_SOCKET");
+        builder.environment().remove("PICONEST_AUDIO_SOCKET");
+        builder.environment().remove("PICONEST_MANAGED_SESSION");
         builder.environment().putAll(environment);
         final Process process;
         try { process = builder.start(); }
@@ -138,6 +142,11 @@ final class ExecutionProbe {
                 byte[] buffer = new byte[1024];
                 int count;
                 while ((count = input.read(buffer)) != -1) {
+                    if (timeoutMs==0 && captured.size()+count>OUTPUT_LIMIT) {
+                        byte[] prior=captured.toByteArray();
+                        int retain=Math.min(prior.length,OUTPUT_LIMIT-count);
+                        captured.reset(); captured.write(prior,prior.length-retain,retain); truncated[0]=true;
+                    }
                     int keep = Math.min(count, OUTPUT_LIMIT - captured.size());
                     captured.write(buffer, 0, keep);
                     if (captured.toString("UTF-8").contains("PICONEST_HANG_READY\n")) ready.countDown();
@@ -155,7 +164,8 @@ final class ExecutionProbe {
                 result.put("ready_observed", observed);
                 if (!observed) process.destroyForcibly();
             }
-            timedOut = !process.waitFor(timeoutMs, TimeUnit.MILLISECONDS);
+            if (timeoutMs==0) { process.waitFor(); timedOut=false; }
+            else timedOut = !process.waitFor(timeoutMs, TimeUnit.MILLISECONDS);
             if (timedOut) process.destroyForcibly();
             if (!process.waitFor(2000, TimeUnit.MILLISECONDS)) throw new IOException("child termination unconfirmed");
             reader.join(2000);

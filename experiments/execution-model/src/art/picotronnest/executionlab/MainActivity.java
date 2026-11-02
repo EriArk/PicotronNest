@@ -5,9 +5,10 @@ import android.os.Bundle;
 import android.widget.TextView;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-/** A diagnostic entry point, not the product frontend. */
+/** Shared desktop host for managed sessions and explicit diagnostic launches. */
 public class MainActivity extends Activity {
     private static final AtomicBoolean RUNNING = new AtomicBoolean();
+    private static volatile boolean managedRunning;
     private DesktopView desktop;
     private LabInputControls inputControls;
     private boolean keyboardControls;
@@ -22,13 +23,14 @@ public class MainActivity extends Activity {
     }
 
     @Override protected void onResume() {
-        super.onResume(); if (inputControls!=null) inputControls.resume();
+        super.onResume(); AudioReceiver.foreground(true); if (inputControls!=null) inputControls.resume();
     }
     @Override protected void onDestroy() {
         if (inputControls!=null) inputControls.close(); super.onDestroy();
     }
 
     @Override protected void onPause() {
+        AudioReceiver.foreground(false);
         if (inputControls!=null) inputControls.pause();
         if (BuildConfig.DESKTOP) DesktopView.releaseInput();
         super.onPause();
@@ -36,11 +38,14 @@ public class MainActivity extends Activity {
 
     @Override public void onCreate(Bundle saved) {
         super.onCreate(saved);
-        if (getIntent().getBooleanExtra("storage_controls",false)) {
+        if (android.content.Intent.ACTION_MAIN.equals(getIntent().getAction()) && RUNNING.get() && managedRunning)
+            getIntent().putExtra("managed_runtime",true);
+        if (getIntent().getBooleanExtra("storage_controls",false)
+                || android.content.Intent.ACTION_MAIN.equals(getIntent().getAction()) && !getIntent().getBooleanExtra("managed_runtime",false)) {
             startActivity(new android.content.Intent(this,RuntimeSetupActivity.class)); finish(); return;
         }
         managedRuntime=getIntent().getBooleanExtra("managed_runtime",false);
-        boolean sessionControls=getIntent().getBooleanExtra("session_controls",false);
+        boolean sessionControls=managedRuntime || getIntent().getBooleanExtra("session_controls",false);
         keyboardControls=sessionControls || getIntent().getBooleanExtra("keyboard_controls",false);
         TextView text = new TextView(this);
         text.setText("PicotronNest execution probe\nResults are saved in app-private storage.");
@@ -80,11 +85,19 @@ public class MainActivity extends Activity {
             getWindow().setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING);
         }
         if (saved != null || !RUNNING.compareAndSet(false, true)) return;
+        managedRunning=managedRuntime;
         LabSession.clear();
         android.content.Context app = getApplicationContext();
+        if (managedRuntime) {
+            try { startForegroundService(new android.content.Intent(this,RuntimeService.class)); }
+            catch (RuntimeException error) { managedRunning=false; RUNNING.set(false); text.setText("Could not start the session service. Reopen PicotronNest and retry."); setContentView(text); return; }
+        }
         new Thread(() -> {
             try { runProbe(app); }
-            finally { RUNNING.set(false); }
+            finally {
+                if (managedRuntime) app.stopService(new android.content.Intent(app,RuntimeService.class));
+                managedRunning=false; RUNNING.set(false);
+            }
         }, "execution-probe").start();
     }
 

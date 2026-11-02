@@ -12,6 +12,10 @@ The owner will free Retroid when a functional beta candidate is assembled.
 [Beta readiness](BETA_READINESS.md) tracks that handoff separately from hardware
 acceptance and publication approval. The candidate gate is not yet reached.
 
+Owner direction (2026-11-02): deliver complete functional bundles with builds and
+short critical checks. Deep regressions and physical acceptance belong to the
+owner/testers. Those pending checks do not block independent implementation.
+
 PicotronNest supplies an Android host and reviewed compatibility components.
 The user separately obtains and imports their own official Picotron copy.
 Picotron's executable, data, desktop and tools stay official; no source port or
@@ -81,6 +85,9 @@ now integrates opt-in Android channel/lifecycle and IME access. The
 [integrated input bundle](INPUT_BUNDLE.md) adds a single acknowledged event
 order, touch editor keys and shared menu/verified process exit. Official SDL
 consumption still requires hardware evidence; product input configuration remains open.
+The [audio/session bundle](AUDIO_AND_SESSIONS.md) implements callback PCM output
+through Android AudioTrack and focus/background handling. It is build-checked
+with a focused transport test; listening and interruption acceptance are pending.
 
 - Route touch taps, drag, long press/right-click, wheel if available, mouse motion/buttons and keyboard text.
 - Provide optional handheld cursor mode (e.g. right stick moves pointer; buttons can click), with remapping and accessible exit/keyboard commands.
@@ -94,7 +101,9 @@ consumption still requires hardware evidence; product input configuration remain
 The [storage bundle](STORAGE_BUNDLE.md) now provides pinned runtime document
 import, staged activation/rollback, persistent desktop-home binding and an exclusive
 session lease. Owned Android preservation/failure checks pass. Real Picotron
-save/reopen, long sessions, project export and reviewed recovery remain open.
+save/reopen, project export and reviewed recovery remain open. Managed sessions
+now have no diagnostic duration or launch quota, reuse their verified environment
+and run with a foreground service; long-session behavior awaits tester acceptance.
 
 - Run with a persistent `-home` owned by PicotronNest; distinguish staging, installed runtime and user data.
 - Safely import/export using Android SAF; no globally writable runtime root or unbounded extraction.

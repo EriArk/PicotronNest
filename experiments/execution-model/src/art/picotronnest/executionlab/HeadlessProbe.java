@@ -33,13 +33,23 @@ final class HeadlessProbe {
         if (storage==null && !new File(imported, "ready").isFile()) throw new IOException("owner runtime has not been provisioned");
         if (storage!=null && !storage.selection.contract.id.equals(contract.getString("archive_sha256")))
             throw new IOException("managed runtime does not match this lab closure");
-        File root = new File(session, "headless-root");
-        if (!root.mkdir()) throw new IOException("fresh root creation failed");
+        File root;
+        boolean reuse=storage!=null;
+        if (reuse) {
+            File environments=new File(app.getFilesDir().getCanonicalFile(),"managed-environments");
+            if (!environments.mkdir() && !environments.isDirectory()) throw new IOException("environment storage unavailable");
+            root=new File(environments,ExecutionProbe.sha256(new File(app.getApplicationInfo().sourceDir)));
+            if (!root.getCanonicalFile().equals(root.getAbsoluteFile())) throw new IOException("aliased environment");
+            if (!root.mkdir() && !root.isDirectory()) throw new IOException("environment unavailable");
+        } else {
+            root=new File(session,"headless-root");
+            if (!root.mkdir()) throw new IOException("fresh root creation failed");
+        }
         JSONObject files = components.getJSONObject("files");
         for (Iterator<String> keys = files.keys(); keys.hasNext();) {
             String name = keys.next();
             try (InputStream input = app.getAssets().open("headless/" + name)) {
-                stage(input, new File(root, name), files.getJSONObject(name));
+                stage(input, new File(root, name), files.getJSONObject(name),reuse);
             }
         }
         JSONObject ownerFiles = contract.getJSONObject("files");
@@ -50,11 +60,13 @@ final class HeadlessProbe {
                 throw new IOException("imported runtime hash mismatch");
             }
             try (InputStream input = new FileInputStream(original)) {
-                stage(input, new File(root, "runtime/" + name), ownerFiles.getJSONObject(name));
+                stage(input, new File(root, "runtime/" + name), ownerFiles.getJSONObject(name),reuse);
             }
         }
         for (String name : new String[]{"home", "tmp", "proc", "dev"}) {
-            if (!new File(root, name).mkdir()) throw new IOException("fresh guest directory creation failed");
+            File directory=new File(root,name);
+            if (reuse && !directory.getCanonicalFile().equals(directory.getAbsoluteFile())) throw new IOException("aliased guest directory");
+            if (!directory.mkdir() && !(reuse && directory.isDirectory())) throw new IOException("guest directory creation failed");
         }
         File nativeDir = new File(app.getApplicationInfo().nativeLibraryDir);
         File temporary = new File(app.getDir("pt", 0), "h" + token.substring(0, 16));
@@ -65,7 +77,7 @@ final class HeadlessProbe {
         env.put("PROOT_TMP_DIR", temporary.getPath());
         env.put("PROOT_NO_SECCOMP", "1");
         // Two independent executions, same disposable home, distinct per-run markers.
-        for (int attempt = 1; attempt <= 2; attempt++) {
+        for (int attempt = 1; storage==null && attempt <= 2; attempt++) {
             String marker = token + ":" + attempt;
             String lua = "printh(\"PICONEST_PICOTRON_LUA " + marker + "\")\n"
                     + "assert(6*7 == 42)\nprinth(\"PICONEST_PICOTRON_OK " + marker + "\")\nexit()\n";
@@ -92,16 +104,21 @@ final class HeadlessProbe {
                 java.util.ArrayList<String> bound=new java.util.ArrayList<>(java.util.Arrays.asList(command));
                 int work=bound.indexOf("-w");
                 bound.add(work,"-b"); bound.add(work+1,storage.selection.home.getPath()+":/home");
+                bound.subList(0,4).clear(); // Managed sessions have no wall-clock process timeout.
                 command=bound.toArray(new String[0]);
+                env.put("PICONEST_MANAGED_SESSION","1");
+                env.put("PICONEST_AUDIO_SOCKET",socketName+".audio");
                 report.put("managed_runtime",storage.selection.contract.id).put("managed_home","private persistent home");
             }
             if (keyboardControls) env.put("PICONEST_INPUT_SOCKET",socketName+".keys");
-            try (FrameReceiver receiver = new FrameReceiver(socketName,keyboardControls);
-                 KeyboardChannel keyboard=keyboardControls ? new KeyboardChannel(app,socketName+".keys",receiver) : null) {
+            try (FrameReceiver receiver = new FrameReceiver(socketName,keyboardControls,storage!=null);
+                 KeyboardChannel keyboard=keyboardControls ? new KeyboardChannel(app,socketName+".keys",receiver) : null;
+                 AudioReceiver audio=storage==null ? null : new AudioReceiver(app,socketName+".audio",receiver)) {
                 LabSession controls=keyboard==null ? null : new LabSession(keyboard);
                 try {
-                    JSONObject process=runner.runWithEnvironment("picotron_desktop_trace", 35000, env, command);
+                    JSONObject process=runner.runWithEnvironment("picotron_desktop_trace", storage==null ? 35000 : 0, env, command);
                     cases.put(process);
+                    if (audio!=null) report.put("desktop_audio",audio.finish());
                     if (storage!=null) report.put("managed_session_closed",process.optString("outcome").equals("EXITED")
                             && process.optInt("exit_code",-1)==0 && process.optString("output").contains("PICONEST_TRACE_DONE"));
                     report.put("desktop_frames", receiver.evidence());
@@ -131,7 +148,15 @@ final class HeadlessProbe {
         }
     }
 
-    private static void stage(InputStream input, File target, JSONObject expected) throws Exception {
+    private static void stage(InputStream input, File target, JSONObject expected,boolean reuse) throws Exception {
+        if (reuse) {
+            if (!target.getCanonicalFile().equals(target.getAbsoluteFile())) throw new IOException("aliased environment file");
+            if (target.exists()) {
+                if (!target.isFile() || target.length()!=expected.getLong("size")
+                        || !ExecutionProbe.sha256(target).equals(expected.getString("sha256"))) throw new IOException("environment file integrity mismatch");
+                return;
+            }
+        }
         File parent = target.getParentFile();
         if (!parent.mkdirs() && !parent.isDirectory()) throw new IOException("stage parent failed");
         long size = expected.getLong("size");

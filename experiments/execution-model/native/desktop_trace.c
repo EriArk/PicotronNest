@@ -62,8 +62,11 @@ static Uint64 now_ms(void) {
     return (Uint64)t.tv_sec * 1000 + (Uint64)t.tv_nsec / 1000000;
 }
 
+#include "audio_bridge.h"
+
 __attribute__((constructor)) static void begin(void) {
     started = now_ms();
+    if (getenv("PICONEST_MANAGED_SESSION")) duration_ms=0;
     setvbuf(stdout, NULL, _IOLBF, 0);
     printf("PICONEST_TRACE_LOADED pid=%ld uid=%ld\n", (long)getpid(), (long)getuid());
     const char *name = getenv("PICONEST_FRAME_SOCKET");
@@ -307,7 +310,7 @@ SDL_Keymod SDL_GetModState(void) {
 
 int SDL_PollEvent(SDL_Event *event) {
     int (*real)(SDL_Event *) = symbol("SDL_PollEvent");
-    if (event && !quit_sent && now_ms() - started >= duration_ms) {
+    if (event && !quit_sent && duration_ms && now_ms() - started >= duration_ms) {
         SDL_zero(*event);
         event->type = SDL_QUIT;
         quit_sent = 1;

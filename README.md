@@ -39,7 +39,12 @@ in official Picotron still unverified. See the
 
 The existing PICO-8 Android video bridge hardcodes 128×128 output; Picotron requires its own verified SDL video path. That is why we are testing execution and rendering before building a polished frontend.
 
-The current plan then covers input/audio, saved data, a self-contained APK and real device acceptance. Nothing is labeled implemented until it has been demonstrated.
+The development APK now includes shared input controls, runtime import and
+persistent home, plus [audio and managed sessions](docs/AUDIO_AND_SESSIONS.md).
+Its icon opens setup and managed launches have no diagnostic duration limit.
+Audio is build-checked; audible output and official end-to-end workflows await
+testers. Input configuration, project transfer/backup and recovery remain before
+the [functional candidate](docs/BETA_READINESS.md). There is no public APK yet.
 
 ## Project documents
 

@@ -17,7 +17,8 @@ A **product candidate with native Splore networking** is now prepared: 0.1.0-bet
 general Android release. Packaging, notices, diagnostics and instructions are
 integrated. Native Splore catalog/download/play and HTTPS have scoped Retroid
 evidence; account operations, network changes, audio listening and broader hardware
-acceptance remain open. Original code uses MIT; public beta 2 publication is authorized.
+acceptance remain open. Original code uses MIT; beta 2 is published as an
+owner-authorized [prerelease](https://github.com/EriArk/PicotronNest/releases/tag/v0.1.0-beta.2).
 See [candidate evidence](RELEASE_CANDIDATE.md).
 
 | Required capability | Current evidence / work remaining |
@@ -31,7 +32,7 @@ See [candidate evidence](RELEASE_CANDIDATE.md).
 | Persistent native home and projects | Actual `.p64` save/reopen, SAF import/export, ZIP backup and separate-folder restore on Retroid; original/exported/restored hashes match. `.p64.png` hardware workflow and broad upgrade acceptance remain |
 | Reliable lifecycle and recovery | Lease, unfinished marker, process guard and retained environment recovery implemented. Force-stop/recovery tested without replacing home. Long sessions and broader sleep/interruption cases remain with testers |
 | Native Splore / online dependencies | HTTP(S), Android DNS and system trust roots integrated; catalog, downloads and two games checked on Retroid. Account operations, VPN/network changes and raw socket acceptance remain; use windowed Splore |
-| Reviewable candidate and instructions | Versioned packaging, source/dependency archives, notices, checksum manifest, sanitized diagnostic export and tester/user guides prepared; MIT selected and included; public beta 2 publication authorized |
+| Reviewable candidate and instructions | Versioned packaging, source/dependency archives, notices, checksum manifest, sanitized diagnostic export and tester/user guides published with beta 2; MIT included |
 
 Continue completing these capabilities in one candidate with focused checks.
 Report hardware uncertainty explicitly; neither fixtures nor successful builds

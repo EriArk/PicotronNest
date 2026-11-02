@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.1.0-beta.2 - release preparation
+## 0.1.0-beta.2 - 2026-11-02 prerelease
 
 Native Splore catalog/download/play, source-built libcurl and Mbed TLS, Android
 DNS and system certificate trust; owner-selected MIT license. Original PNG

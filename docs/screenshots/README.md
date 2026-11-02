@@ -4,9 +4,10 @@ Original **1240 x 1080 PNGs**, captured on **Retroid Pocket Classic / Android 14
 on 2026-11-02. Click any image for the full-size file. These are actual application
 screens, with no cropping, retouching, compositing or generated content.
 
-The prepared release attachments include a `PicotronNest-<version>-screenshots.zip`
+The [beta 2 release](https://github.com/EriArk/PicotronNest/releases/tag/v0.1.0-beta.2)
+includes a `PicotronNest-0.1.0-beta.2-screenshots.zip`
 containing this gallery and its original PNGs. The same images are also in the
-repository source archive; no public release download is available yet.
+repository source archive.
 
 ## Workstation and controls
 

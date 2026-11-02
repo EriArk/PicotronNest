@@ -1,6 +1,6 @@
 # Project status
 
-**2026-11-02 - Product candidate 0.1.0-beta.2 adds native Splore networking and the owner-selected MIT license. The real catalog, two cartridge downloads and game launch passed on Retroid. The owner authorized public prerelease publication; final validation and release preparation are in progress.**
+**2026-11-02 - [0.1.0-beta.2 is published as a prerelease](https://github.com/EriArk/PicotronNest/releases/tag/v0.1.0-beta.2), with owner authorization. It adds native Splore networking and MIT licensing. All 12 uploaded assets match local SHA-256; the public APK download was independently verified. The real catalog, two cartridge downloads and game launch have scoped Retroid evidence.**
 
 PicotronNest is an Android wrapper for the **official, user-imported Picotron runtime**.
 The repository contains a bounded archive inspector and a temporary target-36
@@ -13,7 +13,7 @@ the shared input bundle has emulator evidence. Official Picotron interaction and
 Audible output acceptance, broader phone ergonomics and modern-device compatibility
 remain open. Native HTTP(S) and Android DNS are integrated; accounts, uploads,
 VPN/network-change behavior and raw socket workflows remain tester checks. Public
-publication remains an owner decision. Windowed Splore is the supported tested path.
+beta 2 is now published; future releases require owner authorization. Windowed Splore is the supported tested path.
 
 ## Latest evidence
 
@@ -32,7 +32,7 @@ publication remains an owner decision. Windowed Splore is the supported tested p
   imported the owner's ZIP through SAF and displayed the original desktop and
   owned showcase project. Git current tree/reachable history contain no runtime
   payloads; release tooling audits APK/source payloads and prepares local attachments.
-  Public publication and broad tester acceptance remain open.
+  Beta 2 is now published; broad tester acceptance remains open.
 
 - [Touch gamepad](TOUCH_GAMEPAD.md): compact/full layouts, two sticks, triggers,
   saved visibility/size/opacity, capability-based Auto and shared player-one
@@ -270,9 +270,9 @@ Do not upgrade a status because code compiles, ADB starts an activity, a process
 
 ## Next action
 
-Publish the owner-authorized beta 2 with matching sources, notices, screenshots
-and checksums, then collect tester results for sound, physical controllers,
-phone ergonomics and network transitions. Retroid was released
+Collect beta 2 tester results for sound, physical controllers, phone ergonomics
+and network transitions; investigate the known native Splore fullscreen layout
+issue in a separate increment. Retroid was released
 by the owner for the scoped checks recorded above; deep acceptance remains with
 the owner/testers. Enforcing ARM64 Android execution remains an explicit
 compatibility gap; Retroid evidence does not close it.

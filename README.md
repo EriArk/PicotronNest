@@ -61,9 +61,11 @@ PicotronNest menu. Android **Back** also gives you a way out.
 
 ## Getting started
 
-**Beta 2 is prepared for testing. There is no public APK download yet.**
+**[Download beta 2 APK](https://github.com/EriArk/PicotronNest/releases/download/v0.1.0-beta.2/PicotronNest-0.1.0-beta.2-arm64.apk)**
+or open the [release page](https://github.com/EriArk/PicotronNest/releases/tag/v0.1.0-beta.2)
+for source archives, screenshots, notices and checksums.
 
-When you receive a test build:
+To try the beta:
 
 1. Install the PicotronNest APK on your Android device.
 2. Get your own [Picotron copy from Lexaloffle](https://www.lexaloffle.com/picotron.php).

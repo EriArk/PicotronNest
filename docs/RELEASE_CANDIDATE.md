@@ -1,6 +1,7 @@
 # Product candidate evidence
 
-Current candidate: **0.1.0-beta.2** adds the owner-selected MIT license, native
+Published prerelease: [**0.1.0-beta.2**](https://github.com/EriArk/PicotronNest/releases/tag/v0.1.0-beta.2)
+from commit `a22ca4b726ea608a869a007d34146af6fc2993a1` adds the owner-selected MIT license, native
 Splore networking, Android DNS/system trust and a screenshot bundle. See
 [network evidence](NETWORK.md) and [beta 2 notes](releases/0.1.0-beta.2.md).
 The following sections retain the original beta 1 packaging evidence.

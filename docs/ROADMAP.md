@@ -9,7 +9,8 @@ have [scoped Retroid evidence](GAMEPAD_AND_DISPLAY.md). Configurable
 checks. [Product packaging and matching tester instructions](RELEASE_CANDIDATE.md)
 now prepare beta 2 with [native Splore networking](NETWORK.md), Android DNS and
 HTTPS trust. The catalog, downloads and two games have Retroid evidence. Account
-operations and network transitions, public publication and broad hardware acceptance remain open.
+operations, network transitions and broad hardware acceptance remain open.
+Beta 2 was published with owner authorization on 2026-11-02.
 
 ## Delivery contract
 

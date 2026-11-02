@@ -72,6 +72,7 @@ final class RuntimeZip implements AutoCloseable {
         }
     }
     boolean has(String name) { return names.contains(name); }
+    List<String> members() { List<String> result=new ArrayList<>(names); Collections.sort(result); return result; }
     InputStream open(String name) throws IOException {
         ZipEntry entry=zip.getEntry(name);
         if (!names.contains(name) || entry==null || entry.isDirectory()) throw new IOException("required ZIP member missing");

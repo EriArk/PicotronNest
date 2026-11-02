@@ -57,6 +57,7 @@ public final class RuntimeStoreChecks {
         try (RuntimeStore.Lease lease=store.begin()) {
             check(lease.selection.home.equals(selected.home),"lease home changed");
             rejected(() -> store.begin()); rejected(() -> store.rollback()); rejected(() -> install(store,two.archive));
+            rejected(() -> store.recover(() -> { })); rejected(() -> store.withHome(() -> { },home -> null));
             lease.completed();
         }
         for (String point:new String[]{"after_copy","before_object","after_object","before_activation","after_activation"}) {
@@ -82,6 +83,11 @@ public final class RuntimeStoreChecks {
         try (RuntimeStore.Lease lease=incomplete.begin()) { check(lease.selection!=null,"missing lease"); } // No observed completion.
         RuntimeStore reopened=new RuntimeStore(new File(directory,"unfinished"),io,one.contract);
         rejected(() -> reopened.begin()); rejected(() -> install(reopened,one.archive)); rejected(() -> reopened.rollback());
+        rejected(() -> reopened.recover(() -> { throw new IOException("owned live child"); }));
+        check(reopened.inspect().recoveryRequired,"live child cleared recovery marker");
+        check(!reopened.recover(() -> { }).recoveryRequired,"recovery marker still active");
+        check(new File(directory,"unfinished").listFiles((parent,name) -> name.startsWith("recovered-session-")).length==1,"lost recovery evidence");
+        try (RuntimeStore.Lease lease=reopened.begin()) { lease.completed(); }
         RuntimeStore corrupt=new RuntimeStore(new File(directory,"corrupt"),io,one.contract);
         install(corrupt,one.archive); Files.write(new File(corrupt.inspect().runtime,"picotron").toPath(),bytes("corrupt"));
         rejected(() -> corrupt.begin()); rejected(() -> corrupt.inspect());

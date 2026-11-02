@@ -1,5 +1,7 @@
 # Short official-runtime input check
 
+Subsequent 2026-11-02 work and actual hardware scope: [Managed workstation](MANAGED_WORKSTATION.md). Earlier pending statements below are historical; the full acceptance script is not claimed complete.
+
 **Pending: do not run while the owner has reserved Retroid or requested no screen
 tests.** This procedure is prepared, not executed evidence. Owned emulator
 results in [P1_BRIDGE_TESTS](P1_BRIDGE_TESTS.md) do not satisfy it.

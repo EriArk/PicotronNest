@@ -147,6 +147,28 @@ final class RuntimeStore {
     Selection inspect() throws IOException {
         try (Guard guard=new Guard()) { return selected(); }
     }
+    interface IdleCheck { void check() throws IOException; }
+    interface HomeAction<T> { T run(File home) throws IOException; }
+    <T> T withHome(IdleCheck processes,HomeAction<T> action) throws IOException {
+        try (Guard guard=new Guard()) {
+            idle(); processes.check(); Selection selection=selected();
+            if (selection==null) throw new IOException("import a runtime first");
+            return action.run(selection.home);
+        }
+    }
+    Selection recover(IdleCheck processes) throws IOException {
+        try (Guard guard=new Guard()) {
+            processes.check(); Selection selection=selected();
+            if (selection==null) throw new IOException("import a runtime first");
+            File pending=child(root,"session.pending");
+            if (pending.exists()) {
+                regular(pending);
+                Files.move(pending.toPath(),child(root,"recovered-session-"+UUID.randomUUID()).toPath(),StandardCopyOption.ATOMIC_MOVE);
+                io.syncDirectory(root);
+            }
+            return selected();
+        }
+    }
     Selection rollback() throws IOException {
         try (Guard guard=new Guard()) {
             idle(); String[] state=state();

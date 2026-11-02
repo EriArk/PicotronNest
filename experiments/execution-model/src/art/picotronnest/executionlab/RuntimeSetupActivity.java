@@ -16,7 +16,7 @@ public class RuntimeSetupActivity extends Activity {
     private static volatile RuntimeStore.Selection selection;
     private final Handler handler=new Handler(Looper.getMainLooper());
     private TextView status;
-    private Button pick,start,rollback,cancel;
+    private Button pick,start,rollback,cancel,recover;
     private boolean paused=true;
     static boolean busy() { return BUSY.get(); }
     private final Runnable refresh=new Runnable() {
@@ -24,12 +24,16 @@ public class RuntimeSetupActivity extends Activity {
             if (paused) return;
             boolean recovery=selection!=null && selection.recoveryRequired;
             status.setText(heading()+"\n\n"+message+"\n\n"
-                    +(selection==null ? "Import your Raspberry Pi 64-bit ZIP (0.3.0d2)." : "Verified runtime: "+selection.contract.version)
-                    +(recovery ? "\nPrevious session was not confirmed closed. Recovery inspection is required before another session or import." : "")
+                    +(MainActivity.isManagedRunning() ? "Picotron is open." : selection==null ? "Import your Raspberry Pi 64-bit ZIP (0.3.0d2)." : "Picotron "+selection.contract.version)
+                    +(recovery ? "\nPicotron was interrupted. Choose Recover interrupted launch below to open it again." : "")
                     +"\n\nProjects use a separate private home. Runtime changes preserve it. Uninstalling the app removes private data."
-                    +"\n\nYour session continues until you exit from Session menu. Sound is muted while the app is in the background.");
-            pick.setEnabled(!BUSY.get() && !recovery); start.setEnabled(!BUSY.get() && !recovery && selection!=null && BuildConfig.DESKTOP && Build.SUPPORTED_ABIS[0].equals("arm64-v8a"));
+                    +"\n\nUse the floating controls to quit Picotron. Sound is muted while the app is in the background.");
+            boolean running=MainActivity.isManagedRunning();
+            pick.setEnabled(!BUSY.get() && !recovery && !running);
+            start.setText(running ? "Return to Picotron" : "Start Picotron");
+            start.setEnabled(running || !BUSY.get() && !recovery && selection!=null && BuildConfig.DESKTOP && Build.SUPPORTED_ABIS[0].equals("arm64-v8a"));
             rollback.setEnabled(!BUSY.get() && !recovery && selection!=null && !selection.previous.isEmpty()); cancel.setEnabled(BUSY.get());
+            recover.setEnabled(!BUSY.get() && recovery);
             handler.postDelayed(this,200);
         }
     };
@@ -41,11 +45,35 @@ public class RuntimeSetupActivity extends Activity {
         status=new TextView(this); layout.addView(status);
         pick=button(layout,"Import your runtime"); start=button(layout,"Start Picotron");
         rollback=button(layout,"Use previous runtime"); cancel=button(layout,"Cancel import");
-        setContentView(layout);
+        Button input=button(layout,"Input settings"); Button projects=button(layout,"Projects and backups");
+        recover=button(layout,"Recover interrupted launch");
+        ScrollView scroll=new ScrollView(this); scroll.addView(layout); setContentView(scroll);
+        input.setOnClickListener(v -> startActivity(new Intent(this,InputSettingsActivity.class)));
+        projects.setOnClickListener(v -> startActivity(new Intent(this,ProjectFilesActivity.class)));
+        recover.setOnClickListener(v -> new android.app.AlertDialog.Builder(this).setTitle("Recover Picotron")
+                .setMessage("Check that Picotron has stopped, then allow it to open again. Saved projects and the previous launch report are preserved; unsaved work cannot be recovered by the wrapper.")
+                .setPositiveButton("Recover",(d,w) -> recover()).setNegativeButton("Cancel",null).show());
         pick.setOnClickListener(v -> startActivityForResult(new Intent(Intent.ACTION_OPEN_DOCUMENT)
                 .addCategory(Intent.CATEGORY_OPENABLE).setType("*/*").addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION),1));
-        start.setOnClickListener(v -> startActivity(new Intent(this,MainActivity.class).putExtra("managed_runtime",true).putExtra("session_controls",true)));
+        start.setOnClickListener(v -> {
+            Intent launch=new Intent(this,MainActivity.class).putExtra("managed_runtime",true).putExtra("session_controls",true);
+            if (MainActivity.isManagedRunning()) launch.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP|Intent.FLAG_ACTIVITY_SINGLE_TOP);
+            startActivity(launch);
+        });
         rollback.setOnClickListener(v -> job(null,true)); cancel.setOnClickListener(v -> cancelled=true);
+    }
+    private void recover() {
+        if (!BUSY.compareAndSet(false,true)) return;
+        new Thread(() -> {
+            try {
+                selection=openStore(getApplicationContext()).recover(() -> {
+                    AndroidRuntimeStore.requireIdleProcesses(); AndroidRuntimeStore.retainInterruptedEnvironment(getApplicationContext());
+                });
+                message="Picotron is ready to open. Saved projects are preserved.";
+            }
+            catch (Exception error) { message="Recovery could not complete: "+error.getMessage(); }
+            finally { BUSY.set(false); }
+        },"runtime-recovery").start();
     }
     private Button button(LinearLayout layout,String text) { Button button=new Button(this); button.setText(text); layout.addView(button); return button; }
     @Override protected void onActivityResult(int request,int result,Intent data) {
@@ -63,7 +91,14 @@ public class RuntimeSetupActivity extends Activity {
                     selection=AndroidRuntimeStore.importDocument(app,store,uri,() -> cancelled);
                     message="Runtime imported and verified. Your home is preserved.";
                 } else if (previous) { selection=store.rollback(); message="Previous runtime selected. Your home is preserved."; }
-                else { selection=store.inspect(); message="Storage checked."; }
+                else {
+                    selection=store.inspect(); message="Storage checked.";
+                    if (getIntent().getBooleanExtra("auto_launch",false)) {
+                        getIntent().removeExtra("auto_launch");
+                        if (selection!=null && !selection.recoveryRequired)
+                            handler.post(() -> { if (!isFinishing() && !isDestroyed() && !paused) start.performClick(); });
+                    }
+                }
             } catch (Exception error) {
                 selection=null;
                 String reason=String.valueOf(error.getMessage());
@@ -76,6 +111,11 @@ public class RuntimeSetupActivity extends Activity {
             } finally { BUSY.set(false); }
         },"runtime-store").start();
     }
-    @Override protected void onResume() { super.onResume(); paused=false; job(null,false); handler.post(refresh); }
+    @Override protected void onResume() {
+        super.onResume(); paused=false;
+        if (MainActivity.isManagedRunning()) message="Close Picotron before importing or transferring projects.";
+        else job(null,false);
+        handler.post(refresh);
+    }
     @Override protected void onPause() { paused=true; handler.removeCallbacks(refresh); super.onPause(); }
 }

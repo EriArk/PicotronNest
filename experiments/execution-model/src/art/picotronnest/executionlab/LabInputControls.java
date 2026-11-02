@@ -26,6 +26,8 @@ final class LabInputControls implements AutoCloseable {
     HostMenu menu;
     private LabSession session;
     private final int[] menuKeys;
+    boolean workstation;
+    Runnable openingMenu;
     final Button[] wheelButtons=new Button[4];
     private final LinearLayout holds, wheels, commands;
     private final Runnable refresh=new Runnable() {
@@ -41,6 +43,8 @@ final class LabInputControls implements AutoCloseable {
                 if (menu!=null) { commands.removeView(menu.button); menu.close(); }
                 session=active;
                 menu=new HostMenu(activity,desktop,active.exit,menuKeys[0],menuKeys[1],menuKeys[2],activity::finish);
+                if (workstation) menu.useProductLabels();
+                if (openingMenu!=null) menu.button.setOnClickListener(v -> { openingMenu.run(); menu.open(); });
                 commands.addView(menu.button,0,cell());
             }
             if (menu!=null && session.exit.state()==SessionExit.State.RUNNING) menu.button.setEnabled(desktop.keyboardReady());
@@ -80,7 +84,8 @@ final class LabInputControls implements AutoCloseable {
             for (int i=0;i<5;i++) actions[i]=profile.action(i);
             touchpad=new CursorProfile(RelativePointer.Mode.TOUCHPAD,profile.kind,controls,
                     profile.speed,profile.deadzone,profile.precision,actions);
-        } else touchpad=null;
+        } else touchpad=new CursorProfile(RelativePointer.Mode.TOUCHPAD,CursorProfile.STICK,
+                new int[]{0,1,0,0,0,0,96,102},320,.18,.25);
         view=new LinearLayout(activity); view.setOrientation(LinearLayout.VERTICAL);
         commands=new LinearLayout(activity); view.addView(commands);
         modeButton=button("Pointer unavailable"); modeButton.setEnabled(false);
@@ -148,16 +153,18 @@ final class LabInputControls implements AutoCloseable {
     private void open() {
         if (closed || paused || !desktop.inputReady() || !activity.hasWindowFocus() || dialog!=null) return;
         DesktopView.releaseInput();
-        String[] choices=profile==null ? new String[]{"Direct touch","Mouse and touch"}
+        String[] choices=profile==null ? new String[]{"Direct touch","Mouse and touch","Touchpad"}
                 : new String[]{"Direct touch","Mouse and touch","Controller profile: "+profile.mode,"Touchpad"};
-        AlertDialog next=new AlertDialog.Builder(activity).setTitle("Pointer mode")
+        AlertDialog next=new AlertDialog.Builder(workstation
+                ? new android.view.ContextThemeWrapper(activity,android.R.style.Theme_Material_Dialog_Alert)
+                : activity).setTitle("Pointer mode")
                 .setItems(choices,(d,index) -> {
                     if (closed || paused || !desktop.inputReady()) return;
-                    desktop.selectPointerMode(Math.min(index,2),index==2 ? profile : touchpad);
+                    desktop.selectPointerMode(Math.min(index,2),index==2 && profile!=null ? profile : touchpad);
                     handler.removeCallbacks(refresh); handler.post(refresh);
                 }).create();
         dialog=next;
-        next.setOnDismissListener(d -> { if (dialog==next) dialog=null; });
+        next.setOnDismissListener(d -> { if (dialog==next) dialog=null; desktop.requestFocus(); });
         next.show();
     }
     private void dismiss() { AlertDialog old=dialog; dialog=null; if (old!=null) old.dismiss(); }

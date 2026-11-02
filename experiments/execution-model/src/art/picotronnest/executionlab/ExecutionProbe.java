@@ -43,6 +43,7 @@ final class ExecutionProbe {
                 File[] previous = root.listFiles(File::isDirectory);
                 if (previous == null || !managedRuntime && previous.length >= 16) throw new IOException("session quota reached");
                 for (File prior : previous) {
+                    if (managedRuntime) continue; // RuntimeStore's retained marker is the managed recovery authority.
                     if (!new File(prior, "complete").isFile()) {
                         throw new IOException("unfinished session retained; inspect before retry");
                     }
@@ -54,6 +55,7 @@ final class ExecutionProbe {
             }
         } catch (Exception error) {
             Log.e("PicotronNestProbe", "Probe failed; retained evidence: " + error);
+            if (managedRuntime) DesktopView.ended("Session failed. Return to setup for recovery. " + error.getMessage());
         }
     }
 

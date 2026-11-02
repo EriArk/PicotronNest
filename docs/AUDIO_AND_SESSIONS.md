@@ -1,5 +1,7 @@
 # Audio and managed sessions
 
+Subsequent 2026-11-02 work and actual hardware scope: [Managed workstation](MANAGED_WORKSTATION.md). Earlier pending statements below are historical; the full acceptance script is not claimed complete.
+
 Implemented on 2026-11-02. This increment connects callback audio to Android and
 removes diagnostic lifetime limits from the user-imported runtime path. It is
 build-checked, with a focused PCM protocol test; audible official Picotron and

@@ -7,7 +7,36 @@ import org.json.JSONObject;
 
 final class AndroidRuntimeStore {
     private AndroidRuntimeStore() { }
+    static void requireIdleProcesses() throws IOException {
+        File[] entries=new File("/proc").listFiles();
+        if (entries==null) throw new IOException("process inspection unavailable");
+        for (File entry:entries) {
+            if (!entry.getName().matches("[0-9]+") || entry.getName().equals(Integer.toString(android.os.Process.myPid()))) continue;
+            try {
+                if (Os.stat(entry.getPath()).st_uid==android.os.Process.myUid())
+                    throw new IOException("another Picotron process is active; close it before recovery or file transfer");
+            } catch (ErrnoException error) {
+                if (error.errno!=OsConstants.ENOENT && error.errno!=OsConstants.EACCES)
+                    throw new IOException("process inspection failed",error);
+            }
+        }
+    }
+    static void retainInterruptedEnvironment(Context context) throws IOException {
+        File files=context.getFilesDir().getCanonicalFile();
+        File current=new File(files,"managed-environments/"+RuntimeStore.digest(new File(context.getApplicationInfo().sourceDir)));
+        if (!current.getCanonicalFile().equals(current.getAbsoluteFile())) throw new IOException("aliased environment path");
+        if (!current.exists()) return;
+        File retained=new File(files,"retained-environments");
+        if (!retained.getCanonicalFile().equals(retained.getAbsoluteFile())) throw new IOException("aliased recovery path");
+        if (!retained.mkdir() && !retained.isDirectory()) throw new IOException("recovery storage unavailable");
+        java.nio.file.Files.move(current.toPath(),new File(retained,java.util.UUID.randomUUID().toString()).toPath(),java.nio.file.StandardCopyOption.ATOMIC_MOVE);
+        IO.syncDirectory(retained); IO.syncDirectory(current.getParentFile());
+    }
     static RuntimeStore.Selection importDocument(Context context,RuntimeStore store,android.net.Uri uri,RuntimeStore.Cancel cancel) throws IOException {
+        return readDocument(context,uri,cancel,input -> store.install(input,cancel));
+    }
+    interface DocumentAction<T> { T run(InputStream input) throws IOException; }
+    static <T> T readDocument(Context context,android.net.Uri uri,RuntimeStore.Cancel cancel,DocumentAction<T> action) throws IOException {
         if (!"content".equals(uri.getScheme())) throw new IOException("Select a document from the Android picker.");
         android.os.CancellationSignal signal=new android.os.CancellationSignal();
         java.util.concurrent.atomic.AtomicBoolean finished=new java.util.concurrent.atomic.AtomicBoolean();
@@ -36,7 +65,7 @@ final class AndroidRuntimeStore {
                     } catch (ErrnoException error) { throw new IOException("document read failed",error); }
                 }
             };
-            return store.install(input,cancel);
+            return action.run(input);
         } catch (android.os.OperationCanceledException error) { throw new IOException("document import cancelled",error); }
         finally { finished.set(true); monitor.interrupt(); }
     }

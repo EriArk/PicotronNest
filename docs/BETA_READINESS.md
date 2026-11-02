@@ -1,10 +1,8 @@
 # Beta readiness and the Retroid handoff
 
-Owner direction, 2026-10-24: continue without occupying Retroid, and notify the
-owner when the required functionality is assembled for a beta hardware check.
-The owner will then release the handheld from another task. Do not install,
-launch or interact on Retroid before that handoff. Source commits/pushes remain
-authorized; publishing an APK or GitHub Release still requires explicit approval.
+The earlier Retroid reservation was lifted by the owner on 2026-11-02. Scoped
+hardware checks are now recorded in [Managed workstation](MANAGED_WORKSTATION.md).
+This authorizes device testing, not APK or GitHub Release publication.
 
 Owner direction, 2026-11-02: prioritize complete functionality in coherent
 increments. Use builds and short checks of critical changed behavior during
@@ -20,22 +18,19 @@ not substitute for integrating those contracts with official Picotron.
 
 | Required capability | Current evidence / work remaining |
 | --- | --- |
-| One Android APK and icon, modern target, no root or helper installation | Target-36 development APK now opens import/setup from its icon and launches managed sessions; final packaging and recovery remain open |
-| User supplies their official compatible runtime through Android SAF | [Shared storage setup](STORAGE_BUNDLE.md) adds a document picker and pinned-package staging/activation/rollback; owned content-URI workflow passes on Android and the owner's archive passes on Windows. Manual official import/launch on hardware, additional contracts and product recovery remain open |
-| Original workstation video with correct fit and input coordinates | Real frames have Retroid lab evidence; supported orientations/resizes and integrated controls still need implementation/acceptance |
-| Touch, mouse/keyboard, phone IME and configurable handheld controls | [Integrated lab input](INPUT_BUNDLE.md) combines pointer modes, supplied profiles, authenticated ordered key/text/pointer delivery and touch editor keys. Official input acceptance, product binding controls, physical device selection/reconnection and cartridge-control routing remain open |
-| Reachable keyboard, host menu, resume and deliberate exit | [Shared session menu](INPUT_BUNDLE.md) and ordered SDL quit are wired into the official-runtime lab; cancellation, release and observed process completion pass with the owned native fixture. Actual Picotron shutdown and product integration remain open |
-| Audible sound and interruption recovery | [Callback PCM to AudioTrack](AUDIO_AND_SESSIONS.md), focus/duck/background handling and dead-track recreation are implemented and build-checked; audible official-runtime and physical interruption checks belong to testers |
-| Persistent native home and projects | [Persistent home](STORAGE_BUNDLE.md) is bound by the managed desktop lab, separate from runtime versions. Owned native file write/reopen and preservation pass; actual Picotron `.p64`/`.p64.png` workflows, project import/export/backup and hardware upgrade preservation remain open |
-| Reliable lifecycle and recovery | Session lease and unfinished-marker checks prevent conflicting storage changes and fail closed after host loss. Managed timer/quota limits are removed, environment caching and a foreground service are implemented. User-facing recovery remains open; long sessions, sleep/Home and official cleanup await testers |
-| Reviewable candidate and instructions | Reproducible private APK, dependency/license review, install/import steps, supported device scope, diagnostics and known limitations must match the actual candidate |
+| One Android APK and icon, modern target, no root or helper installation | Target-36 development APK; direct icon launch after import and recovery UI implemented. Final product packaging remains open |
+| User supplies their official compatible runtime through Android SAF | Actual owner 0.3.0d2 Raspberry Pi ZIP imported on Retroid through the picker; pinned staging/activation. Additional runtime contracts remain open |
+| Original workstation video with correct fit and input coordinates | Official desktop and pointer interaction on Retroid. Immersive viewport with small overlay icons. SDL internal padding and broader orientation/resize acceptance remain |
+| Touch, mouse/keyboard, phone IME and configurable handheld controls | Shared input bundle plus editable saved cursor/menu bindings. Official terminal input and injected gamepad cursor have scoped evidence. Native cartridge gamepad routing, physical selection/reconnect and broader IME acceptance remain |
+| Reachable keyboard, host menu, resume and deliberate exit | Overlay controls and Android Back open the menu; official quit has process and delivery receipts; Home/resume retains native PID |
+| Audible sound and interruption recovery | Official callback PCM reaches Android AudioTrack; no listening confirmation. Focus/duck/background behavior is implemented; physical audio acceptance remains |
+| Persistent native home and projects | Actual `.p64` save/reopen, SAF import/export, ZIP backup and separate-folder restore on Retroid; original/exported/restored hashes match. `.p64.png` hardware workflow and broad upgrade acceptance remain |
+| Reliable lifecycle and recovery | Lease, unfinished marker, process guard and retained environment recovery implemented. Force-stop/recovery tested without replacing home. Long sessions and broader sleep/interruption cases remain with testers |
+| Reviewable candidate and instructions | Final packaging, dependency/license review, supported device scope, diagnostics and tester instructions must match the actual candidate |
 
-Before asking the owner to reserve Retroid, assemble these capabilities in one
-candidate, build it and run focused critical checks, then prepare a bounded hardware
-script with the candidate hash and recovery steps. Report remaining hardware
-uncertainties explicitly. If a runtime uncertainty blocks further integration,
-report that dependency instead of filling the gap with a replacement workstation
-or describing a fixture as a completed product feature.
+Continue completing these capabilities in one candidate with focused checks.
+Report hardware uncertainty explicitly; neither fixtures nor successful builds
+establish physical acceptance.
 
 ## Gate 2: validated beta
 

@@ -2,7 +2,7 @@
 
 **The real Picotron fantasy workstation, running on Android.**
 
-**Status: early feasibility research — no product APK or public download yet.**
+**Status: integrated development build — no public beta or download yet.**
 
 [Picotron](https://www.lexaloffle.com/picotron.php) already has its own desktop, code editor, drawing tools, music tools, apps and cartridges. PicotronNest aims to bring that **actual workstation** to Android phones, tablets and gaming handhelds — not recreate those tools in a separate interface.
 
@@ -27,8 +27,8 @@ target API 36 on Android, followed by an owned Linux guest through packaged
 PRoot. **The official user-imported Picotron now runs an owned headless Lua
 probe on Retroid Pocket Classic (Android 14)**, with repeat-launch and exit
 evidence. Its original desktop frames now also display in the Android lab;
-the pointer bridge has host and owned-emulator test evidence, with interaction
-in official Picotron still unverified. See the
+official interaction and save/reopen now have scoped
+[Retroid workflow evidence](docs/MANAGED_WORKSTATION.md). See the
 [P0a inspection](docs/P0_STATIC_INSPECTION.md),
 [P0b.2 Linux guest findings](docs/P0_LINUX_LOADER.md) and
 [P0c headless evidence](docs/P0_HEADLESS.md) and
@@ -39,12 +39,13 @@ in official Picotron still unverified. See the
 
 The existing PICO-8 Android video bridge hardcodes 128×128 output; Picotron requires its own verified SDL video path. That is why we are testing execution and rendering before building a polished frontend.
 
-The development APK now includes shared input controls, runtime import and
-persistent home, plus [audio and managed sessions](docs/AUDIO_AND_SESSIONS.md).
-Its icon opens setup and managed launches have no diagnostic duration limit.
-Audio is build-checked; audible output and official end-to-end workflows await
-testers. Input configuration, project transfer/backup and recovery remain before
-the [functional candidate](docs/BETA_READINESS.md). There is no public APK yet.
+The development APK includes runtime import, persistent home, configurable input,
+project import/export, home backup and interrupted-launch recovery. After import,
+its icon opens Picotron directly. The workstation uses the full Android viewport,
+with small translucent controls instead of a permanent toolbar. Official audio
+reaches Android AudioTrack; audible output still needs listening confirmation.
+Native cartridge gamepad routing, display refinements and final packaging remain
+before the [functional candidate](docs/BETA_READINESS.md). There is no public APK.
 
 ## Project documents
 

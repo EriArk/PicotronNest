@@ -24,6 +24,7 @@ final class DesktopView extends View {
     private static boolean mouseSelected;
     private MouseInput mouse;
     private int imeBottom;
+    boolean workstation;
     private int keyboardShowGeneration;
     private final int[] windowLocation=new int[2];
     private final PointerState touch = new PointerState((x, y, buttons) -> {
@@ -353,7 +354,8 @@ final class DesktopView extends View {
             }
             paint.setColor(Color.WHITE);
             paint.setTextSize(28);
-            canvas.drawText(state, 16, Math.max(32, viewportHeight() - 64), paint);
+            if (!workstation || frame==null || !state.equals("Picotron — live"))
+                canvas.drawText(state, 16, Math.max(32, viewportHeight() - 64), paint);
         }
     }
 }

@@ -21,6 +21,11 @@ final class HostMenu implements AutoCloseable {
     private AlertDialog dialog;
     private String[] choices;
     private boolean confirming, closed, keyboardPending;
+    private boolean productLabels;
+    void useProductLabels() { productLabels=true; button.setText("Picotron"); }
+    private AlertDialog.Builder dialogBuilder() {
+        return productLabels ? new AlertDialog.Builder(new android.view.ContextThemeWrapper(activity,android.R.style.Theme_Material_Dialog_Alert)) : new AlertDialog.Builder(activity);
+    }
     private int selected, heldCode=-1, heldDevice;
     final Button button;
     private final Runnable completion=new Runnable() {
@@ -99,14 +104,14 @@ final class HostMenu implements AutoCloseable {
     }
     private void show(boolean confirmation) {
         confirming=confirmation; selected=0; heldCode=-1;
-        choices=confirmation ? new String[]{"Keep working","End session"}
-                : new String[]{"Resume","Show keyboard","Exit session"};
-        AlertDialog next=new AlertDialog.Builder(activity)
-                .setTitle(confirmation ? "Save your work before ending the session" : "Session menu")
+        choices=confirmation ? new String[]{"Keep working",productLabels ? "Quit Picotron" : "End session"}
+                : new String[]{"Resume","Show keyboard",productLabels ? "Quit Picotron" : "Exit session"};
+        AlertDialog next=dialogBuilder()
+                .setTitle(confirmation ? "Save your work before quitting" : productLabels ? "Picotron" : "Session menu")
                 .setItems(choices,(d,index) -> choose(index)).create();
         dialog=next;
         next.setOnKeyListener((d,code,event) -> key(event));
-        next.setOnDismissListener(d -> { if (dialog==next) { dialog=null; heldCode=-1; } });
+        next.setOnDismissListener(d -> { if (dialog==next) { dialog=null; heldCode=-1; } desktop.requestFocus(); });
         next.show();
         ListView list=next.getListView(); list.setSelection(0); list.requestFocus();
     }
@@ -125,7 +130,7 @@ final class HostMenu implements AutoCloseable {
     private void progress() {
         button.setEnabled(false);
         if (exit.state()==SessionExit.State.EXITING) {
-            dialog=new AlertDialog.Builder(activity).setTitle("Ending session…").setCancelable(false).create();
+            dialog=dialogBuilder().setTitle(productLabels ? "Closing Picotron…" : "Ending session…").setCancelable(false).create();
             dialog.show();
         }
         handler.post(completion);

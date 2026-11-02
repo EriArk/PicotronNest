@@ -9,10 +9,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class MainActivity extends Activity {
     private static final AtomicBoolean RUNNING = new AtomicBoolean();
     private static volatile boolean managedRunning;
+    static boolean isManagedRunning() { return RUNNING.get() && managedRunning; }
     private DesktopView desktop;
     private LabInputControls inputControls;
     private boolean keyboardControls;
     private boolean managedRuntime;
+    private WorkstationOverlay overlay;
     final DesktopView desktopView() { return desktop; }
     final LabInputControls inputControls() { return inputControls; }
     @Override public boolean dispatchKeyEvent(android.view.KeyEvent event) {
@@ -30,6 +32,7 @@ public class MainActivity extends Activity {
     }
 
     @Override protected void onPause() {
+        if (overlay!=null) overlay.closeDrawer();
         AudioReceiver.foreground(false);
         if (inputControls!=null) inputControls.pause();
         if (BuildConfig.DESKTOP) DesktopView.releaseInput();
@@ -42,7 +45,8 @@ public class MainActivity extends Activity {
             getIntent().putExtra("managed_runtime",true);
         if (getIntent().getBooleanExtra("storage_controls",false)
                 || android.content.Intent.ACTION_MAIN.equals(getIntent().getAction()) && !getIntent().getBooleanExtra("managed_runtime",false)) {
-            startActivity(new android.content.Intent(this,RuntimeSetupActivity.class)); finish(); return;
+            startActivity(new android.content.Intent(this,RuntimeSetupActivity.class)
+                    .putExtra("auto_launch",!getIntent().getBooleanExtra("storage_controls",false))); finish(); return;
         }
         managedRuntime=getIntent().getBooleanExtra("managed_runtime",false);
         boolean sessionControls=managedRuntime || getIntent().getBooleanExtra("session_controls",false);
@@ -53,12 +57,16 @@ public class MainActivity extends Activity {
         if (BuildConfig.DESKTOP) {
             if (keyboardControls || getIntent().getBooleanExtra("input_controls",false)) {
                 CursorProfile profile;
-                try { profile=LabInputControls.parseProfile(getIntent().getStringExtra("cursor_profile")); }
+                InputSettings settings;
+                try {
+                    settings=managedRuntime ? InputSettings.load(this) : null;
+                    profile=managedRuntime ? settings.profile : LabInputControls.parseProfile(getIntent().getStringExtra("cursor_profile"));
+                }
                 catch (java.io.IOException invalid) {
-                    text.setText("Invalid cursor profile. Correct the lab launch settings and retry.");
+                    text.setText("Invalid input settings. Open Input settings in setup and save new bindings.");
                     setContentView(text); return; // Reject configuration before starting any runtime.
                 }
-                int[] menuKeys=sessionControls ? new int[]{getIntent().getIntExtra("menu_key",108),
+                int[] menuKeys=managedRuntime ? settings.menu : sessionControls ? new int[]{getIntent().getIntExtra("menu_key",108),
                     getIntent().getIntExtra("menu_accept_key",96),getIntent().getIntExtra("menu_cancel_key",97)} : null;
                 if (menuKeys!=null) {
                     java.util.HashSet<Integer> codes=new java.util.HashSet<>();
@@ -71,12 +79,20 @@ public class MainActivity extends Activity {
                     if (!valid) { desktop=null; text.setText("Invalid session menu bindings."); setContentView(text); return; }
                 }
                 desktop=new DesktopView(this);
+                desktop.workstation=managedRuntime;
                 inputControls=new LabInputControls(this,desktop,profile,keyboardControls,menuKeys);
+                inputControls.workstation=managedRuntime;
+                if (managedRuntime) {
+                    overlay=new WorkstationOverlay(this,desktop,inputControls); setContentView(overlay); immersive();
+                    if (android.os.Build.VERSION.SDK_INT>=33)
+                        getOnBackInvokedDispatcher().registerOnBackInvokedCallback(android.window.OnBackInvokedDispatcher.PRIORITY_DEFAULT,overlay::back);
+                } else {
                 android.widget.LinearLayout layout=new android.widget.LinearLayout(this);
                 layout.setOrientation(android.widget.LinearLayout.VERTICAL);
                 layout.addView(inputControls.view);
                 layout.addView(desktop,new android.widget.LinearLayout.LayoutParams(-1,0,1));
                 setContentView(layout);
+                }
             } else { desktop=new DesktopView(this); setContentView(desktop); }
         } else setContentView(text);
         if (BuildConfig.DESKTOP) {
@@ -99,6 +115,23 @@ public class MainActivity extends Activity {
                 managedRunning=false; RUNNING.set(false);
             }
         }, "execution-probe").start();
+    }
+
+    @SuppressWarnings("deprecation")
+    @Override public void onBackPressed() {
+        if (managedRuntime && overlay!=null) overlay.back(); else super.onBackPressed();
+    }
+
+    @SuppressWarnings("deprecation")
+    private void immersive() {
+        if (android.os.Build.VERSION.SDK_INT>=30) {
+            getWindow().setDecorFitsSystemWindows(false);
+            android.view.WindowInsetsController bars=getWindow().getInsetsController();
+            if (bars!=null) {
+                bars.setSystemBarsBehavior(android.view.WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+                bars.hide(android.view.WindowInsets.Type.systemBars());
+            }
+        } else getWindow().getDecorView().setSystemUiVisibility(5894);
     }
 
     /** Test subclasses replace only the owned process, retaining the real lifecycle gate. */

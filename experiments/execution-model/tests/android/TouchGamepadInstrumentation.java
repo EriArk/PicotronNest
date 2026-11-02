@@ -67,6 +67,16 @@ public final class TouchGamepadInstrumentation extends Instrumentation {
     @Override public void onStart() {
         Bundle result=new Bundle(); int outcome=0;
         try {
+            org.json.JSONObject privateReport=new org.json.JSONObject("{\"phase\":\"COMPLETE\",\"path\":\"PRIVATE_PATH\",\"output\":\"PRIVATE_TEXT\",\"desktop_frames\":{\"width\":480,\"height\":270,\"path\":\"PRIVATE_PATH\"},\"cases\":[{\"output\":\"PRIVATE_CART\",\"exit_code\":0}]}");
+            String safe=DiagnosticReport.sanitize(privateReport).toString();
+            check(!safe.contains("PRIVATE_") && safe.contains("480") && safe.contains("exit_code"),"diagnostic allowlist leaks private contents");
+            java.io.File reportFolder=new java.io.File(getTargetContext().getFilesDir(),"managed-sessions/"+java.util.UUID.randomUUID());
+            check(reportFolder.mkdirs(),"diagnostic fixture folder");
+            try (java.io.FileOutputStream out=new java.io.FileOutputStream(new java.io.File(reportFolder,"report.json"))) {
+                out.write(privateReport.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            }
+            org.json.JSONObject collected=DiagnosticReport.collect(getTargetContext());
+            check(collected.has("last_session") && !collected.toString().contains("PRIVATE_"),"canonical Android data path lost session diagnostics");
             activity=(TouchGamepadTestActivity)startActivitySync(new Intent(getTargetContext(),TouchGamepadTestActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
             long deadline=SystemClock.uptimeMillis()+5000;
             while ((!activity.hasWindowFocus() || activity.touch.getWidth()==0) && SystemClock.uptimeMillis()<deadline) SystemClock.sleep(20);
@@ -108,7 +118,7 @@ public final class TouchGamepadInstrumentation extends Instrumentation {
                 TouchGamepadView restored=new TouchGamepadView(activity,activity.desktop);
                 check(restored.mode()==2 && restored.sizePercent()==80 && restored.opacityPercent()==25 && !restored.full(),"saved settings");
             });
-            result.putString("result","PASS multitouch chord, source merge/removal, analog+trigger, cancel, focus/menu/mode release, saved settings");
+            result.putString("result","PASS diagnostic privacy/path collection, multitouch chord, source merge/removal, analog+trigger, cancel, focus/menu/mode release, saved settings");
             outcome=-1;
         } catch (Throwable failure) { result.putString("error",android.util.Log.getStackTraceString(failure)); }
         finally { if (activity!=null) ui(activity::finish); }

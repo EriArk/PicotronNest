@@ -6,13 +6,16 @@ Retroid evidence. Input configuration, project transfers and recovery are
 implemented. Native cartridge controller routing and texture-sized display now
 have [scoped Retroid evidence](GAMEPAD_AND_DISPLAY.md). Configurable
 [phone game touch controls](TOUCH_GAMEPAD.md) are integrated with focused Retroid
-checks. Final product packaging and matching tester instructions remain.
+checks. [Product packaging and matching tester instructions](RELEASE_CANDIDATE.md)
+now prepare a local-project beta candidate. Online functionality is not yet
+implemented; public publication and broad hardware acceptance remain open.
 
 ## Delivery contract
 
 The owner released Retroid for scoped checks on 2026-11-02.
 [Beta readiness](BETA_READINESS.md) tracks that handoff separately from hardware
-acceptance and publication approval. The candidate gate is not yet reached.
+acceptance and publication approval. A scoped local-project candidate is prepared;
+this is not general device or full online-workstation acceptance.
 
 Owner direction (2026-11-02): deliver complete functional bundles with builds and
 short critical checks. Deep regressions and physical acceptance belong to the

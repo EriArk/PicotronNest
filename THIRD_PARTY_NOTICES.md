@@ -1,0 +1,38 @@
+# Third-party components
+
+PicotronNest does not contain Picotron. Users import their own official copy.
+Picotron, its desktop and its tools belong to Lexaloffle. The screenshots in this
+repository document the actual application; they are not a runtime distribution.
+
+The Android package contains these open-source compatibility components:
+
+| Component | Pinned source | Notices included in the APK |
+| --- | --- | --- |
+| PRoot and its loader | Termux PRoot 5.1.107.99 | `PROOT-COPYING.txt` |
+| talloc | 2.5.0 | `TALLOC-LGPL-3.0.txt`, `TALLOC-COPYRIGHT.txt`, `GPL-3.0.txt` |
+| libandroid-shmem | 0.7 | `ANDROID-SHMEM-LICENSE.txt` |
+| glibc loader and libraries | Debian 2.36-9+deb12u14, ARM64 | `GLIBC-COPYRIGHT.txt`, `GLIBC-COPYING.txt`, `GLIBC-COPYING.LIB.txt`, `GLIBC-LICENSES.txt` |
+| SDL2 | 2.32.10, compiled from pinned source | `SDL2-LICENSE.txt`, `SDL2-EMBEDDED-NOTICES.txt` |
+| Android NDK CRT/compiler support | 28.2.13676358 | `NDK-NOTICE.txt` |
+| Linux headers (build input) | Debian linux-libc-dev 6.1.176-1 | `LINUX-HEADERS-COPYRIGHT.txt` |
+
+Full notices are available in **About and diagnostics → Open-source notices**.
+The full upstream text governs each component; a project-wide license does not
+replace component licenses. The talloc source includes LGPL library terms and
+GPL build-tool terms, so both are retained.
+
+Exact URLs, checksums and source/recipe versions are recorded in
+[proot.lock.json](experiments/execution-model/proot.lock.json) and
+[headless.lock.json](experiments/execution-model/headless.lock.json). PRoot,
+talloc and shmem are extracted from pinned Termux packages. The packaging script
+adjusts bounded ELF dynamic strings (`libtalloc.so.2` → `libtalloc.so`, Termux
+library search path → `$ORIGIN`) without replacing program code. SDL2 is built
+with the configuration in `prepare_headless.py`; glibc uses pinned Debian files.
+PicotronNest's SDL observer and Android frontend are original project code.
+
+Every binary release must ship the matching dependency source bundle alongside
+the APK, the PicotronNest source archive, checksums and this notice. The bundle
+contains exact upstream source archives, Debian source/patches, the pinned full
+Termux recipe tree and the project build/adaptation scripts. See
+[release preparation](docs/RELEASING.md). Do not upload private runtimes, signing
+files or the entire `.local` directory as release attachments.

@@ -31,7 +31,14 @@ def main():
     parser.add_argument('--linux-loader', action='store_true', help='Include the pinned PRoot guest probe')
     parser.add_argument('--headless', action='store_true', help='Include the ARM64 glibc/SDL probe; runtime is imported separately')
     parser.add_argument('--desktop-base', type=Path, help='Build the desktop observer using a verified headless APK and sibling build.json')
+    parser.add_argument('--candidate', action='store_true', help='Build the non-debuggable ARM64 product candidate')
+    parser.add_argument('--keystore', type=Path)
+    parser.add_argument('--key-alias', default='picotronnest')
+    parser.add_argument('--password-file', type=Path)
     args = parser.parse_args()
+    if args.candidate and (not args.desktop_base or not args.keystore or not args.password_file):
+        parser.error('--candidate requires --desktop-base, --keystore and --password-file')
+    product = json.loads((ROOT / 'packaging/candidate.json').read_text()) if args.candidate else None
     if args.desktop_base:
         args.headless = True
     if args.headless:
@@ -48,6 +55,11 @@ def main():
             raise SystemExit(f'Required build input missing: {path}')
     sources = sorted((HERE / 'src').rglob('*.java'))
     recorded_sources = [HERE / 'AndroidManifest.xml', HERE / 'native/probe.c', HERE / 'build.py', *sources]
+    if args.candidate:
+        recorded_sources += sorted(p for p in (ROOT / 'packaging').rglob('*') if p.is_file())
+        recorded_sources += [ROOT / 'THIRD_PARTY_NOTICES.md']
+        if (ROOT / 'LICENSE').is_file():
+            recorded_sources += [ROOT / 'LICENSE']
     if args.linux_loader:
         recorded_sources += [HERE / n for n in ['prepare_proot.py', 'proot.lock.json', 'native/linux_guest.c']]
     if args.headless:
@@ -59,7 +71,7 @@ def main():
                                                'native/keyboard_protocol.h', 'native/keyboard_sdl.h', 'native/keyboard_channel.h', 'native/ordered_input.h', 'native/audio_bridge.h', 'native/gamepad_protocol.h', 'native/gamepad_sdl.h')]
     source_hashes = {str(p.relative_to(ROOT)).replace('\\', '/'): digest(p) for p in recorded_sources}
     work = ROOT / '.local/execution-model/builds' / uuid.uuid4().hex
-    artifacts = ROOT / '.local/execution-model/artifacts'
+    artifacts = ROOT / ('.local/release/candidate' if args.candidate else '.local/execution-model/artifacts')
     for directory in (work / 'classes', work / 'dex', work / 'assets', artifacts):
         directory.mkdir(parents=True, exist_ok=True)
     # NDK CRT/compiler support notices accompany the native fixture.
@@ -78,13 +90,25 @@ def main():
                 added, headless = prepare_headless(work / 'headless', llvm)
             extra_files.update(added)
             extra_files['assets/runtime-contract.json'] = HERE / 'runtime-contract.json'
+        if args.candidate:
+            extra_files = {name: path for name, path in extra_files.items() if not name.startswith('lib/x86_64/')}
+            components['packages'] = {name: value for name, value in components['packages'].items() if not name.startswith('lib/x86_64/')}
+            # The managed path uses desktop-exec only; do not ship the headless diagnostic executable.
+            headless['files'].pop('probe/headless-exec', None)
+            extra_files.pop('assets/headless/probe/headless-exec', None)
+            extra_files['assets/headless-components.json'].write_text(json.dumps(headless, indent=2)+'\n', encoding='utf-8')
+            extra_files['assets/licenses/PicotronNest-NOTICE.txt'] = ROOT / 'packaging/PROJECT_NOTICE.txt'
+            if (ROOT / 'LICENSE').is_file():
+                extra_files['assets/licenses/PicotronNest-LICENSE.txt'] = ROOT / 'LICENSE'
+            extra_files['assets/licenses/THIRD_PARTY_NOTICES.md'] = ROOT / 'THIRD_PARTY_NOTICES.md'
+            extra_files['assets/licenses/NDK-NOTICE.txt'] = ndk / 'NOTICE'
         for name, file in extra_files.items():
             if name.startswith('assets/'):
                 target = work / name
                 target.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copyfile(file, target)
     natives = {}
-    for abi, triple in [('arm64-v8a', 'aarch64-linux-android26'), ('x86_64', 'x86_64-linux-android26')]:
+    for abi, triple in ([] if args.candidate else [('arm64-v8a', 'aarch64-linux-android26'), ('x86_64', 'x86_64-linux-android26')]):
         native = work / abi / 'libexecution_probe.so'
         native.parent.mkdir()
         run(llvm / 'clang.exe', f'--target={triple}', '-fPIE', '-pie',
@@ -119,12 +143,20 @@ def main():
         '--lib', android, '--output', work / 'dex', work / 'classes.jar')
     unsigned = work / 'unsigned.apk'
     manifest = HERE / 'AndroidManifest.xml'
-    if args.linux_loader:
+    if args.candidate:
+        import xml.etree.ElementTree as ET
+        manifest = ROOT / 'packaging/AndroidManifest.xml'
+        manifest_root = ET.parse(manifest).getroot()
+        ns = '{http://schemas.android.com/apk/res/android}'
+        if manifest_root.get('package') != product['application_id'] or manifest_root.get(ns+'versionName') != product['version_name'] or int(manifest_root.get(ns+'versionCode')) != product['version_code']:
+            raise SystemExit('Candidate version and manifest disagree')
+    elif args.linux_loader:
         manifest = work / 'AndroidManifest.xml'
         version = '6' if args.desktop_base else ('3' if args.headless else '2')
         manifest.write_text((HERE / 'AndroidManifest.xml').read_text().replace('versionCode="1"', 'versionCode="' + version + '"')
                             .replace('versionName="0.0.1"', 'versionName="0.0.' + version + '"'), encoding='utf-8')
     run(build_tools / 'aapt.exe', 'package', '-f', '-M', manifest,
+        *(['-S', ROOT / 'packaging/res'] if args.candidate else []),
         '-A', work / 'assets', '-I', android, '-F', unsigned)
     with zipfile.ZipFile(unsigned, 'a', compression=zipfile.ZIP_DEFLATED) as archive:
         archive.write(work / 'dex/classes.dex', 'classes.dex')
@@ -135,17 +167,23 @@ def main():
                 archive.write(file, name)
     aligned = work / 'aligned.apk'
     run(build_tools / 'zipalign.exe', '-f', '-P', '16', '4', unsigned, aligned)
-    key = artifacts / 'execution-lab-debug.keystore'
-    if not key.exists():
+    key = args.keystore if args.candidate else artifacts / 'execution-lab-debug.keystore'
+    if args.candidate and (not key.is_file() or not args.password_file.is_file()):
+        raise SystemExit('Signing key/password file not found')
+    if not args.candidate and not key.exists():
         run(keytool, '-genkeypair', '-keystore', key, '-storepass', 'android', '-keypass', 'android',
             '-alias', 'execution-lab', '-keyalg', 'RSA', '-keysize', '2048', '-validity', '3650',
             '-dname', 'CN=PicotronNest Execution Lab')
-    apk = artifacts / 'picotronnest-execution-lab.apk'
+    apk = artifacts / (f'PicotronNest-{product["version_name"]}-arm64.apk' if args.candidate else 'picotronnest-execution-lab.apk')
     run(java, '-jar', build_tools / 'lib/apksigner.jar', 'sign', '--ks', key,
-        '--ks-key-alias', 'execution-lab', '--ks-pass', 'pass:android', '--key-pass', 'pass:android',
+        '--ks-key-alias', args.key_alias if args.candidate else 'execution-lab',
+        '--ks-pass', 'file:'+str(args.password_file.resolve()) if args.candidate else 'pass:android',
+        *([] if args.candidate else ['--key-pass', 'pass:android']),
         '--out', apk, aligned)
     run(java, '-jar', build_tools / 'lib/apksigner.jar', 'verify', apk)
     allowed = {'AndroidManifest.xml', 'assets/NDK-NOTICE.txt', 'classes.dex'}
+    if args.candidate:
+        allowed.update({'resources.arsc', 'res/drawable/ic_launcher.xml'})
     allowed.update(f'lib/{abi}/libexecution_probe.so' for abi in natives)
     allowed.update(extra_files)
     with zipfile.ZipFile(apk) as archive:
@@ -164,6 +202,11 @@ def main():
     metadata = {'ndk': ndk_version, 'build_tools': '36.0.0', 'compile_sdk': 36, 'target_sdk': 36,
                 'apk_sha256': digest(apk), 'fixture_sha256': {abi: digest(p) for abi, p in natives.items()},
                 'source_sha256': source_hashes}
+    if args.candidate:
+        metadata['candidate'] = product
+        metadata['debuggable'] = False
+        metadata['project_license'] = 'LICENSE' if (ROOT / 'LICENSE').is_file() else 'owner decision pending'
+        metadata['apk_payloads'] = sorted(allowed)
     if components:
         metadata['linux_components'] = components
     if headless:

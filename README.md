@@ -1,77 +1,86 @@
+<div align="center">
+
 # PicotronNest
 
-**The real Picotron fantasy workstation, running on Android.**
+### Your pocket fantasy workstation.
 
-**Status: integrated development build — no public beta or download yet.**
+Run the real **Picotron** on Android. Play, write code, draw sprites and pick up
+your projects wherever you are.
 
-[Picotron](https://www.lexaloffle.com/picotron.php) already has its own desktop, code editor, drawing tools, music tools, apps and cartridges. PicotronNest aims to bring that **actual workstation** to Android phones, tablets and gaming handhelds — not recreate those tools in a separate interface.
+**Bring your own Picotron. One app. No root or Termux.**
 
-The intended result is simple: install **one Android APK**, import your own compatible, purchased Picotron runtime, open Picotron's desktop and create or play as you normally would. No root, Termux or second helper application as a final-user prerequisite.
+[Getting started](#getting-started) · [Controls](#play-your-way) · [Help](docs/USER_GUIDE.md) · [Report a problem](https://github.com/EriArk/PicotronNest/issues)
 
-## What PicotronNest is aiming for
+<img src="docs/screenshots/desktop.png" width="720" alt="The original Picotron desktop running inside PicotronNest on a Retroid Pocket Classic">
 
-- **Original Picotron** — its real desktop, windows, tools and `.p64` / `.p64.png` cartridges.
-- **Android input that makes sense** — touch, mouse, physical keyboard, Android soft keyboard and gamepad-controlled pointer/shortcuts.
-- **A proper screen** — crisp pixels and correct proportions across different Android handheld and phone screens.
-- **Your files stay yours** — a persistent Picotron home, with safe backup/import/export paths.
-- **An unobtrusive wrapper** — Android handles setup, the runtime bridge, input, audio and lifecycle; Picotron handles the actual workstation.
+*The actual Picotron desktop on Android, captured on a Retroid Pocket Classic.*
 
-PicotronNest **does not include Picotron**. Users must obtain their own licensed copy from Lexaloffle. The feasibility work is investigating the official **Raspberry Pi 64-bit** build; compatibility, supported Android versions and devices are not yet verified.
+</div>
 
-## Where development actually stands
+## Create and play, in Picotron
 
-This repository currently contains **design documents, a static runtime-package
-inspector and a temporary Android execution lab**, not a finished runner. The
-owner's Raspberry Pi package is ARM64. An owned diagnostic fixture has run with
-target API 36 on Android, followed by an owned Linux guest through packaged
-PRoot. **The official user-imported Picotron now runs an owned headless Lua
-probe on Retroid Pocket Classic (Android 14)**, with repeat-launch and exit
-evidence. Its original desktop frames now also display in the Android lab;
-official interaction and save/reopen now have scoped
-[Retroid workflow evidence](docs/MANAGED_WORKSTATION.md). See the
-[P0a inspection](docs/P0_STATIC_INSPECTION.md),
-[P0b.2 Linux guest findings](docs/P0_LINUX_LOADER.md) and
-[P0c headless evidence](docs/P0_HEADLESS.md) and
-[desktop experiments](docs/P1_DESKTOP.md). The first two hard gates are:
+Your familiar desktop, windows, code editor, graphics tools and cartridges are
+all supplied by **your official Picotron copy**. PicotronNest brings the Android
+controls, fullscreen display and a persistent home for your work.
 
-1. **P0 — run the official Picotron ARM64 binary** within an app-owned Android/Linux compatibility environment. Scoped headless proof exists on Retroid.
-2. **P1 — show the real, interactive Picotron desktop** on an Android screen.
+- **Make room for the game.** Small floating icons and translucent touch controls
+  sit over the picture. No permanent control bar squeezing the screen.
+- **Choose your controls.** Use a handheld gamepad, a mouse and keyboard, or your
+  phone's touch screen and onscreen keyboard. Switch a controller between games
+  and moving the pointer.
+- **Make touch controls yours.** Pick a compact layout or add sticks and triggers.
+  Adjust size and transparency, or hide the controls completely.
+- **Keep creating.** Save in Picotron, close the app and return to the same home.
+  Import/export cartridges and back up your projects through Android's file picker.
 
-The existing PICO-8 Android video bridge hardcodes 128×128 output; Picotron requires its own verified SDL video path. That is why we are testing execution and rendering before building a polished frontend.
+## Play your way
 
-The development APK includes runtime import, persistent home, configurable input,
-project import/export, home backup and interrupted-launch recovery. After import,
-its icon opens Picotron directly. The workstation uses the full Android viewport,
-with small translucent controls instead of a permanent toolbar. Official audio
-reaches Android AudioTrack; audible output still needs listening confirmation.
-[Native gamepad routing and display integration](docs/GAMEPAD_AND_DISPLAY.md)
-now have scoped Retroid evidence. [Translucent touch game controls](docs/TOUCH_GAMEPAD.md)
-include compact/full layouts and saved appearance settings. Final packaging and
-tester instructions remain before the [functional candidate](docs/BETA_READINESS.md).
-There is no public APK.
+<div align="center">
+<img src="docs/screenshots/touch-controls.png" width="540" alt="A project running in the official Picotron with translucent PicotronNest touch controls">
 
-## Project documents
+*An original example project running in Picotron. Touch controls are optional;
+Auto mode hides them when a gamepad is connected.*
+</div>
 
-| Document | Purpose |
-| --- | --- |
-| [Product vision](docs/PRODUCT_VISION.md) | What PicotronNest should feel like and what it must not become |
-| [Status](docs/STATUS.md) | Verified progress, known facts and the next task |
-| [Roadmap](docs/ROADMAP.md) | P0–P5 delivery order and exit gates |
-| [Architecture](docs/ARCHITECTURE.md) | Runtime, display, input, audio, storage and Android boundaries |
-| [Runtime feasibility spike](docs/RUNTIME_SPIKE.md) | Reproducible P0/P1 investigation |
-| [Acceptance](docs/ACCEPTANCE.md) | Device-proven pass/fail checklist |
-| [Owned bridge tests](docs/P1_BRIDGE_TESTS.md) | Emulator input/lifecycle evidence and its limits |
-| [Retroid input check](docs/RETROID_INPUT_CHECK.md) | Prepared short official-runtime verification, still pending |
-| [Input design discussion](docs/INPUT_DESIGN.md) | Proposed phone, handheld and mouse/keyboard behavior |
-| [Reuse and provenance](docs/REUSE_AND_PROVENANCE.md) | Safe reuse from PikoNest and upstream sources |
-| [Agent instructions](AGENTS.md) | Developer/Codex guardrails and priorities |
+The floating **menu** opens controls and settings. The **keyboard** icon lets you
+type. On a gamepad, **Start** goes to the game's pause menu; **Guide** opens the
+PicotronNest menu. Android **Back** also gives you a way out.
 
-## Related work
+## Getting started
 
-PicotronNest is inspired by the separate [PikoNest](https://github.com/EriArk/PikoNest) project, whose Android runtime work offers useful patterns for a single APK, official-user-runtime import and process recovery. Picotron is **not** PICO-8: this project does not depend on PikoNest's workshop or PICO-8 file formats.
+**The first beta candidate is prepared for testing. There is no public APK download yet.**
 
-Relevant upstream references: [official Picotron manual](https://www.lexaloffle.com/dl/docs/picotron_manual.html), [Picotron roadmap](https://www.lexaloffle.com/picotron.php?page=roadmap) and the [PICO-8 Android wrapper](https://github.com/Macs75/pico8-android) used in PikoNest research.
+When you receive a test build:
 
----
+1. Install the PicotronNest APK on your Android device.
+2. Get your own [Picotron copy from Lexaloffle](https://www.lexaloffle.com/picotron.php).
+   This candidate accepts the **Raspberry Pi 64-bit ZIP, version 0.3.0d2**.
+3. Open PicotronNest, choose **Import your runtime** and select that ZIP.
+4. Tap **Start Picotron**. After setup, opening the app takes you straight to Picotron.
 
-PicotronNest is an independent, unofficial project and is not affiliated with Lexaloffle Games. Picotron and its proprietary binaries/assets are not redistributed here.
+**Picotron is not included.** Windows, macOS, PICO-8 and other runtime versions
+cannot be used in this candidate. There is no separate helper app to install.
+
+## Before you try the beta
+
+The current hardware check is **Retroid Pocket Classic, Android 14**. A 64-bit
+ARM Android device is required; other phones, tablets and handhelds still need
+testing. Audio playback and longer play sessions also need tester confirmation.
+
+This first candidate works with local projects. Picotron's online features are
+not enabled; use cartridge import/export to transfer files. Back up your Picotron
+home before uninstalling the app: Android removes its private files on uninstall.
+
+Need help? Read the [user guide](docs/USER_GUIDE.md), or use the short
+[tester checklist](docs/TESTING.md). You can export a report from **Settings and
+projects → About and diagnostics** when reporting a problem.
+
+## For contributors
+
+[Build and release instructions](docs/RELEASING.md) · [Current status](docs/STATUS.md) ·
+[Roadmap](docs/ROADMAP.md) · [Third-party notices](THIRD_PARTY_NOTICES.md)
+
+Inspired by the separate [PikoNest](https://github.com/EriArk/PikoNest) project.
+PicotronNest is an independent, unofficial project and is not affiliated with
+Lexaloffle Games. Picotron belongs to Lexaloffle; its runtime files are never
+included in this repository or the APK.

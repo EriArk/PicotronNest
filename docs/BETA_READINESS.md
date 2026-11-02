@@ -12,13 +12,17 @@ implementation work or repeatedly request the handheld.
 
 ## Gate 1: candidate ready for hardware testing
 
-This gate is **not reached**. The repository still contains development probes,
-not an end-user beta. Emulator fixtures prepare individual contracts; they do
-not substitute for integrating those contracts with official Picotron.
+A **local-project product candidate** is now prepared: 0.1.0-beta.1,
+`art.picotronnest`. It is ready for scoped tester evaluation, not a validated
+general Android release. Packaging, notices, diagnostics and instructions are
+integrated. Online Picotron features are explicitly excluded from this candidate
+(no network permission); audio listening and broader hardware acceptance remain
+open. Source-license selection and public publication remain owner decisions.
+See [candidate evidence](RELEASE_CANDIDATE.md).
 
 | Required capability | Current evidence / work remaining |
 | --- | --- |
-| One Android APK and icon, modern target, no root or helper installation | Target-36 development APK; direct icon launch after import and recovery UI implemented. Final product packaging remains open |
+| One Android APK and icon, modern target, no root or helper installation | Non-debuggable, signed ARM64 product APK, original icon, target 36, one exported launcher and private internal components; actual import/launch on Retroid |
 | User supplies their official compatible runtime through Android SAF | Actual owner 0.3.0d2 Raspberry Pi ZIP imported on Retroid through the picker; pinned staging/activation. Additional runtime contracts remain open |
 | Original workstation video with correct fit and input coordinates | Official desktop and pointer interaction on Retroid. Immersive viewport, texture-sized SDL window and per-presentation managed capture remove redundant padding and the diagnostic throttle. Broader orientation/resize acceptance remains |
 | Touch, mouse/keyboard, phone IME and configurable handheld controls | Shared input and editable cursor/menu/game bindings. Native SDL game controllers and configurable touch gamepad reach official Picotron `btn()` on Retroid. Compact/full touch layouts, ownership/cancel checks and settings are implemented; phone ergonomics, physical selection/reconnect, analog/multiple-player and broader IME acceptance remain |
@@ -26,7 +30,7 @@ not substitute for integrating those contracts with official Picotron.
 | Audible sound and interruption recovery | Official callback PCM reaches Android AudioTrack; no listening confirmation. Focus/duck/background behavior is implemented; physical audio acceptance remains |
 | Persistent native home and projects | Actual `.p64` save/reopen, SAF import/export, ZIP backup and separate-folder restore on Retroid; original/exported/restored hashes match. `.p64.png` hardware workflow and broad upgrade acceptance remain |
 | Reliable lifecycle and recovery | Lease, unfinished marker, process guard and retained environment recovery implemented. Force-stop/recovery tested without replacing home. Long sessions and broader sleep/interruption cases remain with testers |
-| Reviewable candidate and instructions | Final packaging, dependency/license review, supported device scope, diagnostics and tester instructions must match the actual candidate |
+| Reviewable candidate and instructions | Versioned packaging, source/dependency archives, notices, checksum manifest, sanitized diagnostic export and tester/user guides prepared; public publication and project-license choice remain owner decisions |
 
 Continue completing these capabilities in one candidate with focused checks.
 Report hardware uncertainty explicitly; neither fixtures nor successful builds

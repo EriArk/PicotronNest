@@ -23,7 +23,7 @@ public class RuntimeSetupActivity extends Activity {
         @Override public void run() {
             if (paused) return;
             boolean recovery=selection!=null && selection.recoveryRequired;
-            status.setText(heading()+"\n\n"+message+"\n\n"
+            status.setText(message+"\n\n"
                     +(MainActivity.isManagedRunning() ? "Picotron is open." : selection==null ? "Import your Raspberry Pi 64-bit ZIP (0.3.0d2)." : "Picotron "+selection.contract.version)
                     +(recovery ? "\nPicotron was interrupted. Choose Recover interrupted launch below to open it again." : "")
                     +"\n\nProjects use a separate private home. Runtime changes preserve it. Uninstalling the app removes private data."
@@ -34,6 +34,9 @@ public class RuntimeSetupActivity extends Activity {
             start.setEnabled(running || !BUSY.get() && !recovery && selection!=null && BuildConfig.DESKTOP && Build.SUPPORTED_ABIS[0].equals("arm64-v8a"));
             rollback.setEnabled(!BUSY.get() && !recovery && selection!=null && !selection.previous.isEmpty()); cancel.setEnabled(BUSY.get());
             recover.setEnabled(!BUSY.get() && recovery);
+            rollback.setVisibility(selection!=null && !selection.previous.isEmpty() ? android.view.View.VISIBLE : android.view.View.GONE);
+            cancel.setVisibility(BUSY.get() ? android.view.View.VISIBLE : android.view.View.GONE);
+            recover.setVisibility(recovery ? android.view.View.VISIBLE : android.view.View.GONE);
             handler.postDelayed(this,200);
         }
     };
@@ -42,10 +45,14 @@ public class RuntimeSetupActivity extends Activity {
     @Override public void onCreate(Bundle saved) {
         super.onCreate(saved);
         LinearLayout layout=new LinearLayout(this); layout.setOrientation(LinearLayout.VERTICAL); layout.setPadding(24,72,24,24);
+        TextView title=new TextView(this); title.setText(heading()); title.setTextSize(28);
+        title.setTypeface(null,android.graphics.Typeface.BOLD); layout.addView(title);
         status=new TextView(this); layout.addView(status);
         pick=button(layout,"Import your runtime"); start=button(layout,"Start Picotron");
         rollback=button(layout,"Use previous runtime"); cancel=button(layout,"Cancel import");
         Button input=button(layout,"Input settings"); Button projects=button(layout,"Projects and backups");
+        Button about=button(layout,"About and diagnostics");
+        about.setOnClickListener(v -> startActivity(new Intent(this,AboutActivity.class)));
         recover=button(layout,"Recover interrupted launch");
         ScrollView scroll=new ScrollView(this); scroll.addView(layout); setContentView(scroll);
         input.setOnClickListener(v -> startActivity(new Intent(this,InputSettingsActivity.class)));
@@ -92,7 +99,7 @@ public class RuntimeSetupActivity extends Activity {
                     message="Runtime imported and verified. Your home is preserved.";
                 } else if (previous) { selection=store.rollback(); message="Previous runtime selected. Your home is preserved."; }
                 else {
-                    selection=store.inspect(); message="Storage checked.";
+                    selection=store.inspect(); message=selection==null ? "Welcome. Import your Picotron copy to get started." : "Your Picotron is ready.";
                     if (getIntent().getBooleanExtra("auto_launch",false)) {
                         getIntent().removeExtra("auto_launch");
                         if (selection!=null && !selection.recoveryRequired)

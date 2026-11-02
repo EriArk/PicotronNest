@@ -1,0 +1,32 @@
+name: Bug report
+description: Report a problem using PicotronNest
+title: "[Bug] "
+body:
+  - type: markdown
+    attributes:
+      value: "Please do not attach your purchased Picotron ZIP or private projects. Export diagnostics from About and diagnostics if available."
+  - type: input
+    id: version
+    attributes:
+      label: PicotronNest version
+      placeholder: 0.1.0-beta.1
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Device and Android version
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: What happened?
+      description: Include the steps, what you expected, and what actually happened.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Controls and diagnostics
+      description: Which controls were you using? Attach a reviewed diagnostic JSON or screenshot if useful.

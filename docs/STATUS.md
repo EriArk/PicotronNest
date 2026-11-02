@@ -1,18 +1,28 @@
 # Project status
 
-**2026-11-02 — Configurable translucent touch game controls are integrated. Official Picotron consumes touchscreen game input on Retroid; compact/full layouts and focused multi-touch ownership checks pass. Final product packaging and beta acceptance remain open.**
+**2026-11-02 — Product candidate 0.1.0-beta.1 is prepared for local-project testing. Signed ARM64 packaging, user documentation, real README screenshots, diagnostic export and release-attachment tooling are integrated. No public APK/Release has been published.**
 
 PicotronNest is an Android wrapper for the **official, user-imported Picotron runtime**.
 The repository contains a bounded archive inspector and a temporary target-36
 Android execution lab. Its owned Linux guest has now run through packaged
 PRoot on Retroid and an Android emulator. The official owner-imported ARM64
 Picotron now also executes an owned Lua probe on Retroid. The development APK
-now opens Picotron directly after runtime import; there is no
-release-ready product APK. Original desktop frames stream into an Android View;
+now has a separately signed, non-debuggable product candidate that opens Picotron
+directly after runtime import. Original desktop frames stream into an Android View;
 the shared input bundle has emulator evidence. Official Picotron interaction and actual save/reopen now have scoped Retroid evidence.
-Audible output acceptance, broader phone ergonomics and product completion remain open.
+Audible output acceptance, broader phone ergonomics and modern-device compatibility
+remain open. Online Picotron features are unavailable: this candidate has no network
+permission. Owner license selection and publication approval remain separate decisions.
 
 ## Latest evidence
+
+- [Product candidate and release preparation](RELEASE_CANDIDATE.md): independent
+  `art.picotronnest` package, release signature, original icon, versioned manifest,
+  private internal components, notices and allowlisted diagnostic export. Retroid
+  imported the owner's ZIP through SAF and displayed the original desktop and
+  owned showcase project. Git current tree/reachable history contain no runtime
+  payloads; release tooling audits APK/source payloads and prepares local attachments.
+  Public publication and broad tester acceptance remain open.
 
 - [Touch gamepad](TOUCH_GAMEPAD.md): compact/full layouts, two sticks, triggers,
   saved visibility/size/opacity, capability-based Auto and shared player-one
@@ -250,7 +260,9 @@ Do not upgrade a status because code compiles, ADB starts an activity, a process
 
 ## Next action
 
-Prepare final product packaging and matching tester instructions. Retroid was released
+Hand the local-project candidate to testers, settle the owner's source license,
+and address the explicitly missing online functionality as a separate functional
+increment. Publish only after owner approval. Retroid was released
 by the owner for the scoped checks recorded above; deep acceptance remains with
 the owner/testers. Enforcing ARM64 Android execution remains an explicit
 compatibility gap; Retroid evidence does not close it.

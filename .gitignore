@@ -4,6 +4,18 @@ dev-runtime/
 *.apk
 *.aab
 *.apks
+*.keystore
+*.jks
+*.p12
+*.pfx
+*.pem
+*.key
+picotron
+picotron.dat
+*.p64
+*.p64.png
+*.p8
+*.p8.png
 
 # Imported / downloaded runtime archives; only commit deliberately reviewed fixtures
 *.zip

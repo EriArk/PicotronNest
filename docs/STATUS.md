@@ -1,6 +1,6 @@
 # Project status
 
-**2026-11-02 — Integrated laboratory input bundle: ordered key/text/pointer delivery, editor keys and shared session commands. Official input acceptance and the functional beta gate remain open.**
+**2026-11-02 — Runtime import, atomic activation/rollback and persistent-home integration added to the laboratory. Owned storage and input scenarios pass; real Picotron save/reopen and the functional beta gate remain open.**
 
 PicotronNest is an Android wrapper for the **official, user-imported Picotron runtime**.
 The repository contains a bounded archive inspector and a temporary target-36
@@ -9,10 +9,20 @@ PRoot on Retroid and an Android emulator. The official owner-imported ARM64
 Picotron now also executes an owned Lua probe on Retroid. There is no product
 launcher or product APK. Original desktop frames stream into an Android View;
 the shared input bundle is built and emulator-tested. Real Picotron interaction,
-audio, persistent home, safe end-user import and product setup remain open.
+audio, actual save/reopen in the new persistent home and product completion remain open.
 
 ## Latest evidence
 
+- Storage bundle: the shared setup screen imports a pinned owner runtime via
+  Android documents; separate objects, active/previous pointers and home are
+  protected by a cross-process lease and conservative unfinished-session marker.
+  The official desktop launcher can bind the durable home without changing
+  native `-home` semantics. 39 lab and nine archive tests, three Android storage
+  phases and all 17 input scenarios pass. Owned native processes write/reopen a
+  preserved file across runtime replacement; this is not real `.p64` acceptance.
+  The owner's archive also passes the new importer privately on Windows.
+  [Evidence, screenshot, limits and reproduction](STORAGE_BUNDLE.md).
+  Retroid remains untouched. Next is the audio transport/interruption bundle.
 - Integrated input bundle: keyboard, IME and pointer traffic now share one bounded,
   acknowledged native sequence. The shared panel adds source-owned editor keys
   and session commands; quit waits for real process completion and matching
@@ -22,7 +32,7 @@ audio, persistent home, safe end-user import and product setup remain open.
   host tests pass; both APKs build. See [the consolidated evidence](INPUT_BUNDLE.md)
   for final artifacts, full 17-scenario collection and actual screenshot scope.
   Retroid and official Picotron were not tested in this increment. Next is the
-  persistent-home and safe runtime-import bundle, with preservation/failure tests.
+  persistent-home and safe runtime-import bundle, now recorded above.
 - Shared keyboard session: the lab now exposes `keyboard_controls`, an authenticated
   channel owner and Show keyboard control shared with the fixture. The keyboard
   PID must match the frame peer before input is attached. Cancellation, wrong PID,
@@ -196,8 +206,7 @@ Do not upgrade a status because code compiles, ADB starts an activity, a process
 
 ## Next action
 
-Prepare persistent native home and transactional runtime import together,
-including preservation, failed activation and rollback checks. Continue without
+Prepare audio transport, format and interruption handling together. Continue without
 occupying Retroid until the [functional candidate gate](BETA_READINESS.md) is met
 or a concrete hardware dependency prevents further integration.
 The [three-session hardware procedure](RETROID_INPUT_CHECK.md) remains prepared;

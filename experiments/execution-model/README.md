@@ -1,5 +1,12 @@
 # Modern-target execution probe
 
+The optional [storage bundle](../../docs/STORAGE_BUNDLE.md) adds document import,
+atomic runtime selection/rollback and a separate persistent desktop home. Launch
+with `--ez storage_controls true` to open setup. Only the exact inspected ARM64
+package is accepted. It retains the bounded lab session and does not turn this
+probe into the completed product. `run_storage_tests.py --serial emulator-5554`
+checks the shared setup/store with owned content-URI and native-process fixtures.
+
 This temporary lab measures Android execution restrictions and the official
 runtime's process/display boundaries. It is not PicotronNest's product UI.
 The default build uses original native fixtures. Optional `--linux-loader`,

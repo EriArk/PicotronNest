@@ -25,8 +25,12 @@ final class ExecutionProbe {
     private static final int OUTPUT_LIMIT = 16384;
     private final Context app;
     private final boolean keyboardControls;
+    private final boolean managedRuntime;
 
-    ExecutionProbe(Context app, boolean keyboardControls) { this.app = app; this.keyboardControls=keyboardControls; }
+    ExecutionProbe(Context app,boolean keyboardControls) { this(app,keyboardControls,false); }
+    ExecutionProbe(Context app,boolean keyboardControls,boolean managedRuntime) {
+        this.app=app; this.keyboardControls=keyboardControls; this.managedRuntime=managedRuntime;
+    }
 
     void run() {
         File root = new File(app.getFilesDir(), BuildConfig.DESKTOP ? "desktop-probes" :
@@ -43,14 +47,17 @@ final class ExecutionProbe {
                         throw new IOException("unfinished session retained; inspect before retry");
                     }
                 }
-                execute(root);
+                try (RuntimeStore.Lease storage=managedRuntime ? AndroidRuntimeStore.open(app).begin() : null) {
+                    execute(root,storage);
+                    if (storage!=null) storage.completed();
+                }
             }
         } catch (Exception error) {
             Log.e("PicotronNestProbe", "Probe failed; retained evidence: " + error);
         }
     }
 
-    private void execute(File root) throws Exception {
+    private void execute(File root,RuntimeStore.Lease storage) throws Exception {
         String token = UUID.randomUUID().toString();
         File session = new File(root, token);
         mkdir(session);
@@ -88,8 +95,9 @@ final class ExecutionProbe {
         }
         if (BuildConfig.HEADLESS) {
             report.put("schema", BuildConfig.DESKTOP ? 4 : 3);
-            new HeadlessProbe(app, this, keyboardControls).run(session, token, report, cases);
+            new HeadlessProbe(app, this, keyboardControls).run(session, token, report, cases,storage);
         }
+        if (storage!=null && !report.optBoolean("managed_session_closed")) throw new IOException("managed session completion unconfirmed");
         report.put("phase", "COMPLETE");
         writeJson(reportFile, report);
         writeJson(new File(root, "latest.json"), report);

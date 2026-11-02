@@ -11,6 +11,7 @@ public class MainActivity extends Activity {
     private DesktopView desktop;
     private LabInputControls inputControls;
     private boolean keyboardControls;
+    private boolean managedRuntime;
     final DesktopView desktopView() { return desktop; }
     final LabInputControls inputControls() { return inputControls; }
     @Override public boolean dispatchKeyEvent(android.view.KeyEvent event) {
@@ -35,6 +36,10 @@ public class MainActivity extends Activity {
 
     @Override public void onCreate(Bundle saved) {
         super.onCreate(saved);
+        if (getIntent().getBooleanExtra("storage_controls",false)) {
+            startActivity(new android.content.Intent(this,RuntimeSetupActivity.class)); finish(); return;
+        }
+        managedRuntime=getIntent().getBooleanExtra("managed_runtime",false);
         boolean sessionControls=getIntent().getBooleanExtra("session_controls",false);
         keyboardControls=sessionControls || getIntent().getBooleanExtra("keyboard_controls",false);
         TextView text = new TextView(this);
@@ -84,5 +89,5 @@ public class MainActivity extends Activity {
     }
 
     /** Test subclasses replace only the owned process, retaining the real lifecycle gate. */
-    protected void runProbe(android.content.Context app) { new ExecutionProbe(app,keyboardControls).run(); }
+    protected void runProbe(android.content.Context app) { new ExecutionProbe(app,keyboardControls,managedRuntime).run(); }
 }

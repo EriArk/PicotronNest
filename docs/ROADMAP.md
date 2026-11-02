@@ -91,6 +91,11 @@ consumption still requires hardware evidence; product input configuration remain
 
 ## P3 — Storage and lifecycle
 
+The [storage bundle](STORAGE_BUNDLE.md) now provides pinned runtime document
+import, staged activation/rollback, persistent desktop-home binding and an exclusive
+session lease. Owned Android preservation/failure checks pass. Real Picotron
+save/reopen, long sessions, project export and reviewed recovery remain open.
+
 - Run with a persistent `-home` owned by PicotronNest; distinguish staging, installed runtime and user data.
 - Safely import/export using Android SAF; no globally writable runtime root or unbounded extraction.
 - Verify saving/reopening .p64 projects, replacing user runtime versions without deleting projects, disk-full behavior and app process recreation.

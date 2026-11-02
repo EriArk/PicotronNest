@@ -15,13 +15,13 @@ not substitute for integrating those contracts with official Picotron.
 | Required capability | Current evidence / work remaining |
 | --- | --- |
 | One Android APK and icon, modern target, no root or helper installation | Target-36 execution lab and audited runtime components exist; product packaging/setup is open |
-| User supplies their official compatible runtime through Android SAF | Bounded archive inspector and private developer provisioning exist; end-user selection, staging, activation, rejection/rollback and upgrade flow are open |
+| User supplies their official compatible runtime through Android SAF | [Shared storage setup](STORAGE_BUNDLE.md) adds a document picker and pinned-package staging/activation/rollback; owned content-URI workflow passes on Android and the owner's archive passes on Windows. Manual official import/launch on hardware, additional contracts and product recovery remain open |
 | Original workstation video with correct fit and input coordinates | Real frames have Retroid lab evidence; supported orientations/resizes and integrated controls still need implementation/acceptance |
 | Touch, mouse/keyboard, phone IME and configurable handheld controls | [Integrated lab input](INPUT_BUNDLE.md) combines pointer modes, supplied profiles, authenticated ordered key/text/pointer delivery and touch editor keys. Official input acceptance, product binding controls, physical device selection/reconnection and cartridge-control routing remain open |
 | Reachable keyboard, host menu, resume and deliberate exit | [Shared session menu](INPUT_BUNDLE.md) and ordered SDL quit are wired into the official-runtime lab; cancellation, release and observed process completion pass with the owned native fixture. Actual Picotron shutdown and product integration remain open |
 | Audible sound and interruption recovery | Android audio path and validation are open |
-| Persistent native home and projects | Persistent `-home`, save/reopen, `.p64`/`.p64.png` workflows, SAF project import/export and upgrade preservation are open |
-| Reliable lifecycle and recovery | Owned process/lifecycle evidence exists; integrated cold start, normal exit/relaunch, sleep/Home, interrupted/unknown-session recovery and no surviving children are open |
+| Persistent native home and projects | [Persistent home](STORAGE_BUNDLE.md) is bound by the managed desktop lab, separate from runtime versions. Owned native file write/reopen and preservation pass; actual Picotron `.p64`/`.p64.png` workflows, project import/export/backup and hardware upgrade preservation remain open |
+| Reliable lifecycle and recovery | Session lease and unfinished-marker checks prevent conflicting storage changes and fail closed after host loss. Reviewed recovery, long sessions, integrated cold start/relaunch, sleep/Home and official process cleanup remain open |
 | Reviewable candidate and instructions | Reproducible private APK, dependency/license review, install/import steps, supported device scope, diagnostics and known limitations must match the actual candidate |
 
 Before asking the owner to reserve Retroid, assemble these capabilities in one

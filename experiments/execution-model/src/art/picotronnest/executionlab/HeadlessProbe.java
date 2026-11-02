@@ -24,12 +24,15 @@ final class HeadlessProbe {
         this.app = app; this.runner = runner; this.keyboardControls=keyboardControls;
     }
 
-    void run(File session, String token, JSONObject report, JSONArray cases) throws Exception {
+    void run(File session, String token, JSONObject report, JSONArray cases,RuntimeStore.Lease storage) throws Exception {
         if (!Build.SUPPORTED_ABIS[0].equals("arm64-v8a")) throw new IOException("headless requires native ARM64");
         JSONObject components = jsonAsset("headless-components.json");
         JSONObject contract = jsonAsset("runtime-contract.json");
-        File imported = new File(app.getFilesDir(), "headless-import/" + contract.getString("archive_sha256"));
-        if (!new File(imported, "ready").isFile()) throw new IOException("owner runtime has not been provisioned");
+        File imported = storage==null ? new File(app.getFilesDir(), "headless-import/" + contract.getString("archive_sha256"))
+                : storage.selection.runtime;
+        if (storage==null && !new File(imported, "ready").isFile()) throw new IOException("owner runtime has not been provisioned");
+        if (storage!=null && !storage.selection.contract.id.equals(contract.getString("archive_sha256")))
+            throw new IOException("managed runtime does not match this lab closure");
         File root = new File(session, "headless-root");
         if (!root.mkdir()) throw new IOException("fresh root creation failed");
         JSONObject files = components.getJSONObject("files");
@@ -85,6 +88,13 @@ final class HeadlessProbe {
                     new File(nativeDir, "libproot.so").getPath(), "--kill-on-exit",
                     "-r", root.getPath(), "-b", "/proc", "-b", "/dev/null", "-b", "/dev/urandom",
                     "-w", "/runtime", "/lib/ld-linux-aarch64.so.1", "--library-path", "/lib", "/probe/desktop-exec"};
+            if (storage!=null) {
+                java.util.ArrayList<String> bound=new java.util.ArrayList<>(java.util.Arrays.asList(command));
+                int work=bound.indexOf("-w");
+                bound.add(work,"-b"); bound.add(work+1,storage.selection.home.getPath()+":/home");
+                command=bound.toArray(new String[0]);
+                report.put("managed_runtime",storage.selection.contract.id).put("managed_home","private persistent home");
+            }
             if (keyboardControls) env.put("PICONEST_INPUT_SOCKET",socketName+".keys");
             try (FrameReceiver receiver = new FrameReceiver(socketName,keyboardControls);
                  KeyboardChannel keyboard=keyboardControls ? new KeyboardChannel(app,socketName+".keys",receiver) : null) {
@@ -92,6 +102,8 @@ final class HeadlessProbe {
                 try {
                     JSONObject process=runner.runWithEnvironment("picotron_desktop_trace", 35000, env, command);
                     cases.put(process);
+                    if (storage!=null) report.put("managed_session_closed",process.optString("outcome").equals("EXITED")
+                            && process.optInt("exit_code",-1)==0 && process.optString("output").contains("PICONEST_TRACE_DONE"));
                     report.put("desktop_frames", receiver.evidence());
                     if (keyboard!=null) {
                         JSONObject receipt=keyboard.finish(); report.put("desktop_keyboard",receipt);

@@ -17,6 +17,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <time.h>
+#include <fcntl.h>
 
 static void put(unsigned char *p, uint32_t value) {
     for (int i = 0; i < 4; ++i) p[i] = (unsigned char)(value >> (i * 8));
@@ -237,7 +238,25 @@ static void frame(int fd, int w, int h, uint32_t seq) {
     }
     send_bytes(fd, b, (size_t)(16 + w * h * 4));
 }
+static int home_proof(const char *home,const char *mode) {
+    const char proof[]="Owned persistent home proof; not a Picotron cartridge.\n";
+    int writing=!strcmp(mode,"write");
+    if (!writing && strcmp(mode,"read")) return 91;
+    int directory=open(home,O_RDONLY|O_DIRECTORY|O_NOFOLLOW|O_CLOEXEC);
+    if (directory<0) return 92;
+    int file=openat(directory,"owned-home-proof.txt",O_NOFOLLOW|O_CLOEXEC|(writing ? O_WRONLY|O_CREAT|O_EXCL : O_RDONLY),0600);
+    if (file<0) return 93;
+    if (writing) {
+        if (write(file,proof,sizeof(proof))!=(ssize_t)sizeof(proof) || fsync(file) || fsync(directory)) return 94;
+    } else {
+        char bytes[sizeof(proof)+1]; ssize_t n=read(file,bytes,sizeof(bytes));
+        if (n!=(ssize_t)sizeof(proof) || memcmp(bytes,proof,sizeof(proof))) return 95;
+    }
+    if (close(file) || close(directory)) return 96;
+    printf("STORE pid=%ld uid=%ld mode=%s bytes=%zu\n",(long)getpid(),(long)getuid(),mode,sizeof(proof)); return 0;
+}
 int main(int argc, char **argv) {
+    if (argc==4 && !strcmp(argv[1],"--home-proof")) return home_proof(argv[2],argv[3]);
     alarm(90); setvbuf(stdout, NULL, _IOLBF, 0); selftest();
     if ((argc < 2 || argc > 4) || strlen(argv[1]) > 90 || (argc >= 3 && strlen(argv[2]) > 90)) return 40;
     int ordered_mode=argc==4, trace_order=argc==4 && !strcmp(argv[3],"trace");

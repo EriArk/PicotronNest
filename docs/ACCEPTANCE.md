@@ -59,6 +59,11 @@ or real IME typing acceptance is claimed.
 
 ## A3 — Picotron workflows and persistence
 
+The [storage bundle](STORAGE_BUNDLE.md) adds managed persistent-home binding,
+document import and atomic runtime selection. Owned files survive native child
+write/read, version replacement and rollback in separate emulator host processes.
+These checks do not close the official Picotron workflow items below.
+
 - [ ] A3.1 Open the **real** Picotron code editor; create a small ordinary cartridge and run it.
 - [ ] A3.2 Use the real graphics editor; save a native `.p64` project, exit Picotron and re-open it unchanged.
 - [ ] A3.3 `.p64.png` opening is checked in the official runtime without rewriting source.

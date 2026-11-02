@@ -21,7 +21,7 @@ def main():
     artifacts = ROOT / '.local/bridge-tests/artifacts'
     for directory in [work / 'classes', work / 'dex', work / 'assets', artifacts]:
         directory.mkdir(parents=True, exist_ok=True)
-    sources = sorted((HERE / 'src').rglob('*.java')) + sorted((HERE / 'tests/android').glob('*.java'))
+    sources = sorted((HERE / 'src').rglob('*.java')) + sorted((HERE / 'tests/android').glob('*.java')) + [HERE / 'tests/RuntimeStoreChecks.java']
     inputs = sources + [HERE / n for n in ['build_bridge_tests.py', 'build.py', 'tests/bridge_fixture.c', 'tests/ordered_selftest.h',
                                           'native/pointer_protocol.h', 'native/pointer_sdl.h', 'native/keyboard_protocol.h', 'native/keyboard_sdl.h', 'native/keyboard_channel.h', 'native/ordered_input.h',
                                           'prepare_headless.py', 'prepare_proot.py', 'headless.lock.json']]
@@ -58,8 +58,12 @@ def main():
             android:allowBackup="false" android:extractNativeLibs="true"
             android:theme="@android:style/Theme.Material.Light.NoActionBar">
             <activity android:name="art.picotronnest.executionlab.BridgeTestActivity" android:exported="false" />
+            <activity android:name="art.picotronnest.executionlab.StorageSetupActivity" android:exported="false" />
+            <provider android:name="art.picotronnest.executionlab.StorageDocuments" android:authorities="art.picotronnest.bridgetest.storage" android:exported="false" />
         </application>
         <instrumentation android:name="art.picotronnest.executionlab.BridgeInstrumentation"
+            android:targetPackage="art.picotronnest.bridgetest" />
+        <instrumentation android:name="art.picotronnest.executionlab.StorageInstrumentation"
             android:targetPackage="art.picotronnest.bridgetest" />
     </manifest>''', encoding='utf-8')
     unsigned = work / 'unsigned.apk'

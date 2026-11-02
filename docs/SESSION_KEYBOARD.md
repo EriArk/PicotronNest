@@ -125,12 +125,15 @@ the lab's retained-session quota. No Retroid launch was performed in this increm
 
 ## Remaining work
 
-Keyboard and pointer packets still use separate sockets. Queue/write completion
+Historical boundary at this increment: keyboard and pointer packets used separate sockets. Queue/write completion
 does not establish their relative SDL consumption order. Ctrl+click, Shift+drag
-and rapid cross-device chords remain explicitly unaccepted. The next input step
-is an ordered protocol or acknowledged coordination boundary shared by native
+and rapid cross-device chords remained explicitly unaccepted. The next input step
+was an ordered protocol or acknowledged coordination boundary shared by native
 and Android adapters, with native event-order checks under fragmentation and
 backpressure. Arbitrary delays are not an ordering contract.
+
+The subsequent [input bundle](INPUT_BUNDLE.md) implements that boundary and
+checks native event ordering, touch editor keys and shared session exit.
 
 Official SDL/Picotron event consumption, physical keyboards/controllers, AltGr,
 layout and lock keys, complete IME editing, audio, persistent projects, SAF import

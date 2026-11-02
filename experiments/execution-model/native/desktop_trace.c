@@ -4,6 +4,7 @@
 #include "pointer_protocol.h"
 #include "pointer_sdl.h"
 #include "keyboard_channel.h"
+#include "ordered_input.h"
 #include <dlfcn.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -34,6 +35,8 @@ static unsigned pending_count, pending_index;
 static Uint64 duration_ms = 20000;
 static int keyboard_socket=-1, keyboard_enabled, keyboard_failed, prefer_keyboard=1;
 static PNKeyboardChannel key_channel;
+static PNOrderedInput ordered;
+static int ordered_enabled;
 
 static int send_all(const void *data, size_t length) {
     const unsigned char *p = data;
@@ -77,7 +80,9 @@ __attribute__((constructor)) static void begin(void) {
                     (socklen_t)(offsetof(struct sockaddr_un, sun_path) + 1 + length))) _exit(76);
         puts("PICONEST_FRAME_CONNECTED");
     }
-    name=getenv("PICONEST_KEYBOARD_SOCKET");
+    name=getenv("PICONEST_INPUT_SOCKET");
+    ordered_enabled=name!=NULL;
+    if (!name) name=getenv("PICONEST_KEYBOARD_SOCKET");
     if (name) {
         struct sockaddr_un address={0}; size_t length=strlen(name);
         if (!length || length>sizeof(address.sun_path)-2 || frame_socket<0) _exit(79);
@@ -89,22 +94,28 @@ __attribute__((constructor)) static void begin(void) {
             || connect(keyboard_socket,(struct sockaddr *)&address,(socklen_t)(offsetof(struct sockaddr_un,sun_path)+1+length))
             || getsockopt(keyboard_socket,SOL_SOCKET,SO_PEERCRED,&peer,&size) || size!=sizeof(peer) || peer.uid!=getuid()) _exit(79);
         keyboard_enabled=1; puts("PICONEST_KEYBOARD_CONNECTED");
+        if (ordered_enabled) puts("PICONEST_ORDERED_CONNECTED");
     }
 }
 
 __attribute__((destructor)) static void finish(void) {
+    if (ordered_enabled) pointer=ordered.pointer;
     printf("PICONEST_TRACE_DONE frames=%u updates=%u surfaces=%u quit=%d\n", frames, updates, surfaces, quit_sent);
     printf("PICONEST_STREAM_DONE frames=%u\n", streamed);
     printf("PICONEST_INPUT_DONE packets=%u downs=%u ups=%u held=%u\n",
            pointer.packets, pointer.downs, pointer.ups, pointer.buttons);
     if (frame_socket >= 0) close(frame_socket);
     if (keyboard_enabled) {
-        const PNKeyboardSDL *keyboard=&key_channel.bridge;
+        const PNKeyboardSDL *keyboard=ordered_enabled ? &ordered.key : &key_channel.bridge;
         unsigned held=0; for (unsigned i=1;i<512;++i) held+=keyboard->delivered[i];
         printf("PICONEST_KEYBOARD_DONE packets=%u downs=%u ups=%u repeats=%u held=%u events=%u text_events=%u text_bytes=%u suppressed=%u pending=%u buffered=%zu failed=%d\n",
                keyboard->protocol.packets,keyboard->protocol.downs,keyboard->protocol.ups,keyboard->protocol.repeats,held,keyboard->events,
-               keyboard->text_events,keyboard->protocol.text_bytes,key_channel.suppressed,keyboard->count-keyboard->index,key_channel.used,keyboard_failed);
+               keyboard->text_events,keyboard->protocol.text_bytes,ordered_enabled ? ordered.suppressed : key_channel.suppressed,
+               keyboard->count-keyboard->index,ordered_enabled ? ordered.used : key_channel.used,keyboard_failed);
     }
+    if (ordered_enabled) printf("PICONEST_ORDERED_DONE packets=%u acknowledged=%u events=%u quits=%u pending=%u failed=%d\n",
+        ordered.packets,ordered.acknowledged,ordered.events,ordered.quits,
+        ordered.count-ordered.index+ordered.key.count-ordered.key.index,ordered.error);
     if (keyboard_socket>=0) close(keyboard_socket);
     free(frame_pixels);
 }
@@ -240,6 +251,10 @@ static int pointer_event(SDL_Event *event) {
 
 Uint32 SDL_GetMouseState(int *x, int *y) {
     Uint32 (*real)(int *, int *) = symbol("SDL_GetMouseState");
+    if (ordered_enabled) {
+        if (x) *x=ordered.x; if (y) *y=ordered.y;
+        return pn_mouse_mask(ordered.buttons);
+    }
     if (frame_socket < 0) return real(x, y);
     if (x) *x = pointer.x;
     if (y) *y = pointer.y;
@@ -249,6 +264,7 @@ Uint32 SDL_GetMouseState(int *x, int *y) {
 void SDL_WarpMouseInWindow(SDL_Window *window, int x, int y) {
     void (*real)(SDL_Window *, int, int) = symbol("SDL_WarpMouseInWindow");
     pointer.x = x; pointer.y = y;
+    if (ordered_enabled) { ordered.pointer.x=ordered.x=x; ordered.pointer.y=ordered.y=y; }
     real(window, x, y);
 }
 
@@ -265,16 +281,28 @@ static int keyboard_event(SDL_Event *event) {
     }
     return ready;
 }
+static int ordered_event(SDL_Event *event) {
+    ordered.suppress_text=!SDL_IsTextInputActive();
+    Uint32 ticks=SDL_GetTicks(), window=trace_window ? SDL_GetWindowID(trace_window) : 0;
+    int ready=keyboard_socket<0 ? pn_ordered_pop(&ordered,event)
+        : pn_ordered_read(&ordered,keyboard_socket,event,window_width,window_height,ticks,window,SDL_GetKeyFromScancode);
+    if (ordered.error && keyboard_socket>=0) {
+        keyboard_failed=1; printf("PICONEST_KEYBOARD_ERROR code=%d\n",ordered.error);
+        close(keyboard_socket); keyboard_socket=-1;
+    }
+    if (ready && event && event->type==SDL_QUIT) { quit_sent=1; puts("PICONEST_TRACE_QUIT ordered=1"); }
+    return ready;
+}
 
 const Uint8 *SDL_GetKeyboardState(int *count) {
     const Uint8 *(*real)(int *)=symbol("SDL_GetKeyboardState");
     if (!keyboard_enabled) return real(count);
     if (count) *count=512;
-    return key_channel.bridge.delivered;
+    return ordered_enabled ? ordered.key.delivered : key_channel.bridge.delivered;
 }
 SDL_Keymod SDL_GetModState(void) {
     SDL_Keymod (*real)(void)=symbol("SDL_GetModState");
-    return keyboard_enabled ? pn_sdl_key_mods(key_channel.bridge.delivered) : real();
+    return keyboard_enabled ? pn_sdl_key_mods(ordered_enabled ? ordered.key.delivered : key_channel.bridge.delivered) : real();
 }
 
 int SDL_PollEvent(SDL_Event *event) {
@@ -287,6 +315,7 @@ int SDL_PollEvent(SDL_Event *event) {
         return 1;
     }
     if (!quit_sent) {
+        if (ordered_enabled) return ordered_event(event) ? 1 : real(event);
         // Preserve order within each channel without starving the other under continuous input.
         if (prefer_keyboard && keyboard_event(event)) { if (event) prefer_keyboard=0; return 1; }
         if (event && pointer_event(event)) { prefer_keyboard=1; return 1; }

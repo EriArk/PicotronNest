@@ -213,7 +213,7 @@ chord cleanup and loading in a new host process. They capture `actions.png` and
 The fourteenth scenario, `--mode session`, exercises the
 [shared MainActivity pointer controls](../../docs/SESSION_INPUT.md), including
 invalid launch configuration, mode switching, recreation and disconnect.
-It captures `session.png`; the default run now includes all fourteen scenarios.
+It captures `session.png`.
 The collector retains actual labeled emulator screenshots as `keyboard.png`,
 `cursor.png`, `combined.png`, `profile.png` and `profile-read.png` beside
 their private JSON reports. The official-runtime lab now optionally exposes
@@ -223,10 +223,17 @@ the bounded configuration contract and remaining native keyboard integration.
 
 The [native keyboard bridge](../../docs/NATIVE_KEYBOARD.md) adds shared SDL key/text
 construction and socket fragmentation/EOF self-tests to the owned native fixture.
-Live keyboard records now traverse that event builder. The ARM64 observer contains
-an optional `PICONEST_KEYBOARD_SOCKET` endpoint. The [shared keyboard owner](../../docs/SESSION_KEYBOARD.md)
-opens it when the Activity receives `--ez keyboard_controls true` (default off),
-also exposing the Show keyboard button. `--mode keysession` checks the shared
-channel, button, recreation, IME geometry and stale-input rejection. The full
-collector now runs fifteen scenarios. No SDL/Picotron consumption claim follows
-from the fixture; modifier-plus-pointer ordering remains open.
+Live keyboard records now traverse that event builder. The
+[integrated input bundle](../../docs/INPUT_BUNDLE.md) uses `PICONEST_INPUT_SOCKET`
+for one acknowledged key/text/pointer/reset/quit order when the Activity receives
+`--ez keyboard_controls true` (default off). `--ez session_controls true` also
+attaches the shared session menu and verified exit backend. The editor-key panel
+provides touch modifiers and repeat/cancel keys; the existing PNK1 endpoint is
+retained only for explicit legacy experiments. Paired sender/observer builds are required.
+
+`--mode keysession` checks the shared channel, recreation and IME geometry.
+`--mode bundle` checks rapid modifier/pointer order, mixed input ownership,
+editor keys, IME and menu-driven process exit. `--mode bundle-disconnect` checks
+socket loss while holding Ctrl and a pointer button. The default collector now
+runs all 17 scenarios and retains `bundle.png` beside its receipt. No official
+SDL/Picotron consumption or physical device acceptance follows from these fixtures.

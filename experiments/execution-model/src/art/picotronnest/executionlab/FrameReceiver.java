@@ -19,8 +19,13 @@ final class FrameReceiver implements AutoCloseable {
     private volatile int received, lastSequence, peerPid, width, height;
     private volatile PointerSender pointer;
     private volatile boolean closing;
+    private final boolean orderedInput;
 
     FrameReceiver(String name) throws IOException {
+        this(name,false);
+    }
+    FrameReceiver(String name,boolean orderedInput) throws IOException {
+        this.orderedInput=orderedInput;
         server = new LocalServerSocket(name);
         DesktopView.begin();
         worker = new Thread(this::receive, "desktop-frames");
@@ -40,8 +45,10 @@ final class FrameReceiver implements AutoCloseable {
                 throw new IOException("frame peer UID mismatch");
             peerPid = client.getPeerCredentials().getPid();
             client.setSoTimeout(5000);
-            pointer = new PointerSender(client.getOutputStream());
-            DesktopView.pointer(pointer);
+            if (!orderedInput) {
+                pointer = new PointerSender(client.getOutputStream());
+                DesktopView.pointer(pointer);
+            }
             InputStream input = client.getInputStream();
             FrameStream stream = new FrameStream();
             while (!closing && stream.next(input)) {
@@ -52,8 +59,7 @@ final class FrameReceiver implements AutoCloseable {
             }
         } catch (IOException | ErrnoException error) { if (!closing) failure = error.toString(); }
         finally {
-            closing = true;
-            DesktopView.pointer(null);
+            synchronized (this) { closing = true; DesktopView.pointer(null); }
             if (pointer != null) pointer.close();
             // Interrupting a Java thread alone cannot unblock a socket write.
             LocalSocket socket = client;
@@ -66,6 +72,10 @@ final class FrameReceiver implements AutoCloseable {
     }
 
     int livePeerPid() { return closing ? 0 : peerPid; }
+    synchronized void bindOrdered(OrderedInputWriter writer) throws IOException {
+        if (!orderedInput || closing || peerPid<=0 || pointer!=null) throw new IOException("ordered frame binding unavailable");
+        pointer=new PointerSender(writer); DesktopView.pointer(pointer);
+    }
     int pointerAccepted() { PointerSender sender=pointer; return sender==null ? 0 : sender.accepted(); }
 
     /** Session transport only; callers must own capture and release before shutdown. */

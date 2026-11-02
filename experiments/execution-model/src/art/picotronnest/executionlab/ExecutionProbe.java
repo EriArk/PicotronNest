@@ -113,6 +113,7 @@ final class ExecutionProbe {
         builder.environment().remove("LD_PRELOAD");
         builder.environment().remove("LD_LIBRARY_PATH");
         builder.environment().remove("PICONEST_KEYBOARD_SOCKET");
+        builder.environment().remove("PICONEST_INPUT_SOCKET");
         builder.environment().putAll(environment);
         final Process process;
         try { process = builder.start(); }

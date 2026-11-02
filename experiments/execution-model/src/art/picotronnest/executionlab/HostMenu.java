@@ -10,7 +10,7 @@ import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.ListView;
 
-/** Optional host-command experiment. The official launcher does not attach this menu. */
+/** Optional host commands shared by the official-runtime lab and owned fixture. */
 final class HostMenu implements AutoCloseable {
     private final Activity activity;
     private final DesktopView desktop;

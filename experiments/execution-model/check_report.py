@@ -86,6 +86,21 @@ def validate(report, build, census):
                         'keyboard state, pending input or text delivery unconfirmed')
                 require(events == downs + ups + repeats + texts and texts <= text_bytes <= 31 * texts,
                         'keyboard SDL event accounting mismatch')
+            ordered_host = report.get('desktop_keyboard', {}).get('ordered') if isinstance(report.get('desktop_keyboard'), dict) else None
+            if 'PICONEST_ORDERED_' in output or ordered_host is not None:
+                require(build.get('desktop_ordered_input') is True and isinstance(ordered_host, dict),
+                        'ordered input build/host evidence missing')
+                records = re.findall(r'^PICONEST_ORDERED_DONE packets=(\d+) acknowledged=(\d+) events=(\d+) quits=(\d+) pending=(\d+) failed=(\d+)$', output, re.M)
+                require(len(records) == 1 and output.count('PICONEST_ORDERED_CONNECTED') == 1,
+                        'ordered input lifecycle missing or duplicated')
+                packets, acknowledged, events, quits, pending, failed = map(int, records[0])
+                require(all(type(ordered_host.get(key)) is int for key in ('accepted','sent','acknowledged','events')),
+                        'ordered input counters invalid')
+                require(packets == acknowledged == ordered_host['accepted'] == ordered_host['sent'] == ordered_host['acknowledged']
+                        and events == ordered_host['events'] and quits in (0, 1) and pending == failed == 0,
+                        'ordered delivery or shutdown unconfirmed')
+                require(packets == report['desktop_keyboard']['packets'] + report.get('desktop_frames', {}).get('pointer_packets', -1) + quits,
+                        'ordered input packet accounting mismatch')
             if build.get('desktop_live'):
                 live = report.get('desktop_frames', {})
                 require('error' not in live and live.get('frames', 0) >= 10, 'live frame receiver failed')

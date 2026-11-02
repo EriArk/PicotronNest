@@ -20,6 +20,26 @@ def desktop_fixture():
 
 
 class DesktopEvidence(unittest.TestCase):
+    def test_ordered_delivery_requires_native_acknowledgement(self):
+        report, build, census = desktop_fixture()
+        build.update(desktop_keyboard_bridge=True, desktop_ordered_input=True)
+        report['desktop_keyboard'] = dict(peer_pid=500,packets=2,accepted=2,
+            ordered=dict(accepted=6,sent=6,acknowledged=6,events=8))
+        report['cases'][-1]['output'] += ('PICONEST_KEYBOARD_CONNECTED\nPICONEST_ORDERED_CONNECTED\n'
+            'PICONEST_KEYBOARD_DONE packets=2 downs=1 ups=1 repeats=0 held=0 events=2 text_events=0 text_bytes=0 suppressed=0 pending=0 buffered=0 failed=0\n'
+            'PICONEST_ORDERED_DONE packets=6 acknowledged=6 events=8 quits=1 pending=0 failed=0\n')
+        self.assertEqual(validate(report,build,census),'arm64-v8a')
+        for key,value in [('accepted',7),('sent',5),('acknowledged',5),('events',7),('accepted',True)]:
+            changed=deepcopy(report); changed['desktop_keyboard']['ordered'][key]=value
+            with self.subTest(key=key), self.assertRaises(ValueError): validate(changed,build,census)
+        for old,new in [('acknowledged=6','acknowledged=5'),('quits=1','quits=2'),
+                        ('pending=0 failed=0','pending=1 failed=0'),('failed=0\n','failed=1\n'),
+                        ('PICONEST_ORDERED_CONNECTED','missing')]:
+            changed=deepcopy(report); changed['cases'][-1]['output']=changed['cases'][-1]['output'].replace(old,new)
+            with self.subTest(change=new), self.assertRaises(ValueError): validate(changed,build,census)
+        del report['desktop_keyboard']['ordered']
+        with self.assertRaises(ValueError): validate(report,build,census)
+
     def test_keyboard_requires_host_peer_and_native_delivery(self):
         report, build, census = desktop_fixture()
         build['desktop_keyboard_bridge'] = True

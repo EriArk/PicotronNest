@@ -1,5 +1,9 @@
 # Shared lab pointer controls
 
+Subsequent integration: [INPUT_BUNDLE](INPUT_BUNDLE.md) adds ordered keyboard,
+IME and pointer delivery, editor keys and shared session commands to this panel.
+The evidence below records the earlier pointer-selection milestone.
+
 ## What is integrated
 
 `MainActivity` now has an explicit `input_controls` opt-in for the official-runtime

@@ -77,8 +77,10 @@ while hardware is reserved; they do not close the
 The [shared session controls](SESSION_INPUT.md) now expose opt-in pointer modes
 in the official-runtime lab. The [native keyboard endpoint](NATIVE_KEYBOARD.md)
 prepares event construction and record reading; the [shared keyboard owner](SESSION_KEYBOARD.md)
-now integrates opt-in Android channel/lifecycle and IME access. Cross-channel
-modifier/pointer ordering is next. Official SDL consumption still requires hardware evidence.
+now integrates opt-in Android channel/lifecycle and IME access. The
+[integrated input bundle](INPUT_BUNDLE.md) adds a single acknowledged event
+order, touch editor keys and shared menu/verified process exit. Official SDL
+consumption still requires hardware evidence; product input configuration remains open.
 
 - Route touch taps, drag, long press/right-click, wheel if available, mouse motion/buttons and keyboard text.
 - Provide optional handheld cursor mode (e.g. right stick moves pointer; buttons can click), with remapping and accessible exit/keyboard commands.

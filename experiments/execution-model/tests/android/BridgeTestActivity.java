@@ -26,6 +26,7 @@ public final class BridgeTestActivity extends MainActivity {
     static volatile boolean mouseTest;
     static volatile boolean actionsTest;
     static volatile boolean sessionTest;
+    static volatile boolean bundleTest;
     static volatile long wheelX, wheelY, wheelStepsX, wheelStepsY;
     static SessionExit sessionExit;
     static volatile int exitRequests, finishedSessions;
@@ -157,6 +158,13 @@ public final class BridgeTestActivity extends MainActivity {
             throw new IOException("native exit unconfirmed");
     }
     void showReceipt() {
+        if (bundleTest) {
+            OrderedInputWriter input=activeKeyWriter==null ? null : activeKeyWriter.ordered;
+            label.setText("OWNED INPUT BUNDLE - NO PICOTRON\nNative PID: "+nativePid
+                    +" | Delivered: "+(input==null ? 0 : input.acknowledged())+"/"+(input==null ? 0 : input.accepted())
+                    +"\nUTF-8: "+receivedText);
+            return;
+        }
         if (sessionTest) {
             label.setText("OWNED SESSION FIXTURE - NO PICOTRON\nShared lab pointer controls\nNative PID: "+nativePid
                     +" | Packets: "+packets+"\nDown/up: "+downs+"/"+ups+" | Held: "+held
@@ -195,12 +203,13 @@ public final class BridgeTestActivity extends MainActivity {
         launches++;
         String name = "picotronnest.test." + UUID.randomUUID();
         JSONObject completed = null;
-        try (FrameReceiver receiver = new FrameReceiver(name);
-             KeyboardChannel keyChannel=keyboardTest ? new KeyboardChannel(app,name+".keys",receiver::livePeerPid) : null) {
+        try (FrameReceiver receiver = new FrameReceiver(name,keyboardTest);
+             KeyboardChannel keyChannel=keyboardTest ? new KeyboardChannel(app,name+".keys",receiver) : null) {
             activeReceiver=receiver;
             activeKeyChannel=keyChannel;
+            LabSession controls=keyChannel==null ? null : new LabSession(keyChannel);
             String executable = new File(app.getApplicationInfo().nativeLibraryDir,"libbridge_fixture.so").getPath();
-            child = new ProcessBuilder(keyboardTest ? new String[]{executable,name,name+".keys"} : new String[]{executable,name})
+            child = new ProcessBuilder(keyboardTest ? new String[]{executable,name,name+".keys",bundleTest ? "trace" : "ordered"} : new String[]{executable,name})
                     .redirectErrorStream(true).start();
             if (keyChannel != null) {
                 keyChannel.awaitConnected();
@@ -209,7 +218,7 @@ public final class BridgeTestActivity extends MainActivity {
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(child.getInputStream(), "UTF-8"))) {
                 String line;
                 while ((line = reader.readLine()) != null) {
-                    if (transcript.length() + line.length() > 12000) throw new IOException("fixture log exceeded bound");
+                    if (transcript.length() + line.length() > 60000) throw new IOException("fixture log exceeded bound");
                     transcript += line + "\n";
                     String[] fields = line.split(" ");
                     if (line.startsWith("READY ")) nativePid = Integer.parseInt(fields[1].substring(4));
@@ -249,8 +258,12 @@ public final class BridgeTestActivity extends MainActivity {
                 completed.put("keyboard_packets",receipt.getInt("packets")).put("keyboard_peer_pid",receipt.getInt("peer_pid"))
                         .put("desktop_keyboard",receipt);
                 if (receipt.has("error")) completed.put("keyboard_error",receipt.getString("error"));
+                controls.complete(exitCode,child.isAlive(),transcript,receipt);
             }
-        } catch (Exception failure) { error = failure.toString(); }
+        } catch (Exception failure) {
+            error = failure.toString();
+            if (LabSession.current()!=null) LabSession.current().fail(error);
+        }
         finally {
             Process process = child;
             if (process != null && process.isAlive()) process.destroyForcibly();

@@ -1,6 +1,6 @@
 # Project status
 
-**2026-11-01 — Shared keyboard/IME channel and controls integrated into the opt-in desktop lab; fifteen owned emulator scenarios pass. Official input acceptance and the functional beta gate remain open.**
+**2026-11-02 — Integrated laboratory input bundle: ordered key/text/pointer delivery, editor keys and shared session commands. Official input acceptance and the functional beta gate remain open.**
 
 PicotronNest is an Android wrapper for the **official, user-imported Picotron runtime**.
 The repository contains a bounded archive inspector and a temporary target-36
@@ -8,11 +8,21 @@ Android execution lab. Its owned Linux guest has now run through packaged
 PRoot on Retroid and an Android emulator. The official owner-imported ARM64
 Picotron now also executes an owned Lua probe on Retroid. There is no product
 launcher or product APK. Original desktop frames stream into an Android View;
-the minimal pointer path is built and host-tested, with device interaction still
-the next gate.
+the shared input bundle is built and emulator-tested. Real Picotron interaction,
+audio, persistent home, safe end-user import and product setup remain open.
 
 ## Latest evidence
 
+- Integrated input bundle: keyboard, IME and pointer traffic now share one bounded,
+  acknowledged native sequence. The shared panel adds source-owned editor keys
+  and session commands; quit waits for real process completion and matching
+  delivery receipts. Rapid Ctrl-clicks, mixed Shift ownership, repeat/cancel,
+  Unicode/deletion, focus/recreation and disconnect are checked together. Visual
+  review caught and fixed IME panning that hid the toolbar. 38 lab and nine archive
+  host tests pass; both APKs build. See [the consolidated evidence](INPUT_BUNDLE.md)
+  for final artifacts, full 17-scenario collection and actual screenshot scope.
+  Retroid and official Picotron were not tested in this increment. Next is the
+  persistent-home and safe runtime-import bundle, with preservation/failure tests.
 - Shared keyboard session: the lab now exposes `keyboard_controls`, an authenticated
   channel owner and Show keyboard control shared with the fixture. The keyboard
   PID must match the frame peer before input is attached. Cancellation, wrong PID,
@@ -20,7 +30,7 @@ the next gate.
   x86_64. Visual validation caught and fixed IME reopening/viewport errors after
   recreation. All fifteen scenarios pass in one final-APK collection; 36 lab and
   nine archive tests pass, and both APKs build. No new official Picotron or Retroid
-  test was performed. Cross-channel modifier/pointer ordering is next.
+  test was performed. The subsequent input bundle above addresses ordering.
   [Evidence, screenshot scope and remaining work](SESSION_KEYBOARD.md).
 - Native keyboard bridge: an opt-in SDL observer endpoint now shares bounded
   key/text event construction and nonblocking record reading with owned tests.
@@ -171,8 +181,8 @@ the next gate.
 ## Current milestone
 
 **P1a presentation tracing: device-verified in the scoped Retroid experiment.
-P1b live Android display has evidence; the pointer bridge has host/emulator
-fixture evidence, with official Picotron interaction still unverified.**
+P1b live Android display has evidence; the integrated P2 input bundle has
+host/emulator evidence, with official Picotron interaction still unverified.**
 Consult [the experiment plan](RUNTIME_SPIKE.md), [roadmap](ROADMAP.md) and [acceptance](ACCEPTANCE.md).
 
 ## Status vocabulary
@@ -186,10 +196,13 @@ Do not upgrade a status because code compiles, ADB starts an activity, a process
 
 ## Next action
 
-When the owner makes Retroid available, install the pointer lab and verify a
-real desktop click, drag, boundary mapping and focus-loss release. Do not treat
-host tests or a zero-input session as this interaction proof.
-The [three-session hardware procedure](RETROID_INPUT_CHECK.md) is prepared.
+Prepare persistent native home and transactional runtime import together,
+including preservation, failed activation and rollback checks. Continue without
+occupying Retroid until the [functional candidate gate](BETA_READINESS.md) is met
+or a concrete hardware dependency prevents further integration.
+The [three-session hardware procedure](RETROID_INPUT_CHECK.md) remains prepared;
+update its launch options/artifact hashes for the eventual assembled candidate.
+Host tests or a zero-input session cannot establish official interaction.
 [Phone/handheld input direction](INPUT_DESIGN.md) is accepted; exact defaults
 and physical-device usability remain undecided.
 Keep enforcing ARM64 Android execution as

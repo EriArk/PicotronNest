@@ -13,6 +13,7 @@ final class KeyboardState {
     private final int[] counts = new int[512];
     KeyboardState(Sink sink) { this.sink = sink; }
     static boolean modifier(int scan) { return scan >= 224 && scan <= 231; }
+    boolean held(int device,int scan) { Set<Integer> keys=devices.get(device); return keys!=null && keys.contains(scan); }
     int modifiers() {
         return (counts[225] + counts[229] > 0 ? 1 : 0) | (counts[224] + counts[228] > 0 ? 2 : 0)
                 | (counts[226] + counts[230] > 0 ? 4 : 0) | (counts[227] + counts[231] > 0 ? 8 : 0);

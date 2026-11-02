@@ -5,6 +5,7 @@
 #include "../native/keyboard_protocol.h"
 #include "../native/keyboard_sdl.h"
 #include "../native/keyboard_channel.h"
+#include "../native/ordered_input.h"
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <sys/time.h>
@@ -28,6 +29,7 @@ static void key_record(unsigned char bytes[64],unsigned seq,unsigned scan,unsign
     memset(bytes,0,64); put(bytes,0x504e4b31); put(bytes+4,seq); put(bytes+8,1);
     put(bytes+12,scan); put(bytes+16,flags); put(bytes+20,mods);
 }
+#include "ordered_selftest.h"
 static void keyboard_sdl_selftest(void) {
     PNKeyboardSDL b={0}, saved; SDL_Event e; unsigned char bytes[64];
     const SDL_Keymod expected_mods[8]={KMOD_LCTRL,KMOD_LSHIFT,KMOD_LALT,KMOD_LGUI,KMOD_RCTRL,KMOD_RSHIFT,KMOD_RALT,KMOD_RGUI};
@@ -163,6 +165,7 @@ static void sdl_selftest(void) {
         || events[0].motion.state || events[1].type!=SDL_MOUSEBUTTONUP || events[1].button.button!=SDL_BUTTON_RIGHT) _exit(65);
 }
 static void selftest(void) {
+    ordered_selftest();
     sdl_selftest();
     keyboard_sdl_selftest();
     keyboard_channel_selftest();
@@ -236,22 +239,25 @@ static void frame(int fd, int w, int h, uint32_t seq) {
 }
 int main(int argc, char **argv) {
     alarm(90); setvbuf(stdout, NULL, _IOLBF, 0); selftest();
-    if ((argc != 2 && argc != 3) || strlen(argv[1]) > 90 || (argc == 3 && strlen(argv[2]) > 90)) return 40;
+    if ((argc < 2 || argc > 4) || strlen(argv[1]) > 90 || (argc >= 3 && strlen(argv[2]) > 90)) return 40;
+    int ordered_mode=argc==4, trace_order=argc==4 && !strcmp(argv[3],"trace");
+    if (ordered_mode && strcmp(argv[3],"ordered") && !trace_order) return 40;
     int fd = socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0);
     struct sockaddr_un addr = {.sun_family = AF_UNIX};
     memcpy(addr.sun_path + 1, argv[1], strlen(argv[1]));
     struct timeval timeout = {.tv_sec = 2};
     if (fd < 0 || setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout)) ||
         connect(fd, (struct sockaddr *)&addr, (socklen_t)(offsetof(struct sockaddr_un, sun_path) + 1 + strlen(argv[1])))) return 47;
-    printf("READY pid=%ld uid=%ld decoder_tests=PASS sdl_event_tests=PASS keyboard_sdl_tests=PASS keyboard_channel_tests=PASS\n", (long)getpid(), (long)getuid());
+    printf("READY pid=%ld uid=%ld decoder_tests=PASS sdl_event_tests=PASS keyboard_sdl_tests=PASS keyboard_channel_tests=PASS ordered_tests=PASS\n", (long)getpid(), (long)getuid());
     int keys = -1;
-    if (argc == 3) {
+    if (argc >= 3) {
         keys = socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0);
         memset(addr.sun_path,0,sizeof(addr.sun_path)); memcpy(addr.sun_path+1,argv[2],strlen(argv[2]));
-        if (keys < 0 || connect(keys,(struct sockaddr *)&addr,
+        if (keys < 0 || setsockopt(keys,SOL_SOCKET,SO_SNDTIMEO,&timeout,sizeof(timeout)) || connect(keys,(struct sockaddr *)&addr,
                 (socklen_t)(offsetof(struct sockaddr_un,sun_path)+1+strlen(argv[2])))) return 56;
     }
     PNKeyboardSDL key_bridge={0};
+    PNOrderedInput ordered={0}; unsigned reported=0; int ordered_end=0;
     PNKeyboard keyboard = {0}; unsigned char key_bytes[64]; size_t key_used = 0;
     PNPointer pointer = {0};
     unsigned char bytes[PN_POINTER_BYTES]; size_t used = 0;
@@ -284,7 +290,34 @@ int main(int argc, char **argv) {
                 used = 0;
             }
         }
-        if (keys >= 0 && (waits[2].revents & (POLLIN | POLLHUP))) {
+        if (ordered_mode) {
+            for (unsigned budget=0;budget<32;++budget) {
+                SDL_Event event;
+                int ready=pn_ordered_read(&ordered,keys,&event,w,h,sequence,17,fixture_keycode);
+                if (ready && trace_order) printf("ORDER seq=%u type=%u scan=%u mods=%u buttons=%u x=%d y=%d\n",
+                    ordered.sequence,event.type,(event.type==SDL_KEYDOWN || event.type==SDL_KEYUP) ? (unsigned)event.key.keysym.scancode : 0,
+                    (unsigned)pn_sdl_key_mods(ordered.key.delivered),ordered.buttons,ordered.x,ordered.y);
+                if (ordered.acknowledged!=reported) {
+                    reported=ordered.acknowledged; keyboard=ordered.key.protocol; key_bridge=ordered.key; pointer=ordered.pointer;
+                    unsigned type=pn_u32(ordered.bytes+8);
+                    if (type<=3) {
+                        printf("KEY_SDL %u %u\n",key_bridge.events,key_bridge.text_events);
+                        if (type==2) {
+                            printf("TEXT "); for (unsigned i=0;i<pn_u32(ordered.bytes+24);++i) printf("%02x",ordered.bytes[28+i]); putchar('\n');
+                        }
+                        printf("KEY %u %u %u %u %u %u %u\n",keyboard.packets,pn_u32(ordered.bytes+12),pn_u32(ordered.bytes+16),
+                            pn_key_mods(&keyboard),keyboard.downs,keyboard.ups,keyboard.text_bytes);
+                    } else if (type==4) {
+                        wheel_x+=pointer.wheel_x; wheel_y+=pointer.wheel_y; steps_x+=pointer.wheel_steps_x; steps_y+=pointer.wheel_steps_y;
+                        printf("INPUT %u %d %d %u %u %u %lld %lld %lld %lld\n",pointer.packets,pointer.x,pointer.y,pointer.buttons,
+                            pointer.downs,pointer.ups,(long long)wheel_x,(long long)wheel_y,(long long)steps_x,(long long)steps_y);
+                    }
+                }
+                if (ordered.quits || (ordered.error && !pn_ordered_pending(&ordered))) { ordered_end=1; break; }
+                if (!ready) break;
+            }
+            if (ordered_end) break;
+        } else if (keys >= 0 && (waits[2].revents & (POLLIN | POLLHUP))) {
             size_t remaining = sizeof(key_bytes) - key_used;
             ssize_t n = recv(keys,key_bytes+key_used,remaining > 7 ? 7 : remaining,MSG_DONTWAIT);
             if (n == 0) return 57;
@@ -313,6 +346,12 @@ int main(int argc, char **argv) {
         uint64_t now = (uint64_t)tick.tv_sec*1000 + (uint64_t)tick.tv_nsec/1000000;
         if (now-last_frame >= 50) { frame(fd, w, h, ++sequence); last_frame = now; }
     }
+    if (ordered_mode) {
+        key_bridge=ordered.key; keyboard=ordered.key.protocol; pointer=ordered.pointer;
+        printf("PICONEST_ORDERED_DONE packets=%u acknowledged=%u events=%u quits=%u pending=%u failed=%d\n",
+            ordered.packets,ordered.acknowledged,ordered.events,ordered.quits,
+            ordered.count-ordered.index+ordered.key.count-ordered.key.index,ordered.error);
+    }
     printf("DONE packets=%u downs=%u ups=%u held=%u frames=%u\n", pointer.packets,
            pointer.downs, pointer.ups, pointer.buttons, sequence);
     close(fd);
@@ -322,5 +361,5 @@ int main(int argc, char **argv) {
     unsigned held=0; for (unsigned scan=1;scan<512;++scan) held+=key_bridge.delivered[scan];
     printf("KEY_SDL_DONE events=%u text_events=%u held=%u mods=%u\n",key_bridge.events,key_bridge.text_events,held,
            (unsigned)pn_sdl_key_mods(key_bridge.delivered));
-    return used || key_used || pointer.buttons || keyboard.downs != keyboard.ups ? 53 : 0;
+    return ordered.error ? 71 : used || key_used || pointer.buttons || keyboard.downs != keyboard.ups ? 53 : 0;
 }

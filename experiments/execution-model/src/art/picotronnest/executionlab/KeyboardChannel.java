@@ -26,12 +26,18 @@ final class KeyboardChannel implements AutoCloseable {
     private volatile int peerPid;
 
     KeyboardChannel(Context context, String name, IntSupplier framePeer) throws IOException {
+        this(context,name,framePeer,null);
+    }
+    KeyboardChannel(Context context,String name,FrameReceiver frames) throws IOException {
+        this(context,name,frames::livePeerPid,frames);
+    }
+    private KeyboardChannel(Context context,String name,IntSupplier framePeer,FrameReceiver frames) throws IOException {
         server=new LocalServerSocket(name);
         Context app=context.getApplicationContext();
-        worker=new Thread(() -> run(app,framePeer),"desktop-keyboard-channel");
+        worker=new Thread(() -> run(app,framePeer,frames),"desktop-keyboard-channel");
         worker.start();
     }
-    private void run(Context app, IntSupplier framePeer) {
+    private void run(Context app, IntSupplier framePeer,FrameReceiver frames) {
         try {
             long deadline=SystemClock.uptimeMillis()+5000;
             StructPollfd poll=new StructPollfd(); poll.fd=server.getFileDescriptor(); poll.events=(short)OsConstants.POLLIN;
@@ -51,12 +57,15 @@ final class KeyboardChannel implements AutoCloseable {
             if (expected<=0 || peerPid!=expected) throw new IOException("keyboard/frame peer PID mismatch");
             synchronized (this) {
                 if (closing) return;
-                writer=new KeyboardWriter(client.getOutputStream());
+                writer=frames==null ? new KeyboardWriter(client.getOutputStream())
+                        : new KeyboardWriter(client.getOutputStream(),client.getInputStream());
+                if (frames!=null) frames.bindOrdered(writer.ordered);
                 input=new KeyboardInput(app,writer);
                 DesktopView.keyboard(input);
             }
             ready.countDown();
             while (!closing && framePeer.getAsInt()==peerPid && writer.failure()==null) Thread.sleep(50);
+            if (!closing && writer.ordered!=null && writer.failure()==null) writer.ordered.awaitDrained();
             if (writer.failure()!=null) failure=writer.failure();
         } catch (Exception error) {
             if (!closing) failure=error.toString();
@@ -83,7 +92,12 @@ final class KeyboardChannel implements AutoCloseable {
     int peerPid() { return peerPid; }
 
     /** Stop accepting input, confirm worker completion, then snapshot the final receipt. */
-    JSONObject finish() throws Exception { close(); return evidence(); }
+    JSONObject finish() throws Exception {
+        if (writer!=null && writer.ordered!=null && !closing) {
+            try { writer.ordered.awaitDrained(); } catch (IOException error) { failure=error.toString(); }
+        }
+        close(); return evidence();
+    }
 
     JSONObject evidence() throws Exception {
         if (worker.isAlive()) throw new IOException("keyboard channel completion unconfirmed");
@@ -92,6 +106,11 @@ final class KeyboardChannel implements AutoCloseable {
                 .put("packets",writer==null ? 0 : writer.sent()).put("accepted",writer==null ? 0 : writer.accepted());
         String problem=failure!=null ? failure : writer==null ? null : writer.failure();
         if (problem!=null) result.put("error",problem);
+        if (writer!=null && writer.ordered!=null) {
+            OrderedInputWriter ordered=writer.ordered;
+            result.put("ordered",new JSONObject().put("accepted",ordered.accepted()).put("sent",ordered.sent())
+                    .put("acknowledged",ordered.acknowledged()).put("events",ordered.events()));
+        }
         return result;
     }
     @Override public void close() throws IOException {

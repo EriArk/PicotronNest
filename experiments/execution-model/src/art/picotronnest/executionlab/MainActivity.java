@@ -13,6 +13,12 @@ public class MainActivity extends Activity {
     private boolean keyboardControls;
     final DesktopView desktopView() { return desktop; }
     final LabInputControls inputControls() { return inputControls; }
+    @Override public boolean dispatchKeyEvent(android.view.KeyEvent event) {
+        return inputControls!=null && inputControls.key(event) || super.dispatchKeyEvent(event);
+    }
+    @Override public void onWindowFocusChanged(boolean focused) {
+        super.onWindowFocusChanged(focused); if (inputControls!=null) inputControls.focus(focused);
+    }
 
     @Override protected void onResume() {
         super.onResume(); if (inputControls!=null) inputControls.resume();
@@ -29,7 +35,8 @@ public class MainActivity extends Activity {
 
     @Override public void onCreate(Bundle saved) {
         super.onCreate(saved);
-        keyboardControls=getIntent().getBooleanExtra("keyboard_controls",false);
+        boolean sessionControls=getIntent().getBooleanExtra("session_controls",false);
+        keyboardControls=sessionControls || getIntent().getBooleanExtra("keyboard_controls",false);
         TextView text = new TextView(this);
         text.setText("PicotronNest execution probe\nResults are saved in app-private storage.");
         text.setPadding(24, 48, 24, 24);
@@ -41,8 +48,20 @@ public class MainActivity extends Activity {
                     text.setText("Invalid cursor profile. Correct the lab launch settings and retry.");
                     setContentView(text); return; // Reject configuration before starting any runtime.
                 }
+                int[] menuKeys=sessionControls ? new int[]{getIntent().getIntExtra("menu_key",108),
+                    getIntent().getIntExtra("menu_accept_key",96),getIntent().getIntExtra("menu_cancel_key",97)} : null;
+                if (menuKeys!=null) {
+                    java.util.HashSet<Integer> codes=new java.util.HashSet<>();
+                    boolean valid=true;
+                    for (int code:menuKeys) if (code<=0 || code>65535 || code>=19 && code<=22 || !codes.add(code)) valid=false;
+                    if (profile!=null) {
+                        for (int i=2;i<8;i++) if (profile.control(i)==menuKeys[0]) valid=false;
+                        for (int i=0;i<5;i++) if (profile.action(i)==menuKeys[0]) valid=false;
+                    }
+                    if (!valid) { desktop=null; text.setText("Invalid session menu bindings."); setContentView(text); return; }
+                }
                 desktop=new DesktopView(this);
-                inputControls=new LabInputControls(this,desktop,profile,keyboardControls);
+                inputControls=new LabInputControls(this,desktop,profile,keyboardControls,menuKeys);
                 android.widget.LinearLayout layout=new android.widget.LinearLayout(this);
                 layout.setOrientation(android.widget.LinearLayout.VERTICAL);
                 layout.addView(inputControls.view);
@@ -50,8 +69,13 @@ public class MainActivity extends Activity {
                 setContentView(layout);
             } else { desktop=new DesktopView(this); setContentView(desktop); }
         } else setContentView(text);
-        if (BuildConfig.DESKTOP) getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        if (BuildConfig.DESKTOP) {
+            getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+            // DesktopView fits against root IME insets; system panning would hide the host controls.
+            getWindow().setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING);
+        }
         if (saved != null || !RUNNING.compareAndSet(false, true)) return;
+        LabSession.clear();
         android.content.Context app = getApplicationContext();
         new Thread(() -> {
             try { runProbe(app); }

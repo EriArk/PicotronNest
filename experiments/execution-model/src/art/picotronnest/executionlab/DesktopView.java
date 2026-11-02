@@ -112,7 +112,7 @@ final class DesktopView extends View {
     CursorInput cursor() { synchronized (DesktopView.class) { return cursor; } }
 
     boolean inputReady() {
-        synchronized (DesktopView.class) { return attached.get()==this && pointer!=null && frame!=null; }
+        synchronized (DesktopView.class) { return attached.get()==this && pointer!=null && pointer.failure()==null && frame!=null; }
     }
     String pointerMode() {
         synchronized (DesktopView.class) {
@@ -192,6 +192,12 @@ final class DesktopView extends View {
     }
     boolean keyboardReady() {
         synchronized (DesktopView.class) { return inputReady() && keyboard!=null && keyboard.active(); }
+    }
+    boolean virtualKey(int scan,boolean down,boolean repeat) {
+        synchronized (DesktopView.class) { return keyboardReady() && hasWindowFocus() && keyboard.virtualKey(scan,down,repeat); }
+    }
+    boolean virtualHeld(int scan) {
+        synchronized (DesktopView.class) { return keyboardReady() && keyboard.virtualHeld(scan); }
     }
     boolean showKeyboard() {
         synchronized (DesktopView.class) {

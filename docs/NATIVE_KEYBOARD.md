@@ -1,5 +1,9 @@
 # Native keyboard and Unicode bridge
 
+Subsequent integration: [INPUT_BUNDLE](INPUT_BUNDLE.md) documents the shared
+ordered key/text/pointer transport, editor controls and session exit. The evidence
+below records the earlier keyboard-only endpoint milestone.
+
 ## Implemented boundary
 
 The SDL observer now has an optional native keyboard endpoint alongside its

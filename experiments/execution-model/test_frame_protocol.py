@@ -6,6 +6,9 @@ import unittest
 
 
 class FrameProtocolHost(unittest.TestCase):
+    def test_ordered_input_acknowledgements_and_backpressure(self):
+        self.run_java('OrderedInputHostTest')
+
     def test_java_protocol_and_geometry(self):
         self.run_java('FrameProtocolHostTest')
 
@@ -45,6 +48,7 @@ class FrameProtocolHost(unittest.TestCase):
                             str(here / 'src/art/picotronnest/executionlab/KeyboardProtocol.java'),
                             str(here / 'src/art/picotronnest/executionlab/KeyboardState.java'),
                             str(here / 'src/art/picotronnest/executionlab/KeyboardWriter.java'),
+                            str(here / 'src/art/picotronnest/executionlab/OrderedInputWriter.java'),
                             str(here / ('tests/' + test + '.java'))], check=True, capture_output=True, timeout=30)
             subprocess.run([str(jdk / 'java.exe'), '-cp', destination,
                             'art.picotronnest.executionlab.' + test],

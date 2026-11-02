@@ -15,6 +15,7 @@ import android.view.inputmethod.InputConnection;
 /** Experimental event adapter attached only by an authenticated keyboard-channel owner. */
 final class KeyboardInput implements InputManager.InputDeviceListener {
     private static final int IME_SOURCE = Integer.MIN_VALUE;
+    private static final int TOUCH_SOURCE = Integer.MIN_VALUE+1;
     private final KeyboardWriter writer;
     private final KeyboardState state;
     private final InputManager devices;
@@ -28,6 +29,11 @@ final class KeyboardInput implements InputManager.InputDeviceListener {
         devices.registerInputDeviceListener(this, new Handler(Looper.getMainLooper()));
     }
     synchronized boolean active() { return connected && writer.failure() == null; }
+    synchronized boolean virtualKey(int scan,boolean down,boolean repeat) {
+        if (!active()) return false;
+        state.key(TOUCH_SOURCE,scan,down,repeat); return writer.failure()==null;
+    }
+    synchronized boolean virtualHeld(int scan) { return active() && state.held(TOUCH_SOURCE,scan); }
     synchronized boolean event(KeyEvent event) {
         if (!active() || event.getAction() != KeyEvent.ACTION_DOWN && event.getAction() != KeyEvent.ACTION_UP) return false;
         // Controller navigation must not silently become editor arrow keys when cursor mode is disabled.
@@ -53,9 +59,13 @@ final class KeyboardInput implements InputManager.InputDeviceListener {
         // The peer is gone; forget local capture without inventing successful releases.
         connected = false; generation++; devices.unregisterInputDeviceListener(this);
     }
-    @Override public synchronized void onInputDeviceRemoved(int id) { state.releaseDevice(id); }
+    @Override public void onInputDeviceRemoved(int id) {
+        // End a modifier-assisted drag before removing that keyboard's modifier ownership.
+        DesktopView.releasePointer();
+        synchronized (this) { state.releaseDevice(id); }
+    }
     @Override public void onInputDeviceAdded(int id) { }
-    @Override public synchronized void onInputDeviceChanged(int id) { state.releaseDevice(id); }
+    @Override public void onInputDeviceChanged(int id) { onInputDeviceRemoved(id); }
 
     synchronized InputConnection connection(View view, EditorInfo info) {
         if (!active()) return null;
@@ -92,14 +102,18 @@ final class KeyboardInput implements InputManager.InputDeviceListener {
         }
         @Override public boolean deleteSurroundingText(int before, int after) {
             synchronized (KeyboardInput.this) {
-                if (!valid() || before < 0 || after < 0 || before + after != 1) return false;
+                if (!valid() || before < 0 || after < 0 || before > 32 || after > 32 || before + after > 32) return false;
                 if (!composing.isEmpty()) {
                     if (after != 0) return false;
-                    composing = composing.substring(0, composing.offsetByCodePoints(composing.length(), -1));
+                    int remove=Math.min(before,composing.codePointCount(0,composing.length()));
+                    composing = composing.substring(0, composing.offsetByCodePoints(composing.length(), -remove));
                     return true;
                 }
-                int scan = before == 1 ? 42 : 76;
-                state.key(IME_SOURCE, scan, true, true); state.key(IME_SOURCE, scan, false, false); return true;
+                for (int i=0;i<before+after;i++) {
+                    int scan=i<before ? 42 : 76;
+                    state.key(IME_SOURCE, scan, true, true); state.key(IME_SOURCE, scan, false, false);
+                }
+                return writer.failure()==null;
             }
         }
         @Override public boolean deleteSurroundingTextInCodePoints(int before, int after) {

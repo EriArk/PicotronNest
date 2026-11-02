@@ -85,13 +85,22 @@ final class HeadlessProbe {
                     new File(nativeDir, "libproot.so").getPath(), "--kill-on-exit",
                     "-r", root.getPath(), "-b", "/proc", "-b", "/dev/null", "-b", "/dev/urandom",
                     "-w", "/runtime", "/lib/ld-linux-aarch64.so.1", "--library-path", "/lib", "/probe/desktop-exec"};
-            if (keyboardControls) env.put("PICONEST_KEYBOARD_SOCKET",socketName+".keys");
-            try (FrameReceiver receiver = new FrameReceiver(socketName);
-                 KeyboardChannel keyboard=keyboardControls ? new KeyboardChannel(app,socketName+".keys",receiver::livePeerPid) : null) {
-                cases.put(runner.runWithEnvironment("picotron_desktop_trace", 35000, env, command));
-                report.put("desktop_frames", receiver.evidence());
-                if (keyboard!=null) {
-                    report.put("desktop_keyboard",keyboard.finish());
+            if (keyboardControls) env.put("PICONEST_INPUT_SOCKET",socketName+".keys");
+            try (FrameReceiver receiver = new FrameReceiver(socketName,keyboardControls);
+                 KeyboardChannel keyboard=keyboardControls ? new KeyboardChannel(app,socketName+".keys",receiver) : null) {
+                LabSession controls=keyboard==null ? null : new LabSession(keyboard);
+                try {
+                    JSONObject process=runner.runWithEnvironment("picotron_desktop_trace", 35000, env, command);
+                    cases.put(process);
+                    report.put("desktop_frames", receiver.evidence());
+                    if (keyboard!=null) {
+                        JSONObject receipt=keyboard.finish(); report.put("desktop_keyboard",receipt);
+                        controls.complete(process.optInt("exit_code",-1),!process.optString("outcome").equals("EXITED"),
+                                process.optString("output"),receipt);
+                    }
+                } catch (Exception failure) {
+                    if (controls!=null) controls.fail(failure.toString());
+                    throw failure;
                 }
             }
         }

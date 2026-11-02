@@ -59,13 +59,14 @@ public final class BridgeInstrumentation extends Instrumentation {
     }
     private Intent activityIntent() {
         Intent intent=new Intent(getTargetContext(), BridgeTestActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        if (mode.equals("session") || mode.equals("keysession")) {
+        if (mode.equals("session") || mode.equals("keysession") || mode.startsWith("bundle")) {
             try {
                 intent.putExtra("input_controls",true).putExtra("cursor_profile",android.util.Base64.encodeToString(
                         actionsProfile(RelativePointer.Mode.DPAD).encode(),android.util.Base64.NO_WRAP));
             } catch (IOException invalid) { throw new AssertionError(invalid); }
         }
         if (mode.equals("keysession")) intent.putExtra("keyboard_controls",true);
+        if (mode.startsWith("bundle")) intent.putExtra("session_controls",true);
         return intent;
     }
     private void normal() throws Exception {
@@ -230,7 +231,7 @@ public final class BridgeInstrumentation extends Instrumentation {
         int count=8+KeyboardProtocol.text(text).size(); keys(count,0);
         check(BridgeTestActivity.receivedText.equals("a"+text),"native Unicode byte receipt");
         checks.put("IME_composition_commit_UTF8_Cyrillic_CJK_emoji_once");
-        ui(() -> check(!connection.commitText("\ud800",1) && !connection.deleteSurroundingText(2,0),"unsupported input accepted"));
+        ui(() -> check(!connection.commitText("\ud800",1) && !connection.deleteSurroundingText(33,0),"unsupported input accepted"));
         // Actual emulator screenshot, owned fixture visibly labeled; no generated/mock UI.
         waitForIdleSync();
         check(BridgeTestActivity.current.hasWindowFocus(),"screenshot foreground lost");
@@ -1141,6 +1142,147 @@ public final class BridgeInstrumentation extends Instrumentation {
                 && BridgeTestActivity.downs==BridgeTestActivity.ups && BridgeTestActivity.held==0,"shared session native accounting");
         checks.put("native_receipts_clean_exit_and_disconnected_control_rejection");
     }
+    private void bundleKey(int code,int action,int meta) {
+        long now=SystemClock.uptimeMillis();
+        check(BridgeTestActivity.current.desktop().dispatchKeyEvent(new android.view.KeyEvent(now,now,action,code,0,meta,11,0)),"bundle key rejected");
+    }
+    private void bundleTouch(int action,int x,int y) {
+        DesktopView view=BridgeTestActivity.current.desktop();
+        float[] fit=FrameProtocol.fit(48,27,view.getWidth(),view.viewportHeight());
+        long now=SystemClock.uptimeMillis();
+        MotionEvent event=MotionEvent.obtain(now,now,action,fit[1]+(x+.1f)*fit[0],fit[2]+(y+.1f)*fit[0],0);
+        try { check(view.dispatchTouchEvent(event),"bundle touch rejected"); } finally { event.recycle(); }
+    }
+    private void bundleChoice(int index) {
+        ui(() -> {
+            AlertDialog dialog=BridgeTestActivity.current.inputControls().menu.dialog();
+            check(dialog!=null,"shared menu absent");
+            android.widget.ListView list=dialog.getListView();
+            check(list.performItemClick(list.getChildAt(index),index,index),"shared menu selection");
+        });
+    }
+    private void virtualTouch(int index,int action) {
+        ui(() -> {
+            android.widget.Button button=BridgeTestActivity.current.inputControls().keys.buttons[index];
+            long now=SystemClock.uptimeMillis();
+            MotionEvent event=MotionEvent.obtain(now,now,action,button.getWidth()/2f,button.getHeight()/2f,0);
+            try { check(button.dispatchTouchEvent(event),"virtual key touch rejected"); } finally { event.recycle(); }
+        });
+    }
+    private void inputBundle() throws Exception {
+        await(() -> BridgeTestActivity.current.inputControls().menu!=null
+                && BridgeTestActivity.current.inputControls().menu.button.isEnabled(),"complete shared controls ready");
+        ui(() -> BridgeTestActivity.current.desktop().requestFocus());
+        if (mode.equals("bundle-disconnect")) {
+            ui(() -> { bundleKey(113,0,android.view.KeyEvent.META_CTRL_ON); bundleTouch(MotionEvent.ACTION_DOWN,5,6); });
+            keys(1,2); packets(1,5,6,1);
+            BridgeTestActivity.activeKeyChannel.close();
+            await(() -> BridgeTestActivity.result!=null || BridgeTestActivity.error!=null,"input disconnect termination");
+            check(BridgeTestActivity.error==null && BridgeTestActivity.exitCode==71
+                    && BridgeTestActivity.transcript.contains("failed=1")
+                    && BridgeTestActivity.transcript.contains("held=0 mods=0"),"disconnect cleanup not observed");
+            check(BridgeTestActivity.transcript.contains("type=1026 scan=0 mods=64 buttons=0")
+                    && BridgeTestActivity.transcript.contains("type=769 scan=224 mods=0 buttons=0"),"disconnect release order");
+            ui(() -> check(!BridgeTestActivity.current.desktop().virtualKey(224,true,false),"disconnected control accepted input"));
+            checks.put("socket_EOF_while_Ctrl_drag_held_releases_pointer_before_modifier_and_exits_observed_failure");
+            return;
+        }
+        // A single UI turn with no timing gaps or cross-channel flushes.
+        ui(() -> {
+            for (int i=0;i<8;i++) {
+                bundleKey(113,0,android.view.KeyEvent.META_CTRL_ON);
+                bundleTouch(MotionEvent.ACTION_DOWN,5,6); bundleTouch(MotionEvent.ACTION_UP,5,6);
+                bundleKey(113,1,0);
+            }
+        });
+        keys(16,0); packets(16,5,6,0);
+        String output=BridgeTestActivity.transcript; int previous=-1;
+        for (int i=0;i<8;i++) {
+            String[] expected={"seq="+(i*4+1)+" type=768 scan=224 mods=64", "seq="+(i*4+2)+" type=1025 scan=0 mods=64",
+                    "seq="+(i*4+3)+" type=1026 scan=0 mods=64", "seq="+(i*4+4)+" type=769 scan=224 mods=0"};
+            for (String event:expected) { int at=output.indexOf("ORDER "+event); check(at>previous,"native event order: "+event); previous=at; }
+        }
+        checks.put("eight_unpaced_Ctrl_clicks_keep_exact_native_event_and_modifier_order");
+        ui(() -> {
+            LabInputControls controls=BridgeTestActivity.current.inputControls(); controls.keysButton.performClick();
+            controls.keys.buttons[3].performClick(); // Touch Shift.
+            bundleKey(59,0,android.view.KeyEvent.META_SHIFT_ON); // Hardware Shift owns the same modifier.
+            controls.keys.buttons[3].performClick(); // Removing touch ownership must not release hardware Shift.
+            bundleTouch(MotionEvent.ACTION_DOWN,5,6); bundleTouch(MotionEvent.ACTION_MOVE,20,14); bundleTouch(MotionEvent.ACTION_UP,20,14);
+            bundleKey(59,1,0);
+        }); keys(18,0); packets(19,20,14,0);
+        check(BridgeTestActivity.transcript.contains("ORDER seq=34 type=1025 scan=0 mods=1")
+                && BridgeTestActivity.transcript.contains("ORDER seq=36 type=1026 scan=0 mods=1"),"Shift drag modifier ownership");
+        checks.put("touch_and_hardware_Shift_share_ownership_through_ordered_drag");
+        ui(() -> {
+            VirtualKeys keys=BridgeTestActivity.current.inputControls().keys;
+            keys.buttons[2].performClick(); keys.buttons[1].performClick(); keys.buttons[2].performClick();
+        }); keys(22,0); check(BridgeTestActivity.receivedText.isEmpty(),"virtual shortcut leaked text");
+        checks.put("accessible_virtual_Ctrl_Tab_emits_only_balanced_key_events");
+        ui(() -> BridgeTestActivity.current.inputControls().keyboardButton.performClick()); stableSessionIme();
+        android.view.inputmethod.InputConnection staleIme=BridgeTestActivity.keyboard.latestConnection();
+        String text="All input: Привет 世界 👋";
+        ui(() -> { check(staleIme.commitText(text,1),"bundle Unicode"); check(staleIme.deleteSurroundingText(3,2),"bounded IME deletion"); });
+        int k=22+KeyboardProtocol.text(text).size()+10; keys(k,0);
+        check(BridgeTestActivity.receivedText.equals(text),"bundle Unicode exact receipt");
+        hideIme(); checks.put("shared_IME_Unicode_and_bounded_multi_character_delete");
+        int base=BridgeTestActivity.activeKeyWriter.ordered.accepted();
+        AlertDialog[] focus=new AlertDialog[1];
+        ui(() -> {
+            BridgeTestActivity.current.inputControls().keys.buttons[2].performClick();
+            bundleTouch(MotionEvent.ACTION_DOWN,5,6);
+            focus[0]=new AlertDialog.Builder(BridgeTestActivity.current).setMessage("Input bundle focus check").create(); focus[0].show();
+        }); keys(k+2,0); packets(21,5,6,0); k+=2;
+        check(BridgeTestActivity.transcript.contains("ORDER seq="+(base+3)+" type=1026 scan=0 mods=64")
+                && BridgeTestActivity.transcript.contains("ORDER seq="+(base+4)+" type=769 scan=224 mods=0"),"focus release order");
+        ui(() -> { check(!staleIme.commitText("STALE",1),"stale IME accepted"); focus[0].dismiss(); });
+        await(() -> BridgeTestActivity.current.hasWindowFocus(),"bundle focus returns");
+        checks.put("focus_loss_orders_pointer_release_before_modifier_and_revokes_IME");
+        BridgeTestActivity old=BridgeTestActivity.current; VirtualKeys oldKeys=old.inputControls().keys; int pid=BridgeTestActivity.nativePid;
+        ui(() -> { oldKeys.buttons[4].performClick(); bundleTouch(MotionEvent.ACTION_DOWN,5,6); old.recreate(); });
+        await(() -> BridgeTestActivity.current!=old && BridgeTestActivity.current.hasWindowFocus()
+                && BridgeTestActivity.current.inputControls().menu!=null,"bundle recreation");
+        keys(k+2,0); packets(23,5,6,0); k+=2;
+        int accepted=BridgeTestActivity.activeKeyWriter.ordered.accepted();
+        ui(() -> { oldKeys.buttons[2].performClick(); check(!old.desktop().showKeyboard(),"stale window reopened IME"); });
+        check(accepted==BridgeTestActivity.activeKeyWriter.ordered.accepted() && BridgeTestActivity.launches==1
+                && BridgeTestActivity.nativePid==pid,"stale controls or duplicate child after recreation");
+        checks.put("recreation_releases_all_sources_preserves_one_process_and_rejects_stale_controls");
+        ui(() -> {
+            BridgeTestActivity.current.inputControls().keysButton.performClick();
+            BridgeTestActivity.current.inputControls().keyboardButton.performClick();
+        }); stableSessionIme();
+        int repeatBase=BridgeTestActivity.keyPackets;
+        virtualTouch(9,MotionEvent.ACTION_DOWN);
+        await(() -> BridgeTestActivity.keyPackets>=repeatBase+3,"virtual key repeat");
+        virtualTouch(9,MotionEvent.ACTION_CANCEL);
+        await(() -> BridgeTestActivity.keyDowns==BridgeTestActivity.keyUps,"cancelled virtual repeat released");
+        int stopped=BridgeTestActivity.activeKeyWriter.ordered.accepted();
+        SystemClock.sleep(160);
+        check(stopped==BridgeTestActivity.activeKeyWriter.ordered.accepted(),"virtual repeat survived cancellation");
+        int tapBase=BridgeTestActivity.keyPackets;
+        virtualTouch(0,MotionEvent.ACTION_DOWN); virtualTouch(0,MotionEvent.ACTION_UP); keys(tapBase+2,0);
+        checks.put("virtual_touch_hold_repeat_cancel_and_tap_without_duplicate_click");
+        ui(() -> BridgeTestActivity.current.showReceipt()); screenshot();
+        // The same Activity dispatcher and menu used by the official lab consume the configured shortcut.
+        ui(() -> {
+            long now=SystemClock.uptimeMillis();
+            for (int action:new int[]{0,1}) check(BridgeTestActivity.current.dispatchKeyEvent(new android.view.KeyEvent(now,now,action,108,0,0,101,0,0,
+                    android.view.InputDevice.SOURCE_GAMEPAD)),"shared menu shortcut");
+        });
+        await(() -> BridgeTestActivity.current.inputControls().menu.visible(),"shared menu open");
+        bundleChoice(2); bundleChoice(0);
+        check(BridgeTestActivity.child.isAlive() && LabSession.current().exit.state()==SessionExit.State.RUNNING,"cancelled exit stopped session");
+        ui(() -> BridgeTestActivity.current.inputControls().menu.button.performClick()); bundleChoice(2); bundleChoice(1);
+        await(() -> BridgeTestActivity.result!=null || BridgeTestActivity.error!=null,"ordered quit process completion");
+        await(() -> LabSession.current().exit.state()==SessionExit.State.ENDED,"verified shared exit state");
+        JSONObject receipt=BridgeTestActivity.result.getJSONObject("desktop_keyboard").getJSONObject("ordered");
+        check(BridgeTestActivity.error==null && BridgeTestActivity.exitCode==0 && !BridgeTestActivity.child.isAlive()
+                && receipt.getInt("accepted")==receipt.getInt("acknowledged") && BridgeTestActivity.keyDowns==BridgeTestActivity.keyUps
+                && BridgeTestActivity.downs==BridgeTestActivity.ups && BridgeTestActivity.transcript.contains("quits=1 pending=0 failed=0"),"ordered exit accounting");
+        checks.put("configured_menu_cancel_and_ordered_SDL_quit_wait_for_real_process_exit");
+        interaction.put("ordered_records",receipt.getInt("acknowledged")).put("SDL_events",receipt.getInt("events"));
+    }
     private void keyboardChannelFailures() throws Exception {
         KeyboardChannel waiting=new KeyboardChannel(getTargetContext(),"picotronnest.keywait."+UUID.randomUUID(),() -> 0);
         waiting.close(); waiting.close();
@@ -1231,6 +1373,11 @@ public final class BridgeInstrumentation extends Instrumentation {
                     && view.getRootWindowInsets().isVisible(android.view.WindowInsets.Type.ime()) && bottom>0
                     && view.viewportHeight()>0 && location[1]+fit[2]+27*fit[0]<=view.getRootView().getHeight()-bottom+1
                     && BridgeTestActivity.keyboard.latestConnection()!=null;
+            if (BridgeTestActivity.bundleTest) {
+                android.view.View panel=BridgeTestActivity.current.inputControls().view;
+                int[] panelAt=new int[2]; panel.getLocationInWindow(panelAt);
+                visible=visible && panelAt[1]>=0 && panelAt[1]+panel.getHeight()<=view.getRootView().getHeight()-bottom;
+            }
             if (!visible) { visibleSince[0]=0; return false; }
             if (visibleSince[0]==0) visibleSince[0]=SystemClock.uptimeMillis();
             return SystemClock.uptimeMillis()-visibleSince[0]>=750;
@@ -1241,11 +1388,12 @@ public final class BridgeInstrumentation extends Instrumentation {
         try {
             check(session != null && session.matches("[a-f0-9-]{36}"), "missing session UUID");
             BridgeTestActivity.menuTest=mode.equals("menu");
-            BridgeTestActivity.sessionTest=mode.equals("session") || mode.equals("keysession");
+            BridgeTestActivity.bundleTest=mode.startsWith("bundle");
+            BridgeTestActivity.sessionTest=mode.equals("session") || mode.equals("keysession") || BridgeTestActivity.bundleTest;
             BridgeTestActivity.mouseTest=mode.equals("mouse");
             BridgeTestActivity.actionsTest=mode.equals("actions") || mode.equals("actions-read");
             BridgeTestActivity.pointerTest=mode.equals("pointer") || BridgeTestActivity.mouseTest || BridgeTestActivity.actionsTest || BridgeTestActivity.sessionTest;
-            BridgeTestActivity.keyboardTest=mode.equals("keyboard") || mode.equals("combined") || mode.equals("keysession") || BridgeTestActivity.menuTest;
+            BridgeTestActivity.keyboardTest=mode.equals("keyboard") || mode.equals("combined") || mode.equals("keysession") || BridgeTestActivity.bundleTest || BridgeTestActivity.menuTest;
             BridgeTestActivity.profileTest=mode.equals("profile") || mode.equals("profile-read");
             BridgeTestActivity.cursorTest=mode.equals("cursor") || mode.equals("combined") || BridgeTestActivity.profileTest || BridgeTestActivity.menuTest || BridgeTestActivity.actionsTest;
             report.put("session", session).put("mode", mode).put("host_pid", android.os.Process.myPid()).put("host_uid", android.os.Process.myUid())
@@ -1263,13 +1411,22 @@ public final class BridgeInstrumentation extends Instrumentation {
                 stalled.close(); stalled.close();
             } finally { stalled.close(); }
             checks.put("close_with_connected_partial_header");
-            if (mode.equals("keysession")) keyboardChannelFailures();
+            if (mode.equals("keysession") || BridgeTestActivity.bundleTest) keyboardChannelFailures();
             if (BridgeTestActivity.sessionTest) {
                 Activity invalid=startActivitySync(activityIntent().putExtra("cursor_profile","AA=="));
                 check(BridgeTestActivity.launches==0 && BridgeTestActivity.current.desktopView()==null
                         && BridgeTestActivity.current.inputControls()==null,"invalid config started runtime or attached input");
                 ui(invalid::finish);
                 checks.put("invalid_launch_profile_rejected_before_runtime_start");
+            }
+            if (BridgeTestActivity.bundleTest) {
+                for (int code:new int[]{0,19,96,99}) {
+                    Activity invalid=startActivitySync(activityIntent().putExtra("menu_key",code));
+                    check(BridgeTestActivity.launches==0 && BridgeTestActivity.current.desktopView()==null,
+                            "invalid menu binding started runtime");
+                    ui(invalid::finish);
+                }
+                checks.put("invalid_and_conflicting_menu_bindings_rejected_before_runtime_start");
             }
             startActivitySync(activityIntent());
             await(() -> DesktopView.drawnSequence() >= 2 && BridgeTestActivity.nativePid > 0, "fixture frames");
@@ -1278,6 +1435,7 @@ public final class BridgeInstrumentation extends Instrumentation {
             check(BridgeTestActivity.transcript.contains("decoder_tests=PASS"), "shared native decoder tests");
             check(BridgeTestActivity.transcript.contains("keyboard_sdl_tests=PASS"),"shared SDL keyboard event tests");
             check(BridgeTestActivity.transcript.contains("keyboard_channel_tests=PASS"),"shared socket fragmentation and EOF tests");
+            check(BridgeTestActivity.transcript.contains("ordered_tests=PASS"),"shared ordered native tests");
             checks.put("owned_native_decoder_and_real_frames");
             if (mode.equals("normal")) normal();
             else if (mode.equals("keyboard")) keyboard();
@@ -1288,6 +1446,7 @@ public final class BridgeInstrumentation extends Instrumentation {
             else if (mode.equals("mouse")) mouse();
             else if (mode.equals("session")) inputSession();
             else if (mode.equals("keysession")) keyboardSession();
+            else if (BridgeTestActivity.bundleTest) inputBundle();
             else if (BridgeTestActivity.actionsTest) actions();
             else if (BridgeTestActivity.profileTest) profile();
             else {

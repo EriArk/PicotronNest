@@ -43,8 +43,10 @@ and explicit touch controls. [Shared session controls](SESSION_INPUT.md) now exp
 pointer adapters through an opt-in in the official-runtime lab; their integration
 is exercised with an owned process only. The [native keyboard bridge](NATIVE_KEYBOARD.md)
 adds shared event/reader tests; the [shared keyboard integration](SESSION_KEYBOARD.md)
-adds opt-in channel ownership and IME controls. Cross-channel ordering, a
-complete controller workflow and audio remain open.
+adds opt-in channel ownership and IME controls. The
+[input bundle](INPUT_BUNDLE.md) checks ordered mixed input, editor keys and
+shared session exit in the emulator. Official input consumption, a complete
+controller workflow and audio remain open.
 No physical mouse, controller, hardware keyboard
 or real IME typing acceptance is claimed.
 

@@ -12,10 +12,12 @@ import java.util.concurrent.ArrayBlockingQueue;
 final class KeyboardWriter implements AutoCloseable {
     private final ArrayBlockingQueue<byte[]> queue = new ArrayBlockingQueue<>(128);
     private final Thread worker;
+    final OrderedInputWriter ordered;
     private volatile boolean closing;
     private volatile String failure;
     private volatile int sent, accepted;
     KeyboardWriter(OutputStream output) {
+        ordered=null;
         worker = new Thread(() -> {
             try {
                 while (!closing) {
@@ -28,11 +30,15 @@ final class KeyboardWriter implements AutoCloseable {
         }, "desktop-keyboard");
         worker.start();
     }
+    KeyboardWriter(OutputStream output, java.io.InputStream input) {
+        ordered=new OrderedInputWriter(output,input); worker=null;
+    }
     boolean key(int scan, boolean down, boolean repeat, int modifiers) {
         return enqueue(Collections.singletonList(KeyboardProtocol.key(scan, down, repeat, modifiers)));
     }
     boolean text(String text) { return enqueue(KeyboardProtocol.text(text)); }
     private synchronized boolean enqueue(List<byte[]> packets) {
+        if (ordered!=null) return ordered.enqueue(packets);
         if (closing || failure != null) return false;
         if (packets.size() > queue.remainingCapacity()) {
             failure = "keyboard queue overflow; reset queued";
@@ -42,14 +48,16 @@ final class KeyboardWriter implements AutoCloseable {
         for (byte[] packet : packets) { queue.add(packet); accepted++; }
         return true;
     }
-    int sent() { return sent; }
-    int accepted() { return accepted; }
+    int sent() { return ordered==null ? sent : ordered.keySent(); }
+    int accepted() { return ordered==null ? accepted : ordered.keyAccepted(); }
     String failure() {
+        if (ordered!=null) return ordered.failure();
         return failure != null ? failure : closing && !worker.isAlive() && accepted != sent
                 ? "keyboard updates unconfirmed at close" : null;
     }
-    @Override public synchronized void close() { closing = true; worker.interrupt(); }
+    @Override public synchronized void close() { if (ordered!=null) ordered.close(); else { closing = true; worker.interrupt(); } }
     void awaitClosed() throws IOException, InterruptedException {
+        if (ordered!=null) { ordered.awaitClosed(); return; }
         worker.join(2000);
         if (worker.isAlive()) throw new IOException("keyboard writer completion unconfirmed");
     }

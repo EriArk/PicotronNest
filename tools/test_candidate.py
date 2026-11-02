@@ -18,7 +18,7 @@ class CandidateContract(unittest.TestCase):
         self.assertEqual(exported[0].get(NS+'name'),'art.picotronnest.executionlab.LauncherActivity')
         self.assertEqual(len(app.findall('.//intent-filter')),1)
         permissions={node.get(NS+'name') for node in root.findall('uses-permission')}
-        self.assertEqual(permissions,{'android.permission.FOREGROUND_SERVICE','android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK'})
+        self.assertEqual(permissions,{'android.permission.INTERNET','android.permission.FOREGROUND_SERVICE','android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK'})
         self.assertEqual(root.find('uses-sdk').get(NS+'targetSdkVersion'),'36')
 
     def test_version_agreement(self):

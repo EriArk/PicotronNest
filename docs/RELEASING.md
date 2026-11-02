@@ -1,7 +1,7 @@
 # Build and release preparation
 
-The product candidate is **0.1.0-beta.1**, application ID **art.picotronnest**,
-version code **1001**, ARM64, target SDK **36**, minimum SDK **26**. The minimum
+The product candidate is **0.1.0-beta.2**, application ID **art.picotronnest**,
+version code **1002**, ARM64, target SDK **36**, minimum SDK **26**. The minimum
 SDK is a manifest floor, not a claim that every Android 8+ device can execute the
 runtime. Retroid/Android 14 is the hardware evidence currently available.
 
@@ -68,17 +68,17 @@ py -3 -B tools/prepare_release.py
 ```
 
 The command requires a clean worktree and matching candidate source hashes.
-It prepares `.local/release/0.1.0-beta.1/` with the APK, source ZIP, exact
-dependency-source ZIP, notices, build manifest, audit report and `SHA256SUMS`.
+It prepares `.local/release/0.1.0-beta.2/` with the APK, source ZIP, exact
+dependency-source ZIP, original-screenshot ZIP, notices, build manifest, audit report
+and `SHA256SUMS`. The screenshot ZIP contains only the tracked gallery at that commit.
 It checks that no known proprietary runtime payload appears inside the APK.
 The dependency bundle includes SDL, glibc source/Debian patches, PRoot, talloc,
-shmem, exact recipe files and the pinned full Termux build-recipe tree. Project
+shmem, libcurl, Mbed TLS, exact recipe files and the pinned full Termux build-recipe tree. Project
 build/adaptation scripts and the exact source archive accompany the binaries.
 
-Files remain local until publication is explicitly authorized. A project LICENSE
-is included when the owner has selected one; otherwise the project notice
-retains the existing rights position and license selection remains a publication
-decision. Third-party terms and their source/notices are always preserved.
+Files remain local until publication is explicitly authorized. Original project
+code uses the owner-selected MIT license, included as `LICENSE` and in the APK.
+Third-party terms and their source/notices are always preserved.
 
 ## Publication handoff
 
@@ -90,7 +90,7 @@ Before a public prerelease:
    exact attachment list; never upload `.local` wholesale.
 3. Obtain the owner's explicit approval to publish. Preparation and source pushes
    do not create that approval.
-4. On approval, tag the reviewed commit `v0.1.0-beta.1`, publish as a **prerelease**,
+4. On approval, tag the reviewed commit `v0.1.0-beta.2`, publish as a **prerelease**,
    and use the prepared release notes. Change README's download status only after
    verifying the actual release URL and attachments.
 

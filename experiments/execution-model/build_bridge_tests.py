@@ -59,6 +59,7 @@ def main():
     manifest.write_text('''<manifest xmlns:android="http://schemas.android.com/apk/res/android"
         package="art.picotronnest.bridgetest" android:versionCode="1" android:versionName="0.0.1">
         <uses-sdk android:minSdkVersion="26" android:targetSdkVersion="36" />
+        <uses-permission android:name="android.permission.INTERNET" />
         <application android:label="Owned bridge tests - no Picotron" android:debuggable="true"
             android:allowBackup="false" android:extractNativeLibs="true"
             android:theme="@android:style/Theme.Material.Light.NoActionBar">
@@ -72,6 +73,8 @@ def main():
         <instrumentation android:name="art.picotronnest.executionlab.StorageInstrumentation"
             android:targetPackage="art.picotronnest.bridgetest" />
         <instrumentation android:name="art.picotronnest.executionlab.TouchGamepadInstrumentation"
+            android:targetPackage="art.picotronnest.bridgetest" />
+        <instrumentation android:name="art.picotronnest.executionlab.NetworkInstrumentation"
             android:targetPackage="art.picotronnest.bridgetest" />
     </manifest>''', encoding='utf-8')
     unsigned = work / 'unsigned.apk'

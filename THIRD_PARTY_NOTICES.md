@@ -13,6 +13,8 @@ The Android package contains these open-source compatibility components:
 | libandroid-shmem | 0.7 | `ANDROID-SHMEM-LICENSE.txt` |
 | glibc loader and libraries | Debian 2.36-9+deb12u14, ARM64 | `GLIBC-COPYRIGHT.txt`, `GLIBC-COPYING.txt`, `GLIBC-COPYING.LIB.txt`, `GLIBC-LICENSES.txt` |
 | SDL2 | 2.32.10, compiled from pinned source | `SDL2-LICENSE.txt`, `SDL2-EMBEDDED-NOTICES.txt` |
+| libcurl | 8.23.0, built for HTTP/HTTPS from pinned source | `CURL-COPYING.txt` |
+| Mbed TLS | 3.6.7 LTS, statically linked into libcurl | `MBEDTLS-NOTICES.txt` |
 | Android NDK CRT/compiler support | 28.2.13676358 | `NDK-NOTICE.txt` |
 | Linux headers (build input) | Debian linux-libc-dev 6.1.176-1 | `LINUX-HEADERS-COPYRIGHT.txt` |
 
@@ -23,12 +25,20 @@ GPL build-tool terms, so both are retained.
 
 Exact URLs, checksums and source/recipe versions are recorded in
 [proot.lock.json](experiments/execution-model/proot.lock.json) and
-[headless.lock.json](experiments/execution-model/headless.lock.json). PRoot,
+[headless.lock.json](experiments/execution-model/headless.lock.json), and
+[network.lock.json](experiments/execution-model/network.lock.json). PRoot,
 talloc and shmem are extracted from pinned Termux packages. The packaging script
 adjusts bounded ELF dynamic strings (`libtalloc.so.2` → `libtalloc.so`, Termux
 library search path → `$ORIGIN`) without replacing program code. SDL2 is built
 with the configuration in `prepare_headless.py`; glibc uses pinned Debian files.
 PicotronNest's SDL observer and Android frontend are original project code.
+
+Original PicotronNest code is licensed under [MIT](LICENSE), selected by the
+owner on 2026-11-02. This grant does not relicense Picotron, third-party components,
+or the Picotron artwork depicted in device screenshots. Mbed TLS's complete
+upstream license texts are retained; the build uses its Apache-2.0 option.
+System CA certificates are obtained locally from Android when a session starts;
+no private certificate, user-added root or fixed downloaded CA bundle is shipped.
 
 Every binary release must ship the matching dependency source bundle alongside
 the APK, the PicotronNest source archive, checksums and this notice. The bundle

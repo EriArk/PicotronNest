@@ -94,8 +94,10 @@ final class HeadlessProbe {
         report.put("headless_components", components).put("runtime_contract", contract)
               .put("picotron_execution", "ATTEMPTED");
         if (BuildConfig.DESKTOP) {
+            NetworkSupport.writeTrustRoots(root);
             String socketName = "picotronnest." + token;
             env.put("PICONEST_FRAME_SOCKET", socketName);
+            env.put("PICONEST_DNS_SOCKET",socketName+".dns");
             String[] command = {"/system/bin/timeout", "-k", "2", "30",
                     new File(nativeDir, "libproot.so").getPath(), "--kill-on-exit",
                     "-r", root.getPath(), "-b", "/proc", "-b", "/dev/null", "-b", "/dev/urandom",
@@ -112,8 +114,10 @@ final class HeadlessProbe {
             }
             if (keyboardControls) env.put("PICONEST_INPUT_SOCKET",socketName+".keys");
             try (FrameReceiver receiver = new FrameReceiver(socketName,keyboardControls,storage!=null);
+                 NetworkSupport network = new NetworkSupport(socketName+".dns",receiver::livePeerPid);
                  KeyboardChannel keyboard=keyboardControls ? new KeyboardChannel(app,socketName+".keys",receiver) : null;
                  AudioReceiver audio=storage==null ? null : new AudioReceiver(app,socketName+".audio",receiver)) {
+                network.checkStarted();
                 LabSession controls=keyboard==null ? null : new LabSession(keyboard);
                 try {
                     JSONObject process=runner.runWithEnvironment("picotron_desktop_trace", storage==null ? 35000 : 0, env, command);

@@ -66,7 +66,8 @@ def main():
         recorded_sources += [HERE / n for n in ['prepare_headless.py', 'headless.lock.json',
                                                'runtime-contract.json', 'native/headless_exec.c']]
     if args.desktop_base:
-        recorded_sources += [HERE / n for n in ('prepare_desktop.py', 'native/desktop_exec.c',
+        recorded_sources += [HERE / n for n in ('prepare_desktop.py', 'prepare_network.py', 'network.lock.json',
+                                               'native/network_resolver.c', 'native/desktop_exec.c',
                                                'native/desktop_trace.c', 'native/pointer_protocol.h', 'native/pointer_sdl.h',
                                                'native/keyboard_protocol.h', 'native/keyboard_sdl.h', 'native/keyboard_channel.h', 'native/ordered_input.h', 'native/audio_bridge.h', 'native/gamepad_protocol.h', 'native/gamepad_sdl.h')]
     source_hashes = {str(p.relative_to(ROOT)).replace('\\', '/'): digest(p) for p in recorded_sources}

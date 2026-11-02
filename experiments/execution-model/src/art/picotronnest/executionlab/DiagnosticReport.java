@@ -32,7 +32,7 @@ final class DiagnosticReport {
     static JSONObject sanitize(JSONObject source) throws JSONException {
         JSONObject clean=new JSONObject();
         String phase=source.optString("phase");
-        clean.put("phase",phase.equals("COMPLETE") || phase.equals("RUNNING") ? phase : "UNKNOWN");
+        clean.put("phase",phase.equals("COMPLETE") || phase.equals("RUNNING") || phase.equals("FAILED") ? phase : "UNKNOWN");
         if (source.opt("managed_session_closed") instanceof Boolean)
             clean.put("closed",source.getBoolean("managed_session_closed"));
         numbers(source,clean,"started_unix_ms");

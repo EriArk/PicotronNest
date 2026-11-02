@@ -4,6 +4,6 @@ PicotronNest is an independent, unofficial Android wrapper for a user-provided
 Picotron copy. It is not affiliated with Lexaloffle Games. Picotron itself is
 not included.
 
-This notice does not grant additional rights to PicotronNest project code.
-See the repository LICENSE, when present, for the owner's chosen terms.
+Original PicotronNest project code is licensed under the MIT License.
+See LICENSE in the repository and PicotronNest-LICENSE.txt in the APK.
 Bundled third-party components retain their own licenses and notices.

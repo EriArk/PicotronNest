@@ -87,8 +87,21 @@ final class KeyboardInput implements InputManager.InputDeviceListener {
         @Override public boolean commitText(CharSequence value, int position) {
             synchronized (KeyboardInput.this) {
                 if (!valid() || value == null || position != 1) return false;
-                try { if (!writer.text(value.toString())) return false; }
+                String text=value.toString();
+                try { KeyboardProtocol.text(text); } // Validate the entire commit before emitting a prefix.
                 catch (IllegalArgumentException invalid) { return false; }
+                int start=0;
+                for (int i=0;i<text.length();i++) {
+                    char c=text.charAt(i);
+                    if (c!='\n' && c!='\r') continue;
+                    if (!writer.text(text.substring(start,i))) return false;
+                    // Multiline Android IMEs can commit a newline instead of sending
+                    // KEYCODE_ENTER. Native single-line fields need the key transition.
+                    enter();
+                    if (c=='\r' && i+1<text.length() && text.charAt(i+1)=='\n') i++;
+                    start=i+1;
+                }
+                if (!writer.text(text.substring(start))) return false;
                 composing = ""; return true;
             }
         }
@@ -123,12 +136,21 @@ final class KeyboardInput implements InputManager.InputDeviceListener {
             return deleteSurroundingText(before, after);
         }
         @Override public boolean sendKeyEvent(KeyEvent event) {
-            synchronized (KeyboardInput.this) { return valid() && KeyboardInput.this.event(event); }
+            synchronized (KeyboardInput.this) {
+                if (!valid()) return false;
+                if (event.getKeyCode()==KeyEvent.KEYCODE_ENTER && event.getAction()==KeyEvent.ACTION_DOWN
+                        && !composing.isEmpty() && !commitText(composing,1)) return false;
+                return KeyboardInput.this.event(event);
+            }
+        }
+        private void enter() {
+            state.key(IME_SOURCE,40,true,false); state.key(IME_SOURCE,40,false,false);
         }
         @Override public boolean performEditorAction(int action) {
             synchronized (KeyboardInput.this) {
                 if (!valid()) return false;
-                state.key(IME_SOURCE, 40, true, true); state.key(IME_SOURCE, 40, false, false); return true;
+                if (!composing.isEmpty() && !commitText(composing,1)) return false;
+                enter(); return writer.failure()==null;
             }
         }
         @Override public CharSequence getTextBeforeCursor(int length, int flags) { return ""; }

@@ -58,7 +58,8 @@ def main():
     output.mkdir(parents=True,exist_ok=True)
     expected={apk.name, 'build-manifest.json', 'THIRD_PARTY_NOTICES.md', 'PROJECT_NOTICE.txt',
               'RELEASE_NOTES.md', 'TESTING.md', f'PicotronNest-{version}-source.zip',
-              f'PicotronNest-{version}-dependency-sources.zip', 'repository-audit.json', 'SHA256SUMS'}
+              f'PicotronNest-{version}-dependency-sources.zip', f'PicotronNest-{version}-screenshots.zip',
+              'repository-audit.json', 'SHA256SUMS'}
     if (ROOT/'LICENSE').is_file():
         expected.add('LICENSE')
     if {p.name for p in output.iterdir()}-expected:
@@ -77,16 +78,21 @@ def main():
     (output/'TESTING.md').write_text(testing,encoding='utf-8')
     subprocess.run(['git','archive','--format=zip',f'--prefix=PicotronNest-{version}/',
                     '-o',str(output/f'PicotronNest-{version}-source.zip'),'HEAD'],cwd=ROOT,check=True)
+    # Export only the reviewed gallery tracked at this exact commit.
+    subprocess.run(['git','archive','--format=zip',
+                    '-o',str(output/f'PicotronNest-{version}-screenshots.zip'),'HEAD','docs/screenshots'],cwd=ROOT,check=True)
     proot=json.loads((ROOT/'experiments/execution-model/proot.lock.json').read_text())
     headless=json.loads((ROOT/'experiments/execution-model/headless.lock.json').read_text())
     recipe=json.loads((ROOT/'packaging/sources.lock.json').read_text())
+    network=json.loads((ROOT/'experiments/execution-model/network.lock.json').read_text())
     inputs=[*( (item,ROOT/'.local/proot/downloads') for item in proot['sources']+proot['recipes']),
             *( (item,ROOT/'.local/headless/downloads') for item in headless['inputs'] if not item['file'].endswith('.deb')),
-            (recipe,ROOT/'.local/release/downloads')]
+            (recipe,ROOT/'.local/release/downloads'),
+            *((item,ROOT/'.local/headless/downloads') for item in network['inputs'])]
     with zipfile.ZipFile(output/f'PicotronNest-{version}-dependency-sources.zip','w',zipfile.ZIP_DEFLATED) as bundle:
         for item,cache in inputs:
             bundle.write(pinned(item,cache),'upstream/'+item['file'])
-        for name in ('proot.lock.json','headless.lock.json','prepare_proot.py','prepare_headless.py','prepare_desktop.py','build.py'):
+        for name in ('proot.lock.json','headless.lock.json','network.lock.json','prepare_proot.py','prepare_headless.py','prepare_desktop.py','prepare_network.py','build.py'):
             bundle.write(ROOT/'experiments/execution-model'/name,'picotronnest-build/'+name)
         bundle.write(ROOT/'THIRD_PARTY_NOTICES.md','THIRD_PARTY_NOTICES.md')
     checked['commit']=commit

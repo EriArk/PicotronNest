@@ -20,7 +20,7 @@ import java.util.concurrent.TimeUnit;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-/** Fixed commands only. No shell, intent-supplied code, network or shared storage. */
+/** Fixed launch commands only; runtime imports and network access have separate adapters. */
 final class ExecutionProbe {
     private static final int OUTPUT_LIMIT = 16384;
     private final Context app;
@@ -75,6 +75,7 @@ final class ExecutionProbe {
         writeJson(reportFile, report);
         JSONArray cases = new JSONArray();
         report.put("cases", cases);
+        try {
         if (storage==null) {
         File packaged = new File(app.getApplicationInfo().nativeLibraryDir, "libexecution_probe.so");
         File copy = new File(session, "private-probe");
@@ -111,6 +112,14 @@ final class ExecutionProbe {
             done.getFD().sync();
         }
         Log.i("PicotronNestProbe", "COMPLETE session=" + token);
+        } catch (Exception failure) {
+            // Keep the process receipt even when completion checks reject the session.
+            // Raw output stays private; DiagnosticReport exports only allowlisted counters.
+            report.put("phase", "FAILED");
+            try { writeJson(reportFile, report); }
+            catch (Exception saveFailure) { failure.addSuppressed(saveFailure); }
+            throw failure;
+        }
     }
 
     private JSONObject runCase(String name, long timeoutMs, String... command) throws Exception {

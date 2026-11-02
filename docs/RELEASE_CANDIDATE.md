@@ -1,5 +1,14 @@
 # Product candidate evidence
 
+Current candidate: **0.1.0-beta.2** adds the owner-selected MIT license, native
+Splore networking, Android DNS/system trust and a screenshot bundle. See
+[network evidence](NETWORK.md) and [beta 2 notes](releases/0.1.0-beta.2.md).
+The following sections retain the original beta 1 packaging evidence.
+Their publication, license and networking limitations are historical; beta 2
+uses MIT, adds networking and has owner authorization for a public prerelease.
+Final beta 2 build and focused validation hashes are in [network evidence](NETWORK.md).
+
+
 2026-11-02. **0.1.0-beta.1 is prepared locally, not published.** It is a candidate
 for testing local Picotron projects, not a fully accepted cross-device release.
 

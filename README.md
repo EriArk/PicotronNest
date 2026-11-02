@@ -9,7 +9,7 @@ your projects wherever you are.
 
 **Bring your own Picotron. One app. No root or Termux.**
 
-[Getting started](#getting-started) · [Controls](#play-your-way) · [Help](docs/USER_GUIDE.md) · [Report a problem](https://github.com/EriArk/PicotronNest/issues)
+[Screenshots](docs/screenshots/README.md) · [Getting started](#getting-started) · [Controls](#play-your-way) · [Help](docs/USER_GUIDE.md) · [Report a problem](https://github.com/EriArk/PicotronNest/issues)
 
 <img src="docs/screenshots/desktop.png" width="720" alt="The original Picotron desktop running inside PicotronNest on a Retroid Pocket Classic">
 
@@ -23,6 +23,8 @@ Your familiar desktop, windows, code editor, graphics tools and cartridges are
 all supplied by **your official Picotron copy**. PicotronNest brings the Android
 controls, fullscreen display and a persistent home for your work.
 
+- **Discover games in Splore.** Browse the native online catalog, download cartridges
+  and open them in Picotron.
 - **Make room for the game.** Small floating icons and translucent touch controls
   sit over the picture. No permanent control bar squeezing the screen.
 - **Choose your controls.** Use a handheld gamepad, a mouse and keyboard, or your
@@ -32,6 +34,17 @@ controls, fullscreen display and a persistent home for your work.
   Adjust size and transparency, or hide the controls completely.
 - **Keep creating.** Save in Picotron, close the app and return to the same home.
   Import/export cartridges and back up your projects through Android's file picker.
+
+## Find your next game
+
+<div align="center">
+<img src="docs/screenshots/splore-catalog.png" width="640" alt="The real Splore online catalog running in PicotronNest">
+
+*Native Splore on Retroid. Games are downloaded directly by Picotron.*
+</div>
+
+Browse the [full screenshot gallery](docs/screenshots/README.md) for desktop,
+games and control settings. Original PNGs are included for articles and websites.
 
 ## Play your way
 
@@ -48,7 +61,7 @@ PicotronNest menu. Android **Back** also gives you a way out.
 
 ## Getting started
 
-**The first beta candidate is prepared for testing. There is no public APK download yet.**
+**Beta 2 is prepared for testing. There is no public APK download yet.**
 
 When you receive a test build:
 
@@ -67,9 +80,9 @@ The current hardware check is **Retroid Pocket Classic, Android 14**. A 64-bit
 ARM Android device is required; other phones, tablets and handhelds still need
 testing. Audio playback and longer play sessions also need tester confirmation.
 
-This first candidate works with local projects. Picotron's online features are
-not enabled; use cartridge import/export to transfer files. Back up your Picotron
-home before uninstalling the app: Android removes its private files on uninstall.
+Splore catalog browsing, downloads and game launch have been checked on Retroid.
+Accounts, uploads and different network setups still need tester confirmation.
+Back up your Picotron home before uninstalling the app: Android removes its private files on uninstall.
 
 Need help? Read the [user guide](docs/USER_GUIDE.md), or use the short
 [tester checklist](docs/TESTING.md). You can export a report from **Settings and

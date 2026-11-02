@@ -70,6 +70,8 @@ public final class TouchGamepadInstrumentation extends Instrumentation {
             org.json.JSONObject privateReport=new org.json.JSONObject("{\"phase\":\"COMPLETE\",\"path\":\"PRIVATE_PATH\",\"output\":\"PRIVATE_TEXT\",\"desktop_frames\":{\"width\":480,\"height\":270,\"path\":\"PRIVATE_PATH\"},\"cases\":[{\"output\":\"PRIVATE_CART\",\"exit_code\":0}]}");
             String safe=DiagnosticReport.sanitize(privateReport).toString();
             check(!safe.contains("PRIVATE_") && safe.contains("480") && safe.contains("exit_code"),"diagnostic allowlist leaks private contents");
+            privateReport.put("phase","FAILED");
+            check(DiagnosticReport.sanitize(privateReport).getString("phase").equals("FAILED"),"failed phase lost");
             java.io.File reportFolder=new java.io.File(getTargetContext().getFilesDir(),"managed-sessions/"+java.util.UUID.randomUUID());
             check(reportFolder.mkdirs(),"diagnostic fixture folder");
             try (java.io.FileOutputStream out=new java.io.FileOutputStream(new java.io.File(reportFolder,"report.json"))) {

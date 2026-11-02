@@ -1,6 +1,6 @@
 # Project status
 
-**2026-11-02 — Product candidate 0.1.0-beta.1 is prepared for local-project testing. Signed ARM64 packaging, user documentation, real README screenshots, diagnostic export and release-attachment tooling are integrated. No public APK/Release has been published.**
+**2026-11-02 - Product candidate 0.1.0-beta.2 adds native Splore networking and the owner-selected MIT license. The real catalog, two cartridge downloads and game launch passed on Retroid. The owner authorized public prerelease publication; final validation and release preparation are in progress.**
 
 PicotronNest is an Android wrapper for the **official, user-imported Picotron runtime**.
 The repository contains a bounded archive inspector and a temporary target-36
@@ -11,10 +11,20 @@ now has a separately signed, non-debuggable product candidate that opens Picotro
 directly after runtime import. Original desktop frames stream into an Android View;
 the shared input bundle has emulator evidence. Official Picotron interaction and actual save/reopen now have scoped Retroid evidence.
 Audible output acceptance, broader phone ergonomics and modern-device compatibility
-remain open. Online Picotron features are unavailable: this candidate has no network
-permission. Owner license selection and publication approval remain separate decisions.
+remain open. Native HTTP(S) and Android DNS are integrated; accounts, uploads,
+VPN/network-change behavior and raw socket workflows remain tester checks. Public
+publication remains an owner decision. Windowed Splore is the supported tested path.
 
 ## Latest evidence
+
+- [Networking and Splore](NETWORK.md): source-built HTTP(S) dependencies, Android
+  resolver and system trust roots. Product beta 2 downloaded and ran *Corre, Flavio!*
+  and *Ball Fall 2* through native Splore. The latter responded to touch D-pad input.
+  Native HTTPS fetch succeeded; an expired-certificate endpoint failed. Android
+  network fixture passed. The first product session exited 0 with 1790/1790 ordered
+  records acknowledged and no remaining child. Original PNGs are in the
+  [screenshot gallery](screenshots/README.md); MIT and all dependency notices are
+  included. This does not establish account, audio-listening or broad device acceptance.
 
 - [Product candidate and release preparation](RELEASE_CANDIDATE.md): independent
   `art.picotronnest` package, release signature, original icon, versioned manifest,
@@ -260,9 +270,9 @@ Do not upgrade a status because code compiles, ADB starts an activity, a process
 
 ## Next action
 
-Hand the local-project candidate to testers, settle the owner's source license,
-and address the explicitly missing online functionality as a separate functional
-increment. Publish only after owner approval. Retroid was released
+Publish the owner-authorized beta 2 with matching sources, notices, screenshots
+and checksums, then collect tester results for sound, physical controllers,
+phone ergonomics and network transitions. Retroid was released
 by the owner for the scoped checks recorded above; deep acceptance remains with
 the owner/testers. Enforcing ARM64 Android execution remains an explicit
 compatibility gap; Retroid evidence does not close it.

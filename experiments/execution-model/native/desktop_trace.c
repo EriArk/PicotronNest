@@ -93,6 +93,7 @@ __attribute__((constructor)) static void begin(void) {
     }
     name=getenv("PICONEST_INPUT_SOCKET");
     ordered_enabled=name!=NULL;
+    ordered.sample_edges=ordered_enabled;
     if (!name) name=getenv("PICONEST_KEYBOARD_SOCKET");
     if (name) {
         struct sockaddr_un address={0}; size_t length=strlen(name);
@@ -204,10 +205,15 @@ int SDL_UpdateWindowSurface(SDL_Window *window) {
     int (*real)(SDL_Window *) = symbol("SDL_UpdateWindowSurface");
     static int logged;
     if (!logged++) puts("PICONEST_UPDATE_WINDOW_SURFACE");
-    return real(window);
+    int result=real(window);
+    if (ordered_enabled) pn_ordered_end_poll(&ordered);
+    return result;
 }
 
 void SDL_RenderPresent(SDL_Renderer *renderer) {
+    // Picotron may pump SDL more than once per native frame. Keep short edges
+    // visible until that frame has actually reached presentation.
+    if (ordered_enabled) pn_ordered_end_poll(&ordered);
     void (*real)(SDL_Renderer *) = symbol("SDL_RenderPresent");
     int w = 0, h = 0;
     SDL_GetRendererOutputSize(renderer, &w, &h);
@@ -344,7 +350,11 @@ int SDL_PollEvent(SDL_Event *event) {
         return 1;
     }
     if (!quit_sent) {
-        if (ordered_enabled) return ordered_event(event) ? 1 : real(event);
+        if (ordered_enabled) {
+            if (ordered_event(event)) return 1;
+            if (ordered.yield_poll) return 0;
+            return real(event);
+        }
         // Preserve order within each channel without starving the other under continuous input.
         if (prefer_keyboard && keyboard_event(event)) { if (event) prefer_keyboard=0; return 1; }
         if (event && pointer_event(event)) { prefer_keyboard=1; return 1; }

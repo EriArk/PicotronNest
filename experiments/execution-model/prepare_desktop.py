@@ -42,7 +42,8 @@ def prepare(destination, llvm, base_apk):
     common = [llvm / 'clang.exe', '--target=aarch64-linux-gnu', '--sysroot=' + str(sysroot),
               '-nostdlib', '-fuse-ld=lld', '-mno-outline-atomics', '-O2', '-Wall', '-Wextra', '-Werror',
               '-I' + str(destination / 'source/SDL2-2.32.10/include')]
-    selected = {'lib/libdesktop_trace.so': 'desktop_trace.c', 'probe/desktop-exec': 'desktop_exec.c'}
+    selected = {'lib/libdesktop_trace.so': 'desktop_trace.c', 'probe/desktop-exec': 'desktop_exec.c',
+                'lib/libnetwork_resolver.so': 'network_resolver.c'}
     for name, source in selected.items():
         output = destination / 'assets/headless' / name
         output.parent.mkdir(parents=True, exist_ok=True)
@@ -64,6 +65,8 @@ def prepare(destination, llvm, base_apk):
             raise ValueError('Desktop dependency closure is incomplete')
         manifest['files'][name] = {'sha256': digest(output), 'size': output.stat().st_size, 'needed': needed}
         files['assets/headless/' + name] = output
+    from prepare_network import prepare as prepare_network
+    files.update(prepare_network(destination, llvm, manifest))
     manifest['base_apk_sha256'] = base['apk_sha256']
     manifest_file = destination / 'headless-components.json'
     manifest_file.write_text(json.dumps(manifest, indent=2) + '\n', encoding='utf-8')

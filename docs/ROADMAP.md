@@ -7,8 +7,9 @@ implemented. Native cartridge controller routing and texture-sized display now
 have [scoped Retroid evidence](GAMEPAD_AND_DISPLAY.md). Configurable
 [phone game touch controls](TOUCH_GAMEPAD.md) are integrated with focused Retroid
 checks. [Product packaging and matching tester instructions](RELEASE_CANDIDATE.md)
-now prepare a local-project beta candidate. Online functionality is not yet
-implemented; public publication and broad hardware acceptance remain open.
+now prepare beta 2 with [native Splore networking](NETWORK.md), Android DNS and
+HTTPS trust. The catalog, downloads and two games have Retroid evidence. Account
+operations and network transitions, public publication and broad hardware acceptance remain open.
 
 ## Delivery contract
 

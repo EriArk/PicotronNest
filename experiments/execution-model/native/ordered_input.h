@@ -16,7 +16,17 @@ typedef struct {
     PNGamepad gamepads[4];
     int (*gamepad_apply)(unsigned slot,const PNGamepad *state);
     unsigned gamepad_packets;
+    int sample_edges,yield_poll,poll_motion,poll_text;
+    unsigned char poll_keys[512];
+    unsigned poll_buttons;
 } PNOrderedInput;
+
+/* State-sampling consumers must observe an edge before its inverse. Text can
+   remain in the same batch as key-down; do not throttle every wire record. */
+static void pn_ordered_end_poll(PNOrderedInput *s) {
+    memset(s->poll_keys,0,sizeof(s->poll_keys));
+    s->poll_buttons=0; s->poll_motion=0; s->poll_text=0; s->yield_poll=0;
+}
 
 static void pn_put32(unsigned char *p,unsigned n) { for (int i=0;i<4;++i) p[i]=(unsigned char)(n>>(8*i)); }
 static int pn_ordered_pending(const PNOrderedInput *s) { return s->index<s->count || s->key.index<s->key.count; }
@@ -81,12 +91,37 @@ static int pn_ordered_pop(PNOrderedInput *s,SDL_Event *event) {
         ++s->key.index; ++s->suppressed;
     }
     if (!pn_ordered_pending(s)) return 0;
+    SDL_Event *next=s->index<s->count ? &s->pending[s->index] : &s->key.pending[s->key.index];
+    if (s->sample_edges) {
+        int key=next->type==SDL_KEYDOWN || next->type==SDL_KEYUP;
+        int button=next->type==SDL_MOUSEBUTTONDOWN || next->type==SDL_MOUSEBUTTONUP;
+        unsigned bit=button ? next->button.button==SDL_BUTTON_LEFT ? 1 : 2 : 0;
+        if ((key && (s->poll_keys[next->key.keysym.scancode] ||
+                     (next->type==SDL_KEYDOWN && s->poll_text))) ||
+            (button && ((s->poll_buttons&bit) || (s->poll_motion && next->type==SDL_MOUSEBUTTONDOWN)))) {
+            s->yield_poll=1; return 0;
+        }
+    }
     if (!event) return 1;
     if (s->index<s->count) {
         *event=s->pending[s->index++];
-        if (event->type==SDL_MOUSEMOTION) { s->x=event->motion.x; s->y=event->motion.y; s->buttons=s->pointer.buttons; }
+        if (event->type==SDL_MOUSEMOTION) {
+            if (s->sample_edges) {
+                s->poll_motion|=s->x!=event->motion.x || s->y!=event->motion.y;
+                event->motion.state=pn_mouse_mask(s->buttons);
+            } else s->buttons=s->pointer.buttons;
+            s->x=event->motion.x; s->y=event->motion.y;
+        }
+        if (s->sample_edges && (event->type==SDL_MOUSEBUTTONDOWN || event->type==SDL_MOUSEBUTTONUP)) {
+            unsigned bit=event->button.button==SDL_BUTTON_LEFT ? 1 : 2;
+            if (event->type==SDL_MOUSEBUTTONDOWN) s->buttons|=bit; else s->buttons&=~bit;
+            s->poll_buttons|=bit;
+        }
         if (event->type==SDL_QUIT) ++s->quits;
     } else if (!pn_keyboard_pop(&s->key,event)) return 0;
+    if (s->sample_edges && (event->type==SDL_KEYDOWN || event->type==SDL_KEYUP))
+        s->poll_keys[event->key.keysym.scancode]=1;
+    if (s->sample_edges && event->type==SDL_TEXTINPUT) s->poll_text=1;
     ++s->events; return 1;
 }
 static int pn_ordered_ack(PNOrderedInput *s,int fd) {
@@ -106,7 +141,7 @@ static int pn_ordered_ack(PNOrderedInput *s,int fd) {
 static int pn_ordered_read(PNOrderedInput *s,int fd,SDL_Event *event,int width,int height,
                            Uint32 ticks,Uint32 window,SDL_Keycode (*keycode)(SDL_Scancode)) {
     int ready=pn_ordered_pop(s,event);
-    if (ready || s->error || s->quits) {
+    if (ready || s->yield_poll || s->error || s->quits) {
         if (pn_ordered_ack(s,fd)) { s->error=5; pn_ordered_release(s,ticks,window,keycode); }
         return ready;
     }

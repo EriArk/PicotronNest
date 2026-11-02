@@ -1,6 +1,49 @@
 /* Owned regression of the production ordered reader, event construction and acknowledgement. */
 static void ordered_selftest(void) {
     unsigned char b[64],ack[16]; SDL_Event e;
+    // A fast Enter press remains sampled across a poll boundary. Text is not
+    // delayed behind key-up, and a touch at a new location hovers before down.
+    {
+        PNOrderedInput sample={0}; sample.sample_edges=1;
+        key_record(b,1,40,1,0); put(b,0x504e4f31);
+        if (pn_ordered_stage(&sample,b,48,27,1,17,fixture_keycode) || !pn_ordered_pop(&sample,&e)) _exit(90);
+        memset(b,0,64); put(b,0x504e4f31); put(b+4,2); put(b+8,2); put(b+24,1); b[28]='x';
+        if (pn_ordered_stage(&sample,b,48,27,1,17,fixture_keycode) || !pn_ordered_pop(&sample,&e)
+            || e.type!=SDL_TEXTINPUT) _exit(90);
+        key_record(b,3,40,0,0); put(b,0x504e4f31);
+        if (pn_ordered_stage(&sample,b,48,27,1,17,fixture_keycode) || pn_ordered_pop(&sample,&e)
+            || !sample.yield_poll || !sample.key.delivered[40]) _exit(90);
+        pn_ordered_end_poll(&sample);
+        if (!pn_ordered_pop(&sample,NULL) || !sample.key.delivered[40]
+            || !pn_ordered_pop(&sample,&e) || sample.key.delivered[40]) _exit(90);
+        memset(b,0,64); put(b,0x504e4f31); put(b+4,4); put(b+8,4); put(b+12,5); put(b+16,6); put(b+20,1);
+        if (pn_ordered_stage(&sample,b,48,27,1,17,fixture_keycode) || !pn_ordered_pop(&sample,&e)
+            || e.type!=SDL_MOUSEMOTION || sample.x!=5 || sample.y!=6 || sample.buttons
+            || pn_ordered_pop(&sample,&e) || !sample.yield_poll) _exit(90);
+        pn_ordered_end_poll(&sample);
+        if (!pn_ordered_pop(&sample,&e) || sample.buttons!=1) _exit(90);
+        put(b+4,5); put(b+20,0);
+        if (pn_ordered_stage(&sample,b,48,27,1,17,fixture_keycode) || !pn_ordered_pop(&sample,&e)
+            || pn_ordered_pop(&sample,&e) || sample.buttons!=1 || !sample.yield_poll) _exit(90);
+        pn_ordered_end_poll(&sample);
+        if (!pn_ordered_pop(&sample,&e) || sample.buttons) _exit(90);
+        // Focus/reset releases follow the same rule, never lose a held modifier.
+        key_record(b,6,224,1,2); put(b,0x504e4f31);
+        if (pn_ordered_stage(&sample,b,48,27,1,17,fixture_keycode) || !pn_ordered_pop(&sample,&e)) _exit(90);
+        memset(b,0,64); put(b,0x504e4f31); put(b+4,7); put(b+8,3);
+        if (pn_ordered_stage(&sample,b,48,27,1,17,fixture_keycode) || pn_ordered_pop(&sample,&e)
+            || !sample.key.delivered[224]) _exit(90);
+        pn_ordered_end_poll(&sample);
+        if (!pn_ordered_pop(&sample,&e) || sample.key.delivered[224] || pn_ordered_pending(&sample)) _exit(90);
+        pn_ordered_end_poll(&sample);
+        memset(b,0,64); put(b,0x504e4f31); put(b+4,8); put(b+8,2); put(b+24,1); b[28]='x';
+        if (pn_ordered_stage(&sample,b,48,27,1,17,fixture_keycode) || !pn_ordered_pop(&sample,&e)) _exit(90);
+        key_record(b,9,40,1,0); put(b,0x504e4f31);
+        if (pn_ordered_stage(&sample,b,48,27,1,17,fixture_keycode) || pn_ordered_pop(&sample,&e)
+            || !sample.yield_poll || sample.key.delivered[40]) _exit(90);
+        pn_ordered_end_poll(&sample);
+        if (!pn_ordered_pop(&sample,&e) || !sample.key.delivered[40]) _exit(90);
+    }
     // Controller state is atomic, source-owned, reset on EOF, and precedes quit.
     {
         PNOrderedInput pads={0},before;

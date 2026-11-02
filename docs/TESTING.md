@@ -1,6 +1,6 @@
 # First beta tester checklist
 
-Candidate: **0.1.0-beta.1**, ARM64, package `art.picotronnest`, target API 36.
+Candidate: **0.1.0-beta.2**, ARM64, package `art.picotronnest`, target API 36.
 Supported import: your own **Picotron 0.3.0d2 Raspberry Pi 64-bit ZIP**.
 Retroid Pocket Classic / Android 14 has scoped development evidence; this is
 not a promise of compatibility with other Android execution policies.
@@ -24,6 +24,15 @@ not a promise of compatibility with other Android execution policies.
 8. Save, leave the app, return, then quit normally. Report frozen frames,
    duplicated instances, stuck inputs, crashes or unexpected data loss.
 
+## Splore and networking
+
+1. Open native Splore, browse New/Featured, download a cartridge and play it.
+2. Search for a term with the Android keyboard, press Enter and open a result.
+3. Return to Splore from the game's native pause menu. Try another cartridge.
+4. Test a failed request and retry after reconnection. Keep local projects intact.
+5. If applicable, check your VPN/Private DNS and Wi-Fi/mobile transitions. Account
+   login and uploads are optional owner checks; never put credentials in reports.
+
 ## Report results
 
 Use **Settings and projects → About and diagnostics → Export diagnostic report**.
@@ -37,7 +46,9 @@ are optional; check them for private content before posting.
 ## Known limits
 
 - Only the pinned 0.3.0d2 Raspberry Pi 64-bit runtime is accepted.
-- Online Picotron features are unavailable in this candidate (no network permission).
+- Native Splore browsing/download/play and HTTPS have scoped Retroid evidence.
+  Account operations, VPN/Private DNS, network changes and raw TCP/UDP need acceptance.
+- Use windowed Splore: its internal fullscreen toggle showed incorrect layout.
 - Other ARM64 Android devices, especially stricter execution policies, need testing.
 - Audio listening, physical analog ranges, Bluetooth reconnect, multiple players,
   long sessions and phone ergonomics have not received broad acceptance.

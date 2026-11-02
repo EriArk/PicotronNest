@@ -30,6 +30,22 @@ fingers for combinations such as movement plus jump. Each control tracks one
 finger; it is not a multi-finger gesture surface. Desktop editing still uses the
 original Picotron tools.
 
+## Find games online
+
+Open **Splore** from Picotron's own menu in the upper-left corner. Choose **New**
+or **Featured** to browse. Double-tap a cartridge to download and open it. If an
+old empty list is cached, activate its **Refresh** entry. The catalog, downloads
+and game launcher are all provided by your official Picotron copy.
+
+Use Search to enter a term, then press Enter. You can move or resize the native
+Splore window by its title bar and lower-right corner. Use windowed Splore for
+now: its internal fullscreen toggle showed incorrect layout during testing.
+
+If a request fails, check your Android connection and device date, then retry.
+Local projects remain available without internet. PicotronNest uses Android's
+DNS resolver and system certificate roots; it does not disable HTTPS verification.
+Native account login and uploads have not been tested with an owner's account.
+
 ## Save, close and return
 
 Save your work **inside Picotron** first. Use **Picotron → Quit Picotron** from the
@@ -67,9 +83,11 @@ diagnostic report** button. Reports contain the device model, Android/app versio
 and session counters. They omit runtime output, typed text, file paths and project
 contents. Exporting saves a local document; it does not submit anything online.
 
-The wrapper has no analytics, account or network permission in this candidate.
-Picotron's online features therefore are unavailable. Transfer local cartridges
-through the document picker. App private storage contains your runtime, projects
+The wrapper has no analytics or separate account. It requests internet access so
+Picotron can contact online services directly. Splore requests go to Picotron's
+services; cartridge network requests go to their requested destinations. Native
+Picotron account features remain under your control. The DNS adapter does not log
+names, URLs or response bodies. App private storage contains your runtime, projects
 and local session logs; use backups rather than copying internal runtime folders.
 
 For a bug report, include the app version, device/Android version, reproduction

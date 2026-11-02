@@ -1225,6 +1225,13 @@ public final class BridgeInstrumentation extends Instrumentation {
         ui(() -> { check(staleIme.commitText(text,1),"bundle Unicode"); check(staleIme.deleteSurroundingText(3,2),"bounded IME deletion"); });
         int k=22+KeyboardProtocol.text(text).size()+10; keys(k,0);
         check(BridgeTestActivity.receivedText.equals(text),"bundle Unicode exact receipt");
+        ui(() -> {
+            check(staleIme.commitText("first\nsecond\r\n",1),"IME newline commit");
+            check(staleIme.setComposingText("search",1) && staleIme.performEditorAction(0),"IME action composition");
+        });
+        k+=9; keys(k,0); // Three text chunks and three balanced Enter presses.
+        check(BridgeTestActivity.receivedText.equals(text+"firstsecondsearch"),"newline leaked into text or composition was lost");
+        checks.put("IME_newline_CRLF_and_composed_editor_action_emit_balanced_Enter");
         hideIme(); checks.put("shared_IME_Unicode_and_bounded_multi_character_delete");
         int base=BridgeTestActivity.activeKeyWriter.ordered.accepted();
         AlertDialog[] focus=new AlertDialog[1];

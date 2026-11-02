@@ -4,10 +4,22 @@ Original **1240 x 1080 PNGs**, captured on **Retroid Pocket Classic / Android 14
 on 2026-11-02. Click any image for the full-size file. These are actual application
 screens, with no cropping, retouching, compositing or generated content.
 
-The [beta 2 release](https://github.com/EriArk/PicotronNest/releases/tag/v0.1.0-beta.2)
-includes a `PicotronNest-0.1.0-beta.2-screenshots.zip`
-containing this gallery and its original PNGs. The same images are also in the
-repository source archive.
+The [beta 3 release](https://github.com/EriArk/PicotronNest/releases/tag/v0.1.0-beta.3)
+includes a screenshot ZIP. This repository gallery additionally records the
+beta 3 launcher/audio captures added after publication; each section identifies
+the actual app version. No new APK was needed for these documentation captures.
+
+## Beta 3 library and sound
+
+| Your games | Sound buffer |
+| --- | --- |
+| [![Downloaded cartridge cover grid](game-library.png)](game-library.png) | [![Live audio buffer preferences](sound-buffer.png)](sound-buffer.png) |
+
+Captured in the installed, published **0.1.0-beta.3** product with official
+owner-imported **0.3.0d2**. The library shows existing public Splore downloads;
+*Corre, Flavio!* was launched by tapping its cover. The settings image shows the
+default Auto preference. These images do not establish audible sound quality.
+Neither the supplied private review carts nor personal project contents are shown.
 
 ## Workstation and controls
 

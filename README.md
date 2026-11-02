@@ -9,7 +9,9 @@ your projects wherever you are.
 
 **Bring your own Picotron. One app. No root or Termux.**
 
-[Screenshots](docs/screenshots/README.md) · [Getting started](#getting-started) · [Controls](#play-your-way) · [Help](docs/USER_GUIDE.md) · [Report a problem](https://github.com/EriArk/PicotronNest/issues)
+**[Download beta 3 for Android](https://github.com/EriArk/PicotronNest/releases/download/v0.1.0-beta.3/PicotronNest-0.1.0-beta.3-arm64.apk)** · [What's new](https://github.com/EriArk/PicotronNest/releases/tag/v0.1.0-beta.3)
+
+[Screenshots](docs/screenshots/README.md) · [Getting started](#getting-started) · [Help](docs/USER_GUIDE.md) · [Report a problem](https://github.com/EriArk/PicotronNest/issues)
 
 <img src="docs/screenshots/desktop.png" width="720" alt="The original Picotron desktop running inside PicotronNest on a Retroid Pocket Classic">
 
@@ -23,45 +25,45 @@ Your familiar desktop, windows, code editor, graphics tools and cartridges are
 all supplied by **your official Picotron copy**. PicotronNest brings the Android
 controls, fullscreen display and a persistent home for your work.
 
-- **Discover games in Splore.** Browse the native online catalog, download cartridges
-  and open them in Picotron.
-- **Keep games close.** Open **Your games** beside the menu for a cover grid of
-  downloaded and local cartridges. Tap a cover to launch.
-- **Make room for the game.** Small floating icons and translucent touch controls
-  sit over the picture. No permanent control bar squeezing the screen.
-- **Choose your controls.** Use a handheld gamepad, a mouse and keyboard, or your
-  phone's touch screen and onscreen keyboard. Switch a controller between games
-  and moving the pointer.
-- **Make touch controls yours.** Pick a compact layout or add sticks and triggers.
-  Adjust size and transparency, or hide the controls completely.
-- **Keep creating.** Save in Picotron, close the app and return to the same home.
-  Import/export cartridges and back up your projects through Android's file picker.
+- **Play:** find games in Splore and launch downloaded favourites from a cover grid.
+- **Create:** use Picotron's own editors with touch, a mouse or an Android keyboard.
+- **Keep your work:** return to the same home, import/export cartridges and back up
+  projects through Android's file picker.
 
 ## Find your next game
 
-<div align="center">
-<img src="docs/screenshots/splore-catalog.png" width="640" alt="The real Splore online catalog running in PicotronNest">
+Browse the real online Splore catalog. Then open **Your games** beside the
+hamburger and tap a cover to play a downloaded or local cartridge.
 
-*Native Splore on Retroid. Games are downloaded directly by Picotron.*
-</div>
-
-Browse the [full screenshot gallery](docs/screenshots/README.md) for desktop,
-games and control settings. Original PNGs are included for articles and websites.
+| Discover in Splore | Your games, ready to launch |
+| --- | --- |
+| [<img src="docs/screenshots/splore-catalog.png" width="360" alt="Native Splore online game catalog">](docs/screenshots/splore-catalog.png) | [<img src="docs/screenshots/game-library.png" width="360" alt="Beta 3 game launcher with downloaded cartridge covers">](docs/screenshots/game-library.png) |
 
 ## Play your way
 
-<div align="center">
-<img src="docs/screenshots/touch-controls.png" width="540" alt="A project running in the official Picotron with translucent PicotronNest touch controls">
+Use a handheld gamepad, mouse and keyboard, or touchscreen controls. Choose a
+compact layout or add sticks and triggers; adjust size and transparency, or hide
+the controls. Auto hides them when a gamepad is connected.
 
-*An original example project running in Picotron. Touch controls are optional;
-Auto mode hides them when a gamepad is connected.*
-</div>
+| Play on the touchscreen | Tune the controls |
+| --- | --- |
+| [<img src="docs/screenshots/splore-game-playing.png" width="360" alt="Corre, Flavio! running with translucent touch controls">](docs/screenshots/splore-game-playing.png) | [<img src="docs/screenshots/game-control-settings.png" width="360" alt="Touch-control visibility, size and opacity settings">](docs/screenshots/game-control-settings.png) |
 
-The floating **menu** opens controls and settings, including **Sound buffer**.
-Choose Auto, Low latency or More stable; a larger buffer adds sound delay.
-The **keyboard** icon lets you
-type. On a gamepad, **Start** goes to the game's pause menu; **Guide** opens the
-PicotronNest menu. Android **Back** also gives you a way out.
+**Start** opens the game's pause menu; **Guide** opens PicotronNest controls.
+The keyboard icon brings up Android's keyboard, and **Back** gives you a way out.
+
+## Make it yours
+
+Work on your own cartridges and keep your saves between sessions. Sound buffering
+offers **Auto**, **Low latency** and **More stable**; larger buffers add sound delay.
+
+| Your own projects | Sound buffer choices |
+| --- | --- |
+| [<img src="docs/screenshots/touch-controls.png" width="360" alt="Original Pocket Orbit example running in PicotronNest">](docs/screenshots/touch-controls.png) | [<img src="docs/screenshots/sound-buffer.png" width="360" alt="Beta 3 audio buffer modes and latency explanation">](docs/screenshots/sound-buffer.png) |
+
+All screenshots are real Retroid captures. The gallery includes beta 1/2 screens
+and the new beta 3 launcher/audio controls. Open any image at full size or browse
+the [gallery with credits and original PNGs](docs/screenshots/README.md).
 
 ## Getting started
 

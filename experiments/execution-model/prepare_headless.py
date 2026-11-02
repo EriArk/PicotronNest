@@ -13,9 +13,9 @@ from prepare_proot import deb_payload
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 CACHE = ROOT / '.local/headless/downloads'
-DISABLED = ('ALSA ARTS DBUS DIRECTFB DISKAUDIO ESD FUSIONSOUND HIDAPI IBUS JACK KMSDRM '
+DISABLED = ('ALSA ARTS DBUS DIRECTFB DISKAUDIO ESD FUSIONSOUND HIDAPI_JOYSTICK IBUS JACK KMSDRM '
             'LIBSAMPLERATE LIBUDEV NAS OFFSCREEN OPENGL OPENGLES OSS PIPEWIRE PULSEAUDIO '
-            'RPI SNDIO VIVANTE VULKAN WAYLAND X11 JOYSTICK HAPTIC SENSOR TEST TESTS STATIC CCACHE RPATH').split()
+            'RPI SNDIO VIVANTE VULKAN WAYLAND X11 HAPTIC SENSOR TEST TESTS STATIC CCACHE RPATH').split()
 
 
 def digest(path):
@@ -114,7 +114,8 @@ set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
     build = destination / 'sdl-build'
     run_logged(['cmake', '-S', source, '-B', build, '-G', 'Ninja',
                 '-DCMAKE_TOOLCHAIN_FILE=' + str(toolchain), '-DCMAKE_BUILD_TYPE=Release',
-                '-DSDL_SHARED=ON', *['-DSDL_' + x + '=OFF' for x in DISABLED]], destination / 'configure.log')
+                '-DSDL_SHARED=ON', '-DSDL_JOYSTICK=ON', '-DSDL_HIDAPI=ON',
+                '-DSDL_VIRTUAL_JOYSTICK=ON', *['-DSDL_' + x + '=OFF' for x in DISABLED]], destination / 'configure.log')
     run_logged(['cmake', '--build', build, '--target', 'SDL2', '--parallel', '8'], destination / 'compile.log')
     sdl = build / 'libSDL2-2.0.so.0.3200.10'
     guest = destination / 'headless-exec'

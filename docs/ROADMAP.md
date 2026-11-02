@@ -3,8 +3,9 @@
 This is a delivery sequence, **not a list of features already built**. As of
 2026-11-02, scoped official execution, display, interaction and save/reopen have
 Retroid evidence. Input configuration, project transfers and recovery are
-implemented; native cartridge controller routing and product packaging remain.
-See [the current workflow evidence](MANAGED_WORKSTATION.md).
+implemented. Native cartridge controller routing and texture-sized display now
+have [scoped Retroid evidence](GAMEPAD_AND_DISPLAY.md). Phone game touch controls
+and product packaging remain.
 
 ## Delivery contract
 

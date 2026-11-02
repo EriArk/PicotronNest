@@ -258,6 +258,7 @@ static int home_proof(const char *home,const char *mode) {
 int main(int argc, char **argv) {
     if (argc==4 && !strcmp(argv[1],"--home-proof")) return home_proof(argv[2],argv[3]);
     alarm(90); setvbuf(stdout, NULL, _IOLBF, 0); selftest();
+    if (argc==2 && !strcmp(argv[1],"--self-test")) { puts("PASS native pointer, keyboard, ordered stream and controller release checks"); return 0; }
     if ((argc < 2 || argc > 4) || strlen(argv[1]) > 90 || (argc >= 3 && strlen(argv[2]) > 90)) return 40;
     int ordered_mode=argc==4, trace_order=argc==4 && !strcmp(argv[3],"trace");
     if (ordered_mode && strcmp(argv[3],"ordered") && !trace_order) return 40;

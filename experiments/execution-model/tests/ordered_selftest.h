@@ -1,6 +1,23 @@
 /* Owned regression of the production ordered reader, event construction and acknowledgement. */
 static void ordered_selftest(void) {
     unsigned char b[64],ack[16]; SDL_Event e;
+    // Controller state is atomic, source-owned, reset on EOF, and precedes quit.
+    {
+        PNOrderedInput pads={0},before;
+        memset(b,0,64); put(b,0x504e4f31); put(b+4,1); put(b+8,6);
+        put(b+12,3); put(b+16,1); put(b+20,0x4001); put(b+24,(unsigned)-32768);
+        if (pn_ordered_stage(&pads,b,48,27,1,17,fixture_keycode) || pads.gamepads[3].buttons!=0x4001) _exit(89);
+        put(b+4,2); put(b+12,0); put(b+20,2);
+        if (pn_ordered_stage(&pads,b,48,27,1,17,fixture_keycode) || pads.gamepads[3].buttons!=0x4001) _exit(89);
+        put(b+4,3); put(b+24,32768); before=pads;
+        if (!pn_ordered_stage(&pads,b,48,27,1,17,fixture_keycode) || memcmp(&pads,&before,sizeof(pads))) _exit(89);
+        memset(b+12,0,52); put(b+8,5);
+        if (!pn_ordered_stage(&pads,b,48,27,1,17,fixture_keycode)) _exit(89);
+        int pair[2]; if (socketpair(AF_UNIX,SOCK_STREAM|SOCK_CLOEXEC,0,pair)) _exit(89);
+        close(pair[0]); pn_ordered_read(&pads,pair[1],&e,48,27,2,17,fixture_keycode);
+        if (!pads.error || pads.gamepads[0].connected || pads.gamepads[3].connected) _exit(89);
+        close(pair[1]);
+    }
     for (unsigned split=1;split<64;++split) {
         int pair[2]; PNOrderedInput s={0};
         if (socketpair(AF_UNIX,SOCK_STREAM|SOCK_CLOEXEC,0,pair)) _exit(80);

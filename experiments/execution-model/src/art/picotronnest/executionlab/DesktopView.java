@@ -25,6 +25,11 @@ final class DesktopView extends View {
     private MouseInput mouse;
     private int imeBottom;
     boolean workstation;
+    private static boolean gamesSelected=true;
+    boolean gameControls() { return workstation && gamesSelected; }
+    void gameControls(boolean enabled) {
+        synchronized (DesktopView.class) { releaseInput(); gamesSelected=enabled; requestFocus(); }
+    }
     private int keyboardShowGeneration;
     private final int[] windowLocation=new int[2];
     private final PointerState touch = new PointerState((x, y, buttons) -> {
@@ -250,6 +255,10 @@ final class DesktopView extends View {
     @Override public boolean onKeyDown(int code, android.view.KeyEvent event) {
         synchronized (DesktopView.class) {
             if (attached.get()!=this) return false;
+            if (gameControls() && GamepadInput.controller(event)) {
+                if (hasWindowFocus() && keyboard!=null && keyboard.active() && keyboard.gamepad!=null) keyboard.gamepad.key(event);
+                return true; // Unassigned game buttons must not fall through into the pointer.
+            }
             if (pointer!=null && cursor!=null && viewportHeight()>0 && cursor.key(event)) return true;
             return keyboard != null && keyboard.event(event) || super.onKeyDown(code, event);
         }
@@ -257,6 +266,10 @@ final class DesktopView extends View {
     @Override public boolean onKeyUp(int code, android.view.KeyEvent event) {
         synchronized (DesktopView.class) {
             if (attached.get()!=this) return false;
+            if (gameControls() && GamepadInput.controller(event)) {
+                if (hasWindowFocus() && keyboard!=null && keyboard.active() && keyboard.gamepad!=null) keyboard.gamepad.key(event);
+                return true;
+            }
             if (pointer!=null && cursor!=null && viewportHeight()>0 && cursor.key(event)) return true;
             return keyboard != null && keyboard.event(event) || super.onKeyUp(code, event);
         }
@@ -271,6 +284,10 @@ final class DesktopView extends View {
     @Override public boolean onGenericMotionEvent(MotionEvent event) {
         synchronized (DesktopView.class) {
             if (attached.get()!=this) return false;
+            if (gameControls() && event.isFromSource(android.view.InputDevice.SOURCE_JOYSTICK)) {
+                if (hasWindowFocus() && keyboard!=null && keyboard.active() && keyboard.gamepad!=null) keyboard.gamepad.motion(event);
+                return true;
+            }
             if (MouseInput.isMouse(event)) return mouseEvent(event);
             return pointer!=null && cursor!=null && viewportHeight()>0 && cursor.motion(event) || super.onGenericMotionEvent(event);
         }

@@ -2,9 +2,10 @@
 
 **Interaction direction accepted by the owner on 2026-10-23; exact defaults and
 bindings still need usability tests.** This is not an implemented feature list.
-The official-runtime lab currently has a single-touch left-button adapter.
-Official Picotron input acceptance is pending; see [the prepared hardware
-check](RETROID_INPUT_CHECK.md). Product UI work follows that gate.
+The subsequent [managed workstation](MANAGED_WORKSTATION.md) and
+[gamepad/display bundle](GAMEPAD_AND_DISPLAY.md) implement shared workstation
+input and separate native game controls. Their scoped Retroid evidence does not
+complete every physical workflow below. Older experiment notes are historical.
 
 ## Accepted interaction direction
 

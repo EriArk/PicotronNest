@@ -56,7 +56,7 @@ def main():
     if args.desktop_base:
         recorded_sources += [HERE / n for n in ('prepare_desktop.py', 'native/desktop_exec.c',
                                                'native/desktop_trace.c', 'native/pointer_protocol.h', 'native/pointer_sdl.h',
-                                               'native/keyboard_protocol.h', 'native/keyboard_sdl.h', 'native/keyboard_channel.h', 'native/ordered_input.h', 'native/audio_bridge.h')]
+                                               'native/keyboard_protocol.h', 'native/keyboard_sdl.h', 'native/keyboard_channel.h', 'native/ordered_input.h', 'native/audio_bridge.h', 'native/gamepad_protocol.h', 'native/gamepad_sdl.h')]
     source_hashes = {str(p.relative_to(ROOT)).replace('\\', '/'): digest(p) for p in recorded_sources}
     work = ROOT / '.local/execution-model/builds' / uuid.uuid4().hex
     artifacts = ROOT / '.local/execution-model/artifacts'

@@ -18,7 +18,16 @@ public class MainActivity extends Activity {
     final DesktopView desktopView() { return desktop; }
     final LabInputControls inputControls() { return inputControls; }
     @Override public boolean dispatchKeyEvent(android.view.KeyEvent event) {
+        if (overlay!=null && overlay.drawerOpen() && GamepadInput.controller(event)) {
+            if (event.getAction()==android.view.KeyEvent.ACTION_UP
+                    && (event.getKeyCode()==android.view.KeyEvent.KEYCODE_BUTTON_MODE || event.getKeyCode()==android.view.KeyEvent.KEYCODE_BUTTON_B)) overlay.closeDrawer();
+            return true;
+        }
         return inputControls!=null && inputControls.key(event) || super.dispatchKeyEvent(event);
+    }
+    @Override public boolean dispatchGenericMotionEvent(android.view.MotionEvent event) {
+        if (overlay!=null && overlay.drawerOpen() && event.isFromSource(android.view.InputDevice.SOURCE_JOYSTICK)) return true;
+        return super.dispatchGenericMotionEvent(event);
     }
     @Override public void onWindowFocusChanged(boolean focused) {
         super.onWindowFocusChanged(focused); if (inputControls!=null) inputControls.focus(focused);

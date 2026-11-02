@@ -1,6 +1,8 @@
 # Managed workstation tools and Retroid workflow
 
 2026-11-02. This is an integrated development build, not a published beta.
+Subsequent native controller and SDL presentation work supersedes the relevant
+remaining-work statements below: [Gamepad and display](GAMEPAD_AND_DISPLAY.md).
 The owner released Retroid for this check. No other app was installed, cleared
 or stopped. The existing PicotronNest private files were backed up locally
 before updating the lab APK with `adb install -r`.

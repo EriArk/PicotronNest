@@ -63,6 +63,18 @@ final class OrderedInputWriter implements AutoCloseable {
                 .putInt(x).putInt(y).putInt(buttons).putInt(wheelX).putInt(wheelY).array();
         return enqueue(Collections.singletonList(packet));
     }
+    boolean gamepad(int slot,boolean connected,int buttons,int[] axes) {
+        if (slot<0 || slot>=4 || buttons<0 || buttons>0x7fff || axes.length!=6 || !connected && buttons!=0)
+            throw new IllegalArgumentException("controller snapshot");
+        ByteBuffer packet=ByteBuffer.allocate(64).order(ByteOrder.LITTLE_ENDIAN);
+        packet.putInt(MAGIC).putInt(0).putInt(6).putInt(slot).putInt(connected ? 1 : 0).putInt(buttons);
+        for (int i=0;i<6;i++) {
+            if (axes[i]<(i<4 ? -32768 : 0) || axes[i]>32767 || !connected && axes[i]!=0)
+                throw new IllegalArgumentException("controller axis");
+            packet.putInt(axes[i]);
+        }
+        return enqueue(Collections.singletonList(packet.array()));
+    }
     synchronized boolean quit() {
         byte[] packet=ByteBuffer.allocate(64).order(ByteOrder.LITTLE_ENDIAN).putInt(MAGIC).putInt(0).putInt(QUIT).array();
         if (!enqueue(Collections.singletonList(packet))) return false;

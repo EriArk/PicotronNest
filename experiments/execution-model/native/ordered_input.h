@@ -3,6 +3,7 @@
 #define PN_ORDERED_INPUT_H
 #include "keyboard_channel.h"
 #include "pointer_sdl.h"
+#include "gamepad_protocol.h"
 
 typedef struct {
     PNKeyboardSDL key;
@@ -12,6 +13,9 @@ typedef struct {
     int x,y; unsigned buttons;
     unsigned char bytes[64]; size_t used;
     int error,suppress_text;
+    PNGamepad gamepads[4];
+    int (*gamepad_apply)(unsigned slot,const PNGamepad *state);
+    unsigned gamepad_packets;
 } PNOrderedInput;
 
 static void pn_put32(unsigned char *p,unsigned n) { for (int i=0;i<4;++i) p[i]=(unsigned char)(n>>(8*i)); }
@@ -29,6 +33,10 @@ static void pn_ordered_pointer_release(PNOrderedInput *s,Uint32 ticks,Uint32 win
 static void pn_ordered_release(PNOrderedInput *s,Uint32 ticks,Uint32 window,SDL_Keycode (*keycode)(SDL_Scancode)) {
     pn_ordered_pointer_release(s,ticks,window);
     pn_keyboard_release(&s->key,ticks,window,keycode);
+    for (unsigned i=0;i<4;++i) {
+        memset(&s->gamepads[i],0,sizeof(s->gamepads[i]));
+        if (s->gamepad_apply) s->gamepad_apply(i,&s->gamepads[i]);
+    }
 }
 static int pn_ordered_stage(PNOrderedInput *s,const unsigned char b[64],int width,int height,
                             Uint32 ticks,Uint32 window,SDL_Keycode (*keycode)(SDL_Scancode)) {
@@ -37,7 +45,13 @@ static int pn_ordered_stage(PNOrderedInput *s,const unsigned char b[64],int widt
     if (type>=1 && type<=3) {
         unsigned char key[64]; memcpy(key,b,64); pn_put32(key,0x504e4b31);
         if (pn_keyboard_stage(&s->key,key,ticks,window,keycode)) return -1;
-        if (type==3) pn_ordered_pointer_release(s,ticks,window);
+        if (type==3) {
+            pn_ordered_pointer_release(s,ticks,window);
+            for (unsigned i=0;i<4;++i) {
+                memset(&s->gamepads[i],0,sizeof(s->gamepads[i]));
+                if (s->gamepad_apply && s->gamepad_apply(i,&s->gamepads[i])) return -1;
+            }
+        }
     } else if (type==4) {
         for (unsigned i=32;i<64;++i) if (b[i]) return -1;
         unsigned char point[28]; pn_put32(point,0x504e4932); pn_put32(point+4,seq);
@@ -50,8 +64,15 @@ static int pn_ordered_stage(PNOrderedInput *s,const unsigned char b[64],int widt
         for (unsigned i=12;i<64;++i) if (b[i]) return -1;
         for (unsigned i=1;i<512;++i) if (s->key.delivered[i]) return -1;
         if (s->buttons) return -1; // Exit must follow the ordered releases, never skip them.
+        for (unsigned i=0;i<4;++i) if (s->gamepads[i].connected) return -1;
         s->index=0; s->count=1; memset(&s->pending[0],0,sizeof(s->pending[0]));
         s->pending[0].type=SDL_QUIT; s->pending[0].quit.timestamp=ticks;
+    } else if (type==6) {
+        PNGamepad next;
+        if (pn_gamepad_decode(&next,b)) return -1;
+        unsigned slot=pn_u32(b+12);
+        if (s->gamepad_apply && s->gamepad_apply(slot,&next)) return -1;
+        s->gamepads[slot]=next; ++s->gamepad_packets;
     } else return -1;
     s->sequence=seq; ++s->packets; return 0;
 }

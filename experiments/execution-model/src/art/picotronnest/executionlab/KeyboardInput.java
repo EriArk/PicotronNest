@@ -19,11 +19,13 @@ final class KeyboardInput implements InputManager.InputDeviceListener {
     private final KeyboardWriter writer;
     private final KeyboardState state;
     private final InputManager devices;
+    final GamepadInput gamepad;
     private boolean connected = true;
     private int generation;
     private InputConnection latest;
     KeyboardInput(Context context, KeyboardWriter writer) {
         this.writer = writer;
+        gamepad=writer.ordered==null ? null : new GamepadInput(context,writer.ordered);
         state = new KeyboardState((scan, down, repeat, modifiers) -> writer.key(scan, down, repeat, modifiers));
         devices = (InputManager)context.getSystemService(Context.INPUT_SERVICE);
         devices.registerInputDeviceListener(this, new Handler(Looper.getMainLooper()));
@@ -53,11 +55,12 @@ final class KeyboardInput implements InputManager.InputDeviceListener {
         }
         return true;
     }
-    synchronized void releaseAll() { state.releaseAll(); generation++; }
+    synchronized void releaseAll() { state.releaseAll(); if (gamepad!=null) gamepad.release(); generation++; }
     synchronized void disconnect() {
         if (!connected) return;
         // The peer is gone; forget local capture without inventing successful releases.
         connected = false; generation++; devices.unregisterInputDeviceListener(this);
+        if (gamepad!=null) gamepad.close();
     }
     @Override public void onInputDeviceRemoved(int id) {
         // End a modifier-assisted drag before removing that keyboard's modifier ownership.

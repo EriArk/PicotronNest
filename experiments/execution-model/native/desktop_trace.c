@@ -37,6 +37,7 @@ static int keyboard_socket=-1, keyboard_enabled, keyboard_failed, prefer_keyboar
 static PNKeyboardChannel key_channel;
 static PNOrderedInput ordered;
 static int ordered_enabled;
+static int managed, texture_width, texture_height;
 
 static int send_all(const void *data, size_t length) {
     const unsigned char *p = data;
@@ -63,10 +64,17 @@ static Uint64 now_ms(void) {
 }
 
 #include "audio_bridge.h"
+#include "gamepad_sdl.h"
 
 __attribute__((constructor)) static void begin(void) {
     started = now_ms();
-    if (getenv("PICONEST_MANAGED_SESSION")) duration_ms=0;
+    managed=getenv("PICONEST_MANAGED_SESSION")!=NULL;
+    if (managed) {
+        ordered.gamepad_apply=pn_gamepad_apply;
+        // The SDL dummy window never gains OS focus. Android owns focus and releases.
+        SDL_SetHint(SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS,"1");
+    }
+    if (managed) duration_ms=0;
     setvbuf(stdout, NULL, _IOLBF, 0);
     printf("PICONEST_TRACE_LOADED pid=%ld uid=%ld\n", (long)getpid(), (long)getuid());
     const char *name = getenv("PICONEST_FRAME_SOCKET");
@@ -119,6 +127,7 @@ __attribute__((destructor)) static void finish(void) {
     if (ordered_enabled) printf("PICONEST_ORDERED_DONE packets=%u acknowledged=%u events=%u quits=%u pending=%u failed=%d\n",
         ordered.packets,ordered.acknowledged,ordered.events,ordered.quits,
         ordered.count-ordered.index+ordered.key.count-ordered.key.index,ordered.error);
+    if (managed) printf("PICONEST_GAMEPAD_DONE packets=%u\n",ordered.gamepad_packets);
     if (keyboard_socket>=0) close(keyboard_socket);
     free(frame_pixels);
 }
@@ -126,16 +135,25 @@ __attribute__((destructor)) static void finish(void) {
 int SDL_Init(Uint32 flags) {
     int (*real)(Uint32) = symbol("SDL_Init");
     int result = real(flags);
+    if (managed && result==0 && (flags&(SDL_INIT_JOYSTICK|SDL_INIT_GAMECONTROLLER)) && pn_gamepad_initialize()) {
+        fprintf(stderr,"PICONEST_GAMEPAD_INIT_FAILED %s\n",SDL_GetError()); return -1;
+    }
     printf("PICONEST_SDL_INIT flags=%u result=%d error=%s\n", flags, result, SDL_GetError());
     return result;
 }
 
 SDL_Window *SDL_CreateWindow(const char *title, int x, int y, int w, int h, Uint32 flags) {
     SDL_Window *(*real)(const char *, int, int, int, int, Uint32) = symbol("SDL_CreateWindow");
+    if (managed) flags &= ~(SDL_WINDOW_FULLSCREEN_DESKTOP);
     SDL_Window *window = real(title, x, y, w, h, flags);
     if (window) trace_window = window;
     printf("PICONEST_WINDOW width=%d height=%d flags=%u ok=%d error=%s\n", w, h, flags, window != NULL, SDL_GetError());
     return window;
+}
+
+int SDL_SetWindowFullscreen(SDL_Window *window, Uint32 flags) {
+    int (*real)(SDL_Window *,Uint32)=symbol("SDL_SetWindowFullscreen");
+    return real(window,managed ? 0 : flags);
 }
 
 SDL_Renderer *SDL_CreateRenderer(SDL_Window *window, int index, Uint32 flags) {
@@ -151,6 +169,14 @@ SDL_Renderer *SDL_CreateRenderer(SDL_Window *window, int index, Uint32 flags) {
 SDL_Texture *SDL_CreateTexture(SDL_Renderer *renderer, Uint32 format, int access, int w, int h) {
     SDL_Texture *(*real)(SDL_Renderer *, Uint32, int, int, int) = symbol("SDL_CreateTexture");
     SDL_Texture *texture = real(renderer, format, access, w, h);
+    // Match the actual official streaming texture, including resolution changes.
+    // Android owns physical fullscreen scaling; SDL must not add a second border.
+    if (managed && texture && trace_window && access==SDL_TEXTUREACCESS_STREAMING
+        && w>0 && h>0 && w<=2048 && h<=2048 && (w!=texture_width || h!=texture_height)) {
+        texture_width=w; texture_height=h;
+        SDL_SetWindowSize(trace_window,w,h);
+        printf("PICONEST_CONTENT_WINDOW width=%d height=%d\n",w,h);
+    }
     printf("PICONEST_TEXTURE width=%d height=%d format=%s access=%d ok=%d\n",
            w, h, SDL_GetPixelFormatName(format), access, texture != NULL);
     return texture;
@@ -192,7 +218,7 @@ void SDL_RenderPresent(SDL_Renderer *renderer) {
     if (w > 0 && h > 0) logged_valid = 1;
     if (w > 0 && h > 0) { window_width = w; window_height = h; }
     int snapshot = frames == 60 || frames == 180;
-    int stream = frame_socket >= 0 && now_ms() - last_stream >= 100;
+    int stream = frame_socket >= 0 && (managed || now_ms() - last_stream >= 100);
     if ((snapshot || stream) && w > 0 && h > 0 && w <= 2048 && h <= 2048) {
         size_t size = (size_t)w * (size_t)h * 4;
         if (size > frame_capacity) {

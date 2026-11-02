@@ -74,10 +74,13 @@ final class HostMenu implements AutoCloseable {
                 || event.isFromSource(InputDevice.SOURCE_DPAD);
     }
     boolean key(KeyEvent event) {
+        return key(event,false);
+    }
+    boolean key(KeyEvent event,boolean gameplay) {
         if (closed || !controller(event)) return false;
         int code=event.getKeyCode();
         if (exit.state()!=SessionExit.State.RUNNING) return true;
-        if (!visible() && code!=menuKey) return false;
+        if (!visible() && code!=(gameplay ? KeyEvent.KEYCODE_BUTTON_MODE : menuKey)) return false;
         if (event.getAction()==KeyEvent.ACTION_DOWN) {
             if (event.getRepeatCount()==0 && heldCode==-1) { heldCode=code; heldDevice=event.getDeviceId(); }
             return true;
@@ -87,7 +90,7 @@ final class HostMenu implements AutoCloseable {
         heldCode=-1;
         if (event.isCanceled()) return true;
         if (!visible()) { open(); return true; }
-        if (code==menuKey || code==cancelKey) { dismiss(); return true; }
+        if (code==menuKey || code==cancelKey || code==KeyEvent.KEYCODE_BUTTON_MODE) { dismiss(); return true; }
         if (code==KeyEvent.KEYCODE_DPAD_UP || code==KeyEvent.KEYCODE_DPAD_DOWN) {
             selected=Math.max(0,Math.min(choices.length-1,selected+(code==KeyEvent.KEYCODE_DPAD_UP ? -1 : 1)));
             dialog.getListView().setSelection(selected); return true;

@@ -44,8 +44,9 @@ project import/export, home backup and interrupted-launch recovery. After import
 its icon opens Picotron directly. The workstation uses the full Android viewport,
 with small translucent controls instead of a permanent toolbar. Official audio
 reaches Android AudioTrack; audible output still needs listening confirmation.
-Native cartridge gamepad routing, display refinements and final packaging remain
-before the [functional candidate](docs/BETA_READINESS.md). There is no public APK.
+[Native gamepad routing and display integration](docs/GAMEPAD_AND_DISPLAY.md)
+now have scoped Retroid evidence. Phone game touch controls and final packaging
+remain before the [functional candidate](docs/BETA_READINESS.md). There is no public APK.
 
 ## Project documents
 

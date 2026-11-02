@@ -6,6 +6,9 @@ import unittest
 
 
 class FrameProtocolHost(unittest.TestCase):
+    def test_gamepad_snapshots(self):
+        self.run_java('GamepadHostTest')
+
     def test_ordered_input_acknowledgements_and_backpressure(self):
         self.run_java('OrderedInputHostTest')
 

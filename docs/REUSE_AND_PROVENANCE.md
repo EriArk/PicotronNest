@@ -11,6 +11,9 @@ are recorded separately from future product redistribution requirements.
 P0c adds a separately locked glibc closure and source-built minimal SDL2,
 without copying PikoNest's SDL shim. [Dependency/source/license evidence](P0_HEADLESS.md)
 distinguishes locally rebuilt components from pinned distribution binaries.
+The subsequent [gamepad/display bundle](GAMEPAD_AND_DISPLAY.md) rebuilds the same
+pinned SDL source with virtual controllers enabled; its dependency closure and
+bundled source/license notices are recorded with the final APK.
 
 ## Proven baseline
 

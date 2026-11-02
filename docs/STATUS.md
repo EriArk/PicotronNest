@@ -1,6 +1,6 @@
 # Project status
 
-**2026-11-02 — Managed workstation tools and immersive controls are implemented. Official Picotron import, interaction, save/reopen, document transfers and recovery have scoped Retroid evidence. Full beta readiness remains open.**
+**2026-11-02 — Native cartridge gamepad routing and texture-sized presentation are integrated. Official Picotron consumes injected controller events on Retroid; managed frames no longer have the 10 Hz throttle or dummy-window padding. Full beta readiness remains open.**
 
 PicotronNest is an Android wrapper for the **official, user-imported Picotron runtime**.
 The repository contains a bounded archive inspector and a temporary target-36
@@ -10,9 +10,21 @@ Picotron now also executes an owned Lua probe on Retroid. The development APK
 now opens Picotron directly after runtime import; there is no
 release-ready product APK. Original desktop frames stream into an Android View;
 the shared input bundle has emulator evidence. Official Picotron interaction and actual save/reopen now have scoped Retroid evidence.
-Audible output, native cartridge gamepad routing and product completion remain open.
+Audible output, phone game touch controls and product completion remain open.
 
 ## Latest evidence
+
+- [Gamepad and display bundle](GAMEPAD_AND_DISPLAY.md): SDL virtual controllers,
+  configurable game buttons, sticks/triggers and four source-owned slots; explicit
+  games/pointer modes. Official `btn(..., ..., 1)` receives injected Android
+  controller input on Retroid; Start opens native Picotron pause and Guide opens
+  the host menu. The complete SDL frame follows the actual texture dimensions
+  and streams each presentation in managed mode. Full workflow acknowledged 762
+  ordered records; the final first-press fix acknowledged 127, with native exit 0
+  and no remaining child. Ten Java transport checks,
+  seven headless checks, six desktop checks, owned ARM64 native self-tests and
+  both APK builds pass. Physical sticks, multiple players and broad device
+  acceptance remain with testers; these results do not establish them.
 
 - [Managed workstation and Retroid workflow](MANAGED_WORKSTATION.md): original
   Picotron 0.3.0d2 on Retroid Pocket Classic, Android 14/API 34, target 36.
@@ -215,8 +227,8 @@ Audible output, native cartridge gamepad routing and product completion remain o
 
 **P1a presentation tracing: device-verified in the scoped Retroid experiment.
 P1b official interaction, save/reopen and normal quit now have scoped Retroid
-evidence. P2 includes shared input and settings; native cartridge gamepad routing
-is still open. P3 storage and recovery have a real document-picker workflow.**
+evidence. P2 includes shared input, settings and native cartridge controller
+routing with injected-event evidence. P3 storage and recovery have a real document-picker workflow.**
 Consult [the experiment plan](RUNTIME_SPIKE.md), [roadmap](ROADMAP.md) and [acceptance](ACCEPTANCE.md).
 
 ## Status vocabulary
@@ -230,10 +242,8 @@ Do not upgrade a status because code compiles, ADB starts an activity, a process
 
 ## Next action
 
-Implement native cartridge controller routing and improve SDL viewport sizing so
-Picotron uses the available display without redundant internal padding. Preserve
-native aspect ratio and input transforms. Prepare final product packaging and
-matching tester instructions after these functional gaps. Retroid was released
+Add unobtrusive game touch controls for phones, then prepare final product
+packaging and matching tester instructions. Retroid was released
 by the owner for the scoped checks recorded above; deep acceptance remains with
 the owner/testers. Enforcing ARM64 Android execution remains an explicit
 compatibility gap; Retroid evidence does not close it.

@@ -8,6 +8,7 @@
         android:supportsRtl="true" android:theme="@android:style/Theme.Material.Light.NoActionBar">
         <activity android:name=".RuntimeSetupActivity" android:exported="false" />
         <activity android:name=".InputSettingsActivity" android:exported="false" />
+        <activity android:name=".GamepadSettingsActivity" android:exported="false" />
         <activity android:name=".ProjectFilesActivity" android:exported="false" />
         <service android:name=".RuntimeService" android:foregroundServiceType="mediaPlayback" android:exported="false" />
         <activity android:name=".MainActivity" android:exported="true">

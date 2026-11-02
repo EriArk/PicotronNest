@@ -161,6 +161,7 @@ final class LabInputControls implements AutoCloseable {
                 .setItems(choices,(d,index) -> {
                     if (closed || paused || !desktop.inputReady()) return;
                     desktop.selectPointerMode(Math.min(index,2),index==2 && profile!=null ? profile : touchpad);
+                    if (workstation && index==2 && profile!=null) desktop.gameControls(false);
                     handler.removeCallbacks(refresh); handler.post(refresh);
                 }).create();
         dialog=next;
@@ -168,7 +169,7 @@ final class LabInputControls implements AutoCloseable {
         next.show();
     }
     private void dismiss() { AlertDialog old=dialog; dialog=null; if (old!=null) old.dismiss(); }
-    boolean key(android.view.KeyEvent event) { return menu!=null && menu.key(event); }
+    boolean key(android.view.KeyEvent event) { return menu!=null && menu.key(event,desktop.gameControls()); }
     void focus(boolean focused) { if (menu!=null) menu.focus(focused); }
     void resume() { if (!closed) { paused=false; keys.resume(); handler.removeCallbacks(refresh); handler.post(refresh); } }
     void pause() {

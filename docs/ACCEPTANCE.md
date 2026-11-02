@@ -20,6 +20,12 @@ This checklist defines **proof needed**, not features currently present. Start e
 
 ## A2 — Real usable input and audio
 
+Current scoped evidence: [managed workstation](MANAGED_WORKSTATION.md) and
+[native game controls/display](GAMEPAD_AND_DISPLAY.md). The owner subsequently
+released Retroid for testing. Official terminal, save/reopen, injected controller
+input and process-confirmed exits have evidence; the full physical checklist
+below remains open. Earlier experiment notes describe their original scope.
+
 The lab implements single-touch left-button input and lifecycle release paths.
 Host tests and [owned Android emulator fixtures](P1_BRIDGE_TESTS.md) pass.
 The updated official-runtime lab was not installed or screen-tested on Retroid

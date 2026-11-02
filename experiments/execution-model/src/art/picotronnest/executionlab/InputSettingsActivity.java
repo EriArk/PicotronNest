@@ -17,6 +17,8 @@ public final class InputSettingsActivity extends Activity {
         ScrollView scroll=new ScrollView(this); form=new LinearLayout(this); form.setOrientation(LinearLayout.VERTICAL);
         form.setPadding(24,60,24,32); scroll.addView(form); setContentView(scroll);
         label("Input settings"); label("Touch, keyboard and mouse remain available. Choose a controller pointer, then press each binding to remap it. Changes apply next time you open Picotron.");
+        Button games=new Button(this); games.setText("Game controls"); form.addView(games);
+        games.setOnClickListener(v -> startActivity(new android.content.Intent(this,GamepadSettingsActivity.class)));
         StringBuilder devices=new StringBuilder("Connected controllers:");
         for (int id:InputDevice.getDeviceIds()) {
             InputDevice device=InputDevice.getDevice(id);

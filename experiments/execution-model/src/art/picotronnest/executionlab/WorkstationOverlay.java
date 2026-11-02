@@ -13,6 +13,7 @@ final class WorkstationOverlay extends FrameLayout {
     private final LinearLayout icons;
     private final ScrollView drawer;
     private final View dismiss;
+    boolean drawerOpen() { return drawer.getVisibility()==VISIBLE; }
     WorkstationOverlay(Activity activity,DesktopView desktop,LabInputControls controls) {
         super(activity); this.controls=controls; this.desktop=desktop;
         controls.openingMenu=this::closeDrawer;
@@ -22,6 +23,14 @@ final class WorkstationOverlay extends FrameLayout {
         drawer=new ScrollView(activity); drawer.setFillViewport(false); drawer.setVisibility(GONE);
         drawer.setBackground(background(0xec17202b,16)); drawer.setPadding(dp(8),dp(8),dp(8),dp(8));
         drawer.addView(controls.view); skin(controls.view);
+        Button gamepad=new Button(activity);
+        gamepad.setText(desktop.gameControls() ? "Controller: games" : "Controller: pointer");
+        controls.view.addView(gamepad);
+        gamepad.setOnClickListener(v -> {
+            desktop.gameControls(!desktop.gameControls());
+            gamepad.setText(desktop.gameControls() ? "Controller: games" : "Controller: pointer");
+            closeDrawer();
+        });
         Button settings=new Button(activity); settings.setText("Settings and projects"); controls.view.addView(settings);
         settings.setOnClickListener(v -> { closeDrawer(); activity.startActivity(new android.content.Intent(activity,RuntimeSetupActivity.class)); });
         LayoutParams panel=new LayoutParams(dp(320),-2,Gravity.TOP|Gravity.END);
@@ -36,6 +45,7 @@ final class WorkstationOverlay extends FrameLayout {
             DesktopView.releaseInput();
             if (drawer.getVisibility()==VISIBLE) closeDrawer();
             else {
+                gamepad.setText(desktop.gameControls() ? "Controller: games" : "Controller: pointer");
                 skin(controls.view); dismiss.setVisibility(VISIBLE); drawer.setVisibility(VISIBLE);
                 drawer.setTranslationY(-dp(12)); drawer.setAlpha(0); drawer.animate().translationY(0).alpha(1).setDuration(140).start();
             }

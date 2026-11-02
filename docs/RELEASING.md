@@ -71,7 +71,7 @@ py -3 -B tools/prepare_release.py
 ```
 
 The command requires a clean worktree and matching candidate source hashes.
-It prepares `.local/release/0.1.0-beta.2/` with the APK, source ZIP, exact
+It prepares `.local/release/0.1.0-beta.3/` with the APK, source ZIP, exact
 dependency-source ZIP, original-screenshot ZIP, notices, build manifest, audit report
 and `SHA256SUMS`. The screenshot ZIP contains only the tracked gallery at that commit.
 It checks that no known proprietary runtime payload appears inside the APK.
@@ -93,7 +93,7 @@ Before a public prerelease:
    exact attachment list; never upload `.local` wholesale.
 3. Obtain the owner's explicit approval to publish. Preparation and source pushes
    do not create that approval.
-4. On approval, tag the reviewed commit `v0.1.0-beta.2`, publish as a **prerelease**,
+4. On approval, tag the reviewed commit `v0.1.0-beta.3`, publish as a **prerelease**,
    and use the prepared release notes. Change README's download status only after
    verifying the actual release URL and attachments.
 

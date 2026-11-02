@@ -1,6 +1,6 @@
 # Project status
 
-**2026-11-02 — Native cartridge gamepad routing and texture-sized presentation are integrated. Official Picotron consumes injected controller events on Retroid; managed frames no longer have the 10 Hz throttle or dummy-window padding. Full beta readiness remains open.**
+**2026-11-02 — Configurable translucent touch game controls are integrated. Official Picotron consumes touchscreen game input on Retroid; compact/full layouts and focused multi-touch ownership checks pass. Final product packaging and beta acceptance remain open.**
 
 PicotronNest is an Android wrapper for the **official, user-imported Picotron runtime**.
 The repository contains a bounded archive inspector and a temporary target-36
@@ -10,9 +10,17 @@ Picotron now also executes an owned Lua probe on Retroid. The development APK
 now opens Picotron directly after runtime import; there is no
 release-ready product APK. Original desktop frames stream into an Android View;
 the shared input bundle has emulator evidence. Official Picotron interaction and actual save/reopen now have scoped Retroid evidence.
-Audible output, phone game touch controls and product completion remain open.
+Audible output acceptance, broader phone ergonomics and product completion remain open.
 
 ## Latest evidence
+
+- [Touch gamepad](TOUCH_GAMEPAD.md): compact/full layouts, two sticks, triggers,
+  saved visibility/size/opacity, capability-based Auto and shared player-one
+  input with independent touch/physical ownership. Eleven host checks, both APK
+  builds and focused Android multi-pointer instrumentation pass. Official
+  Picotron receives touchscreen buttons on Retroid; native pause/resume and
+  clean exit pass (109 ordered records acknowledged, no remaining child).
+  Actual phone ergonomics and physical gameplay acceptance remain with testers.
 
 - [Gamepad and display bundle](GAMEPAD_AND_DISPLAY.md): SDL virtual controllers,
   configurable game buttons, sticks/triggers and four source-owned slots; explicit
@@ -242,8 +250,7 @@ Do not upgrade a status because code compiles, ADB starts an activity, a process
 
 ## Next action
 
-Add unobtrusive game touch controls for phones, then prepare final product
-packaging and matching tester instructions. Retroid was released
+Prepare final product packaging and matching tester instructions. Retroid was released
 by the owner for the scoped checks recorded above; deep acceptance remains with
 the owner/testers. Enforcing ARM64 Android execution remains an explicit
 compatibility gap; Retroid evidence does not close it.

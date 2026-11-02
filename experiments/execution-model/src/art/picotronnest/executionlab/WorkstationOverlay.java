@@ -13,11 +13,14 @@ final class WorkstationOverlay extends FrameLayout {
     private final LinearLayout icons;
     private final ScrollView drawer;
     private final View dismiss;
+    private final TouchGamepadView touchGamepad;
     boolean drawerOpen() { return drawer.getVisibility()==VISIBLE; }
     WorkstationOverlay(Activity activity,DesktopView desktop,LabInputControls controls) {
         super(activity); this.controls=controls; this.desktop=desktop;
         controls.openingMenu=this::closeDrawer;
         addView(desktop,new LayoutParams(-1,-1));
+        touchGamepad=new TouchGamepadView(activity,desktop);
+        addView(touchGamepad,new LayoutParams(-1,-1));
         dismiss=new View(activity); dismiss.setVisibility(GONE);
         dismiss.setOnClickListener(v -> closeDrawer()); addView(dismiss,new LayoutParams(-1,-1));
         drawer=new ScrollView(activity); drawer.setFillViewport(false); drawer.setVisibility(GONE);
@@ -31,6 +34,20 @@ final class WorkstationOverlay extends FrameLayout {
             gamepad.setText(desktop.gameControls() ? "Controller: games" : "Controller: pointer");
             closeDrawer();
         });
+        Button touchMode=new Button(activity); touchMode.setText("Touch gamepad: "+touchGamepad.modeLabel());
+        controls.view.addView(touchMode);
+        touchMode.setOnClickListener(v -> {
+            touchGamepad.configure((touchGamepad.mode()+1)%3,touchGamepad.sizePercent(),touchGamepad.opacityPercent(),touchGamepad.full());
+            touchMode.setText("Touch gamepad: "+touchGamepad.modeLabel());
+        });
+        Switch full=new Switch(activity); full.setText("Full controller (sticks and triggers)");
+        full.setTextColor(Color.WHITE); full.setChecked(touchGamepad.full()); controls.view.addView(full);
+        full.setOnCheckedChangeListener((button,checked) ->
+            touchGamepad.configure(touchGamepad.mode(),touchGamepad.sizePercent(),touchGamepad.opacityPercent(),checked));
+        slider("Button size",60,140,touchGamepad.sizePercent(),value ->
+            touchGamepad.configure(touchGamepad.mode(),value,touchGamepad.opacityPercent(),touchGamepad.full()));
+        slider("Opacity",15,80,touchGamepad.opacityPercent(),value ->
+            touchGamepad.configure(touchGamepad.mode(),touchGamepad.sizePercent(),value,touchGamepad.full()));
         Button settings=new Button(activity); settings.setText("Settings and projects"); controls.view.addView(settings);
         settings.setOnClickListener(v -> { closeDrawer(); activity.startActivity(new android.content.Intent(activity,RuntimeSetupActivity.class)); });
         LayoutParams panel=new LayoutParams(dp(320),-2,Gravity.TOP|Gravity.END);
@@ -47,6 +64,7 @@ final class WorkstationOverlay extends FrameLayout {
             else {
                 gamepad.setText(desktop.gameControls() ? "Controller: games" : "Controller: pointer");
                 skin(controls.view); dismiss.setVisibility(VISIBLE); drawer.setVisibility(VISIBLE);
+                touchGamepad.blocked(true);
                 drawer.setTranslationY(-dp(12)); drawer.setAlpha(0); drawer.animate().translationY(0).alpha(1).setDuration(140).start();
             }
         });
@@ -57,12 +75,24 @@ final class WorkstationOverlay extends FrameLayout {
                 Insets safe=insets.getInsets(WindowInsets.Type.displayCutout());
                 setPadding(safe.left,safe.top,safe.right,safe.bottom);
             }
+            touchGamepad.refresh();
             return insets;
         });
     }
     void closeDrawer() {
         DesktopView.releaseInput(); drawer.setVisibility(GONE); dismiss.setVisibility(GONE);
+        touchGamepad.blocked(false);
         desktop.requestFocus();
+    }
+    private void slider(String name,int min,int max,int value,java.util.function.IntConsumer save) {
+        TextView label=new TextView(getContext()); label.setTextColor(Color.WHITE); label.setText(name+": "+value+"%");
+        controls.view.addView(label);
+        SeekBar bar=new SeekBar(getContext()); bar.setMax(max-min); bar.setProgress(value-min); controls.view.addView(bar);
+        bar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            public void onStartTrackingTouch(SeekBar view) { }
+            public void onProgressChanged(SeekBar view,int progress,boolean fromUser) { label.setText(name+": "+(progress+min)+"%"); }
+            public void onStopTrackingTouch(SeekBar view) { save.accept(view.getProgress()+min); }
+        });
     }
     void back() {
         if (drawer.getVisibility()==VISIBLE) closeDrawer();

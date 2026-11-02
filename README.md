@@ -45,8 +45,10 @@ its icon opens Picotron directly. The workstation uses the full Android viewport
 with small translucent controls instead of a permanent toolbar. Official audio
 reaches Android AudioTrack; audible output still needs listening confirmation.
 [Native gamepad routing and display integration](docs/GAMEPAD_AND_DISPLAY.md)
-now have scoped Retroid evidence. Phone game touch controls and final packaging
-remain before the [functional candidate](docs/BETA_READINESS.md). There is no public APK.
+now have scoped Retroid evidence. [Translucent touch game controls](docs/TOUCH_GAMEPAD.md)
+include compact/full layouts and saved appearance settings. Final packaging and
+tester instructions remain before the [functional candidate](docs/BETA_READINESS.md).
+There is no public APK.
 
 ## Project documents
 

@@ -16,6 +16,9 @@ final class GamepadInput implements InputManager.InputDeviceListener {
     private final int[] bindings;
     private final Pad[] pads=new Pad[4];
     private boolean closed;
+    private int touchButtons;
+    private int[] touchAxes=new int[6];
+    private boolean touchActive;
     private static final class Pad {
         final int device;
         int buttons,hat,triggers;
@@ -78,8 +81,17 @@ final class GamepadInput implements InputManager.InputDeviceListener {
         send(slot); return true;
     }
     private void send(int slot) {
-        Pad pad=pads[slot]; int buttons=pad.buttons|pad.hat; int[] axes=pad.axes.clone();
+        Pad pad=pads[slot];
+        if (pad==null) {
+            if (slot==0) writer.gamepad(0,touchActive,touchButtons,touchAxes);
+            return;
+        }
+        int buttons=pad.buttons|pad.hat; int[] axes=pad.axes.clone();
         for (int i=0;i<2;i++) if ((pad.triggers&(1<<i))!=0) axes[4+i]=32767;
+        if (slot==0) {
+            buttons|=touchButtons;
+            for (int i=0;i<6;i++) axes[i]=TouchGamepadState.mergeAxis(axes[i],touchAxes[i]);
+        }
         if (buttons==pad.lastButtons && Arrays.equals(axes,pad.last)) return;
         if (writer.gamepad(slot,true,buttons,axes)) {
             pad.lastButtons=buttons; System.arraycopy(axes,0,pad.last,0,6);
@@ -87,9 +99,21 @@ final class GamepadInput implements InputManager.InputDeviceListener {
     }
     private void remove(int slot) {
         if (pads[slot]==null) return;
-        writer.gamepad(slot,false,0,new int[6]); pads[slot]=null;
+        pads[slot]=null;
+        if (slot==0) send(0); else writer.gamepad(slot,false,0,new int[6]);
     }
-    synchronized void release() { for (int i=0;i<4;i++) remove(i); }
+    synchronized void touch(int buttons,int[] axes) {
+        if (closed) return;
+        touchButtons=buttons; touchAxes=axes.clone(); touchActive=buttons!=0;
+        for (int axis:axes) touchActive|=axis!=0;
+        send(0);
+    }
+    synchronized void release() {
+        boolean hadTouch=touchActive;
+        touchButtons=0; touchAxes=new int[6]; touchActive=false;
+        if (hadTouch && pads[0]==null) send(0);
+        for (int i=0;i<4;i++) remove(i);
+    }
     synchronized void close() { if (!closed) { release(); closed=true; manager.unregisterInputDeviceListener(this); } }
     @Override public synchronized void onInputDeviceRemoved(int id) {
         for (int i=0;i<4;i++) if (pads[i]!=null && pads[i].device==id) remove(i);

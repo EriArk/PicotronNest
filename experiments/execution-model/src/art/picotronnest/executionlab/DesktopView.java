@@ -25,6 +25,13 @@ final class DesktopView extends View {
     private MouseInput mouse;
     private int imeBottom;
     boolean workstation;
+    Runnable touchGamepadReset;
+    void touchGamepad(int buttons,int[] axes) {
+        synchronized (DesktopView.class) {
+            if (gameControls() && keyboardReady() && hasWindowFocus() && keyboard.gamepad!=null)
+                keyboard.gamepad.touch(buttons,axes);
+        }
+    }
     private static boolean gamesSelected=true;
     boolean gameControls() { return workstation && gamesSelected; }
     void gameControls(boolean enabled) {
@@ -187,6 +194,8 @@ final class DesktopView extends View {
     }
 
     static synchronized void keyboard(KeyboardInput input) {
+        DesktopView current=attached.get();
+        if (current!=null && current.touchGamepadReset!=null) current.touchGamepadReset.run();
         if (keyboard != null && keyboard != input) keyboard.disconnect();
         keyboard = input;
         DesktopView view=attached.get();
@@ -245,6 +254,7 @@ final class DesktopView extends View {
     static synchronized void releaseInput() {
         DesktopView view=attached.get();
         if (view!=null) view.keyboardShowGeneration++;
+        if (view!=null && view.touchGamepadReset!=null) view.touchGamepadReset.run();
         releasePointer();
         if (keyboard != null) keyboard.releaseAll();
     }

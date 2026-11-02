@@ -1,4 +1,5 @@
-"""Build an isolated x86_64 Android instrumentation fixture; no official runtime."""
+"""Build an isolated Android instrumentation fixture; no official runtime."""
+import argparse
 import json
 import os
 from pathlib import Path
@@ -11,6 +12,10 @@ from prepare_headless import fetch, regular_files
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--abi', choices=['x86_64', 'arm64-v8a'], default='x86_64')
+    abi = parser.parse_args().abi
+    target = 'aarch64' if abi == 'arm64-v8a' else 'x86_64'
     sdk = Path(os.environ['LOCALAPPDATA']) / 'Android/Sdk'
     jdk = Path(r'C:\Program Files\Android\Android Studio\jbr/bin')
     ndk = sdk / 'ndk/28.2.13676358'
@@ -32,7 +37,7 @@ def main():
     sdl = work / 'source/SDL2-2.32.10'
     shutil.copyfile(sdl / 'LICENSE.txt', work / 'assets/SDL2-LICENSE.txt')
     native = work / 'libbridge_fixture.so'
-    run(llvm / 'clang.exe', '--target=x86_64-linux-android26', '-fPIE', '-pie', '-O2',
+    run(llvm / 'clang.exe', f'--target={target}-linux-android26', '-fPIE', '-pie', '-O2',
         '-Wall', '-Wextra', '-Werror', '-I' + str(sdl / 'include'),
         '-Wl,-z,max-page-size=16384', HERE / 'tests/bridge_fixture.c', '-o', native)
     elf = subprocess.run([str(llvm / 'llvm-readelf.exe'), '-d', str(native)],
@@ -59,18 +64,21 @@ def main():
             android:theme="@android:style/Theme.Material.Light.NoActionBar">
             <activity android:name="art.picotronnest.executionlab.BridgeTestActivity" android:exported="false" />
             <activity android:name="art.picotronnest.executionlab.StorageSetupActivity" android:exported="false" />
+            <activity android:name="art.picotronnest.executionlab.TouchGamepadTestActivity" android:exported="false" />
             <provider android:name="art.picotronnest.executionlab.StorageDocuments" android:authorities="art.picotronnest.bridgetest.storage" android:exported="false" />
         </application>
         <instrumentation android:name="art.picotronnest.executionlab.BridgeInstrumentation"
             android:targetPackage="art.picotronnest.bridgetest" />
         <instrumentation android:name="art.picotronnest.executionlab.StorageInstrumentation"
             android:targetPackage="art.picotronnest.bridgetest" />
+        <instrumentation android:name="art.picotronnest.executionlab.TouchGamepadInstrumentation"
+            android:targetPackage="art.picotronnest.bridgetest" />
     </manifest>''', encoding='utf-8')
     unsigned = work / 'unsigned.apk'
     run(bt / 'aapt.exe', 'package', '-f', '-M', manifest, '-A', work / 'assets', '-I', android, '-F', unsigned)
     with zipfile.ZipFile(unsigned, 'a', compression=zipfile.ZIP_DEFLATED) as archive:
         archive.write(work / 'dex/classes.dex', 'classes.dex')
-        archive.write(native, 'lib/x86_64/libbridge_fixture.so')
+        archive.write(native, f'lib/{abi}/libbridge_fixture.so')
     aligned = work / 'aligned.apk'
     run(bt / 'zipalign.exe', '-f', '-P', '16', '4', unsigned, aligned)
     apk = artifacts / 'bridge-tests.apk'
@@ -81,14 +89,14 @@ def main():
     with zipfile.ZipFile(apk) as archive:
         names = archive.namelist()
         if len(names) != len(set(names)) or {n for n in names if not n.startswith('META-INF/')} != {
-                'AndroidManifest.xml', 'classes.dex', 'assets/NDK-NOTICE.txt', 'assets/SDL2-LICENSE.txt', 'lib/x86_64/libbridge_fixture.so'}:
+                'AndroidManifest.xml', 'classes.dex', 'assets/NDK-NOTICE.txt', 'assets/SDL2-LICENSE.txt', f'lib/{abi}/libbridge_fixture.so'}:
             raise ValueError('Unexpected bridge APK payload')
         import hashlib
-        assert hashlib.sha256(archive.read('lib/x86_64/libbridge_fixture.so')).hexdigest() == digest(native)
+        assert hashlib.sha256(archive.read(f'lib/{abi}/libbridge_fixture.so')).hexdigest() == digest(native)
     if any(digest(ROOT / name) != value for name, value in hashes.items()):
         raise ValueError('Sources changed while building')
-    metadata = dict(apk_sha256=digest(apk), native_sha256=digest(native), source_sha256=hashes,
-                    target_sdk=36, abi='x86_64', official_runtime='NOT INCLUDED', sdl_headers=sdl_input,
+    metadata = dict(abi=abi, apk_sha256=digest(apk), native_sha256=digest(native), source_sha256=hashes,
+                    target_sdk=36, official_runtime='NOT INCLUDED', sdl_headers=sdl_input,
                     native_needed=sorted(re.findall(r'\(NEEDED\).*?\[([^\]]+)\]', elf)))
     (artifacts / 'build.json').write_text(json.dumps(metadata, indent=2) + '\n', encoding='utf-8')
     print(json.dumps(metadata, indent=2))

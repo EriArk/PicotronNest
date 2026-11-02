@@ -6,6 +6,9 @@ import unittest
 
 
 class FrameProtocolHost(unittest.TestCase):
+    def test_multitouch_ownership_and_cancel(self):
+        self.run_java('TouchGamepadHostTest')
+
     def test_gamepad_snapshots(self):
         self.run_java('GamepadHostTest')
 
@@ -52,6 +55,7 @@ class FrameProtocolHost(unittest.TestCase):
                             str(here / 'src/art/picotronnest/executionlab/KeyboardState.java'),
                             str(here / 'src/art/picotronnest/executionlab/KeyboardWriter.java'),
                             str(here / 'src/art/picotronnest/executionlab/OrderedInputWriter.java'),
+                            str(here / 'src/art/picotronnest/executionlab/TouchGamepadState.java'),
                             str(here / ('tests/' + test + '.java'))], check=True, capture_output=True, timeout=30)
             subprocess.run([str(jdk / 'java.exe'), '-cp', destination,
                             'art.picotronnest.executionlab.' + test],

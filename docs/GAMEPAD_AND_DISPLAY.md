@@ -125,8 +125,9 @@ the older base without joystick support is deliberately rejected.
 
 ## Remaining work
 
-Phone game touch controls, finished product packaging and matching tester
-instructions remain. Physical controllers/analog ranges, simultaneous players,
+[Phone game touch controls](TOUCH_GAMEPAD.md) are now integrated and checked
+separately. Finished product packaging and matching tester instructions remain.
+Physical controllers/analog ranges, simultaneous players,
 Bluetooth reconnect, alternative official video modes, audible output and
 enforcing ARM64 Android compatibility still need scoped acceptance. Hardware
 uncertainty does not block independent functionality work.

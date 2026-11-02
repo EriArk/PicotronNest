@@ -7,6 +7,12 @@ The subsequent [managed workstation](MANAGED_WORKSTATION.md) and
 input and separate native game controls. Their scoped Retroid evidence does not
 complete every physical workflow below. Older experiment notes are historical.
 
+The [touch gamepad](TOUCH_GAMEPAD.md) now supplies compact/full translucent
+layouts, saved appearance/visibility and independent touch/physical player-one
+ownership. It overlays the original frame and hides for IME, host controls and
+pointer mode; Auto uses Android controller capabilities. Retroid checks cover
+injected touchscreen buttons and owned multi-pointer dispatch, not phone ergonomics.
+
 ## Accepted interaction direction
 
 | Context | Candidate behavior | Questions to settle through use |

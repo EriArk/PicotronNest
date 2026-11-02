@@ -13,9 +13,16 @@ the shared input bundle has emulator evidence. Official Picotron interaction and
 Audible output acceptance, broader phone ergonomics and modern-device compatibility
 remain open. Native HTTP(S) and Android DNS are integrated; accounts, uploads,
 VPN/network-change behavior and raw socket workflows remain tester checks. Public
-beta 2 is now published; future releases require owner authorization. Windowed Splore is the supported tested path.
+beta 2 is now published; future releases require owner authorization. Windowed and
+fullscreen Splore have scoped Retroid evidence; list maximization is a separate action.
 
 ## Latest evidence
+
+- [Splore fullscreen follow-up](SPLORE_FULLSCREEN.md): the unchanged published
+  beta 2 on Retroid / Android 14 passed fullscreen toggle, list maximize/restore,
+  category/item selection, IME viewport and return to desktop. The native app
+  intentionally preserves list geometry when switching workspaces. The previous
+  layout warning was mistaken and is withdrawn; no runtime/bridge patch was needed.
 
 - [Networking and Splore](NETWORK.md): source-built HTTP(S) dependencies, Android
   resolver and system trust roots. Product beta 2 downloaded and ran *Corre, Flavio!*
@@ -271,8 +278,8 @@ Do not upgrade a status because code compiles, ADB starts an activity, a process
 ## Next action
 
 Collect beta 2 tester results for sound, physical controllers, phone ergonomics
-and network transitions; investigate the known native Splore fullscreen layout
-issue in a separate increment. Retroid was released
+and network transitions. The suspected Splore fullscreen layout defect was
+resolved as expected native behavior by the follow-up check. Retroid was released
 by the owner for the scoped checks recorded above; deep acceptance remains with
 the owner/testers. Enforcing ARM64 Android execution remains an explicit
 compatibility gap; Retroid evidence does not close it.

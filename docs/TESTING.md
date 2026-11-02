@@ -29,6 +29,9 @@ not a promise of compatibility with other Android execution policies.
 1. Open native Splore, browse New/Featured, download a cartridge and play it.
 2. Search for a term with the Android keyboard, press Enter and open a result.
 3. Return to Splore from the game's native pause menu. Try another cartridge.
+   Toggle Splore's Fullscreen menu item, double-tap its title bar to maximize
+   and restore the list, then return to windowed mode. Check category selection
+   with the Android keyboard both shown and hidden.
 4. Test a failed request and retry after reconnection. Keep local projects intact.
 5. If applicable, check your VPN/Private DNS and Wi-Fi/mobile transitions. Account
    login and uploads are optional owner checks; never put credentials in reports.
@@ -48,7 +51,8 @@ are optional; check them for private content before posting.
 - Only the pinned 0.3.0d2 Raspberry Pi 64-bit runtime is accepted.
 - Native Splore browsing/download/play and HTTPS have scoped Retroid evidence.
   Account operations, VPN/Private DNS, network changes and raw TCP/UDP need acceptance.
-- Use windowed Splore: its internal fullscreen toggle showed incorrect layout.
+- Splore Fullscreen preserves the list size; double-tap the title bar to maximize.
+  The earlier incorrect-layout warning was withdrawn after the [device check](SPLORE_FULLSCREEN.md).
 - Other ARM64 Android devices, especially stricter execution policies, need testing.
 - Audio listening, physical analog ranges, Bluetooth reconnect, multiple players,
   long sessions and phone ergonomics have not received broad acceptance.

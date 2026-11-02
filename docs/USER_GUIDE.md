@@ -38,8 +38,13 @@ old empty list is cached, activate its **Refresh** entry. The catalog, downloads
 and game launcher are all provided by your official Picotron copy.
 
 Use Search to enter a term, then press Enter. You can move or resize the native
-Splore window by its title bar and lower-right corner. Use windowed Splore for
-now: its internal fullscreen toggle showed incorrect layout during testing.
+Splore window by its title bar and lower-right corner. **Fullscreen** in Splore's
+own menu (Ctrl+1) switches to a dedicated workspace with a dark background and
+selected-cartridge artwork. It deliberately keeps the list's size and position.
+**Double-tap the list's title bar to maximize it**; double-tap again to restore
+its previous size. Toggle Fullscreen off to return to the desktop window.
+Both modes were checked in the published beta 2 on Retroid; see
+[the fullscreen check](SPLORE_FULLSCREEN.md).
 
 If a request fails, check your Android connection and device date, then retry.
 Local projects remain available without internet. PicotronNest uses Android's

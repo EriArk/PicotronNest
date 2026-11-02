@@ -31,7 +31,7 @@ See [candidate evidence](RELEASE_CANDIDATE.md).
 | Audible sound and interruption recovery | Official callback PCM reaches Android AudioTrack; no listening confirmation. Focus/duck/background behavior is implemented; physical audio acceptance remains |
 | Persistent native home and projects | Actual `.p64` save/reopen, SAF import/export, ZIP backup and separate-folder restore on Retroid; original/exported/restored hashes match. `.p64.png` hardware workflow and broad upgrade acceptance remain |
 | Reliable lifecycle and recovery | Lease, unfinished marker, process guard and retained environment recovery implemented. Force-stop/recovery tested without replacing home. Long sessions and broader sleep/interruption cases remain with testers |
-| Native Splore / online dependencies | HTTP(S), Android DNS and system trust roots integrated; catalog, downloads and two games checked on Retroid. Account operations, VPN/network changes and raw socket acceptance remain; use windowed Splore |
+| Native Splore / online dependencies | HTTP(S), Android DNS and system trust roots integrated; catalog, downloads and two games checked on Retroid. Windowed/fullscreen toggle and separate list maximization checked on the published beta 2. Account operations, VPN/network changes and raw socket acceptance remain |
 | Reviewable candidate and instructions | Versioned packaging, source/dependency archives, notices, checksum manifest, sanitized diagnostic export and tester/user guides published with beta 2; MIT included |
 
 Continue completing these capabilities in one candidate with focused checks.

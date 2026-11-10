@@ -1,4 +1,4 @@
-"""Build Java-only screenshot/community/folder fixtures; no native or proprietary payloads."""
+"""Build Java-only owned host UI and storage fixtures; no native or proprietary payloads."""
 import argparse
 import hashlib
 import json
@@ -34,7 +34,7 @@ def main():
         subprocess.run(list(map(str, cmd)), check=True, timeout=120)
 
     sources = sorted((HERE / 'src').rglob('*.java')) + [HERE / 'tests/android' / (name + '.java') for name in
-                ('ScreenshotTestActivity', 'ScreenshotDocuments', 'ScreenshotInstrumentation', 'CommunityTestActivity', 'CommunityInstrumentation', 'FolderTestDocuments', 'FolderInstrumentation')]
+                ('ScreenshotTestActivity', 'ScreenshotDocuments', 'ScreenshotInstrumentation', 'CommunityTestActivity', 'CommunityInstrumentation', 'FolderTestDocuments', 'FolderInstrumentation', 'ControlsTestActivity', 'ControlsInstrumentation')]
     hashes = {p.relative_to(ROOT).as_posix(): digest(p) for p in sources + [Path(__file__)]}
     config = work / 'BuildConfig.java'
     config.write_text('package art.picotronnest.executionlab; final class BuildConfig {'
@@ -54,6 +54,7 @@ def main():
             <activity android:name="art.picotronnest.executionlab.ScreenshotActivity" android:exported="false" />
             <activity android:name="art.picotronnest.executionlab.AboutActivity" android:exported="false" />
             <activity android:name="art.picotronnest.executionlab.CommunityTestActivity" android:exported="false" />
+            <activity android:name="art.picotronnest.executionlab.ControlsTestActivity" android:exported="false" />
             <provider android:name="art.picotronnest.executionlab.ScreenshotDocuments"
                 android:authorities="art.picotronnest.screenshottest.documents" android:exported="false" />
             <provider android:name="art.picotronnest.executionlab.FolderTestDocuments"
@@ -65,6 +66,8 @@ def main():
         <instrumentation android:name="art.picotronnest.executionlab.CommunityInstrumentation"
             android:targetPackage="art.picotronnest.screenshottest" />
         <instrumentation android:name="art.picotronnest.executionlab.FolderInstrumentation"
+            android:targetPackage="art.picotronnest.screenshottest" />
+        <instrumentation android:name="art.picotronnest.executionlab.ControlsInstrumentation"
             android:targetPackage="art.picotronnest.screenshottest" />
     </manifest>''', encoding='utf-8')
     unsigned = work / 'unsigned.apk'

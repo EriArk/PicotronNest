@@ -14,10 +14,14 @@ final class WorkstationOverlay extends FrameLayout {
     private final ScrollView drawer;
     private final View dismiss;
     private final TouchGamepadView touchGamepad;
+    private final Button gamepad;
+    private final TextView hint;
+    private int heldCode=-1,heldDevice;
     boolean drawerOpen() { return drawer.getVisibility()==VISIBLE; }
     WorkstationOverlay(Activity activity,DesktopView desktop,LabInputControls controls) {
         super(activity); this.controls=controls; this.desktop=desktop;
         controls.openingMenu=this::closeDrawer;
+        controls.openingControls=this::openDrawer;
         addView(desktop,new LayoutParams(-1,-1));
         touchGamepad=new TouchGamepadView(activity,desktop);
         addView(touchGamepad,new LayoutParams(-1,-1));
@@ -25,8 +29,13 @@ final class WorkstationOverlay extends FrameLayout {
         dismiss.setOnClickListener(v -> closeDrawer()); addView(dismiss,new LayoutParams(-1,-1));
         drawer=new ScrollView(activity); drawer.setFillViewport(false); drawer.setVisibility(GONE);
         drawer.setBackground(background(0xec17202b,16)); drawer.setPadding(dp(8),dp(8),dp(8),dp(8));
-        drawer.addView(controls.view); skin(controls.view);
-        Button gamepad=new Button(activity);
+        drawer.addView(controls.view);
+        TextView introduction=new TextView(activity); introduction.setTextColor(Color.WHITE);
+        introduction.setText("Picotron controls\nChange live options without quitting. D-pad moves, your menu confirm button selects, and cancel returns to Picotron.");
+        introduction.setPadding(dp(4),dp(4),dp(4),dp(8)); controls.view.addView(introduction,0);
+        Button library=new Button(activity); library.setText("Your games"); controls.view.addView(library,1);
+        library.setOnClickListener(v -> { closeDrawer(); GameLibraryDialog.show(activity); });
+        gamepad=new Button(activity);
         gamepad.setText(desktop.gameControls() ? "Controller: games" : "Controller: pointer");
         controls.view.addView(gamepad);
         gamepad.setOnClickListener(v -> {
@@ -48,6 +57,9 @@ final class WorkstationOverlay extends FrameLayout {
             touchGamepad.configure(touchGamepad.mode(),value,touchGamepad.opacityPercent(),touchGamepad.full()));
         slider("Opacity",15,80,touchGamepad.opacityPercent(),value ->
             touchGamepad.configure(touchGamepad.mode(),touchGamepad.sizePercent(),value,touchGamepad.full()));
+        TextView requirements=new TextView(activity); requirements.setTextColor(Color.WHITE);
+        requirements.setText("Settings open without quitting. Saved input bindings apply on the next launch. Close Picotron to replace its runtime, finish queued imports, transfer folders, export or back up projects.");
+        requirements.setPadding(dp(4),dp(12),dp(4),dp(8)); controls.view.addView(requirements);
         Button settings=new Button(activity); settings.setText("Settings and projects"); controls.view.addView(settings);
         Button screenshot=new Button(activity); screenshot.setText("Save screenshot"); controls.view.addView(screenshot);
         screenshot.setOnClickListener(v -> { closeDrawer(); ScreenshotActivity.start(activity); });
@@ -69,16 +81,15 @@ final class WorkstationOverlay extends FrameLayout {
         LinearLayout.LayoutParams gap=new LinearLayout.LayoutParams(dp(48),dp(48)); gap.leftMargin=dp(8); icons.addView(keyboard,gap);
         LayoutParams position=new LayoutParams(-2,-2,Gravity.TOP|Gravity.END); position.topMargin=dp(12); position.rightMargin=dp(12);
         addView(icons,position);
-        menu.setOnClickListener(v -> {
-            DesktopView.releaseInput();
-            if (drawer.getVisibility()==VISIBLE) closeDrawer();
-            else {
-                gamepad.setText(desktop.gameControls() ? "Controller: games" : "Controller: pointer");
-                skin(controls.view); dismiss.setVisibility(VISIBLE); drawer.setVisibility(VISIBLE);
-                touchGamepad.blocked(true);
-                drawer.setTranslationY(-dp(12)); drawer.setAlpha(0); drawer.animate().translationY(0).alpha(1).setDuration(140).start();
-            }
-        });
+        hint=new TextView(activity); hint.setTextColor(Color.WHITE); hint.setTextSize(14);
+        hint.setText("Tap ☰ for controls without quitting.\nGuide (in games) or Android Back opens the session menu.");
+        hint.setPadding(dp(12),dp(8),dp(12),dp(8)); hint.setBackground(background(0xec17202b,12));
+        hint.setContentDescription("Open Picotron controls without quitting");
+        hint.setVisibility(activity.getSharedPreferences("host-controls",0).getBoolean("discovered",false) ? GONE : VISIBLE);
+        LayoutParams hintPosition=new LayoutParams(dp(300),-2,Gravity.TOP|Gravity.END);
+        hintPosition.topMargin=dp(68); hintPosition.rightMargin=dp(12); addView(hint,hintPosition);
+        hint.setOnClickListener(v -> openDrawer());
+        menu.setOnClickListener(v -> { if (drawerOpen()) closeDrawer(); else openDrawer(); });
         keyboard.setOnClickListener(v -> { closeDrawer(); desktop.showKeyboard(); });
         games.setOnClickListener(v -> { closeDrawer(); GameLibraryDialog.show(activity); });
         controls.keyboardButton.setOnClickListener(v -> { closeDrawer(); desktop.showKeyboard(); });
@@ -91,8 +102,45 @@ final class WorkstationOverlay extends FrameLayout {
             return insets;
         });
     }
+    void openDrawer() {
+        if (drawerOpen()) return;
+        DesktopView.releaseInput(); heldCode=-1;
+        ((android.view.inputmethod.InputMethodManager)getContext().getSystemService(android.content.Context.INPUT_METHOD_SERVICE))
+                .hideSoftInputFromWindow(desktop.getWindowToken(),0);
+        hint.setVisibility(GONE); getContext().getSharedPreferences("host-controls",0).edit().putBoolean("discovered",true).apply();
+        gamepad.setText(desktop.gameControls() ? "Controller: games" : "Controller: pointer");
+        skin(controls.view); dismiss.setVisibility(VISIBLE); drawer.setVisibility(VISIBLE);
+        touchGamepad.blocked(true); drawer.scrollTo(0,0);
+        java.util.ArrayList<View> targets=targets(); if (!targets.isEmpty()) targets.get(0).requestFocusFromTouch();
+    }
+    private java.util.ArrayList<View> targets() {
+        java.util.ArrayList<View> all=new java.util.ArrayList<>(); drawer.addFocusables(all,View.FOCUS_FORWARD,View.FOCUSABLES_ALL);
+        all.removeIf(v -> !(v instanceof Button || v instanceof SeekBar) || !v.isEnabled() || !v.isShown()); return all;
+    }
+    boolean key(KeyEvent event) {
+        if (!drawerOpen() || !GamepadInput.controller(event)) return false;
+        int code=event.getKeyCode();
+        if (event.getAction()==KeyEvent.ACTION_DOWN) {
+            if (heldCode==-1 && event.getRepeatCount()==0) { heldCode=code; heldDevice=event.getDeviceId(); }
+            return true;
+        }
+        if (event.getAction()!=KeyEvent.ACTION_UP || code!=heldCode || event.getDeviceId()!=heldDevice) return true;
+        heldCode=-1; if (event.isCanceled()) return true;
+        if (code==controls.commandKey(2) || code==controls.commandKey(0) || code==KeyEvent.KEYCODE_BUTTON_MODE) { closeDrawer(); return true; }
+        java.util.ArrayList<View> targets=targets(); if (targets.isEmpty()) return true;
+        View focused=drawer.findFocus(); int index=targets.indexOf(focused);
+        if (code==KeyEvent.KEYCODE_DPAD_UP || code==KeyEvent.KEYCODE_DPAD_DOWN) {
+            index=index<0 ? 0 : Math.max(0,Math.min(targets.size()-1,index+(code==KeyEvent.KEYCODE_DPAD_UP ? -1 : 1)));
+            View next=targets.get(index); next.requestFocusFromTouch(); next.requestRectangleOnScreen(new Rect(0,0,next.getWidth(),next.getHeight()),true);
+        } else if (code==controls.commandKey(1) && focused instanceof Button) focused.performClick();
+        else if ((code==KeyEvent.KEYCODE_DPAD_LEFT || code==KeyEvent.KEYCODE_DPAD_RIGHT) && focused instanceof SeekBar) {
+            focused.dispatchKeyEvent(KeyEvent.changeAction(event,KeyEvent.ACTION_DOWN)); focused.dispatchKeyEvent(event);
+        }
+        return true;
+    }
+    @Override public void onWindowFocusChanged(boolean focused) { super.onWindowFocusChanged(focused); heldCode=-1; }
     void closeDrawer() {
-        DesktopView.releaseInput(); drawer.setVisibility(GONE); dismiss.setVisibility(GONE);
+        DesktopView.releaseInput(); heldCode=-1; drawer.setVisibility(GONE); dismiss.setVisibility(GONE);
         touchGamepad.blocked(false);
         desktop.requestFocus();
     }
@@ -102,8 +150,8 @@ final class WorkstationOverlay extends FrameLayout {
         SeekBar bar=new SeekBar(getContext()); bar.setMax(max-min); bar.setProgress(value-min); controls.view.addView(bar);
         bar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             public void onStartTrackingTouch(SeekBar view) { }
-            public void onProgressChanged(SeekBar view,int progress,boolean fromUser) { label.setText(name+": "+(progress+min)+"%"); }
-            public void onStopTrackingTouch(SeekBar view) { save.accept(view.getProgress()+min); }
+            public void onProgressChanged(SeekBar view,int progress,boolean fromUser) { label.setText(name+": "+(progress+min)+"%"); if (fromUser) save.accept(progress+min); }
+            public void onStopTrackingTouch(SeekBar view) { }
         });
     }
     void back() {
@@ -117,7 +165,11 @@ final class WorkstationOverlay extends FrameLayout {
     private void skin(View view) {
         if (view instanceof Button) {
             Button button=(Button)view; button.setTextColor(Color.WHITE); button.setTextSize(12); button.setAllCaps(false);
-            button.setBackground(background(0x66404c5c,8));
+            android.graphics.drawable.StateListDrawable states=new android.graphics.drawable.StateListDrawable();
+            states.addState(new int[]{android.R.attr.state_focused},background(0xff466a79,8));
+            states.addState(new int[]{android.R.attr.state_pressed},background(0xff466a79,8));
+            states.addState(new int[]{},background(0x66404c5c,8)); button.setBackground(states);
+            button.setFocusable(button.hasOnClickListeners() || button instanceof CompoundButton);
         }
         if (view instanceof ViewGroup) for (int i=0;i<((ViewGroup)view).getChildCount();i++) skin(((ViewGroup)view).getChildAt(i));
     }
@@ -125,7 +177,7 @@ final class WorkstationOverlay extends FrameLayout {
         private final int kind;
         private final Paint ink=new Paint(Paint.ANTI_ALIAS_FLAG);
         Icon(Activity activity,int kind,String description) {
-            super(activity); this.kind=kind; setContentDescription(description); setClickable(true); setFocusable(true);
+            super(activity); this.kind=kind; setContentDescription(description); setTooltipText(description); setClickable(true); setFocusable(true);
         }
         @Override protected void onDraw(Canvas canvas) {
             float s=getWidth()/48f; canvas.save(); canvas.scale(s,s);

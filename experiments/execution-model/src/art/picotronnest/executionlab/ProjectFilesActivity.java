@@ -29,6 +29,9 @@ public final class ProjectFilesActivity extends Activity {
         LinearLayout form=new LinearLayout(this); form.setPadding(24,60,24,32); form.setOrientation(LinearLayout.VERTICAL);
         ScrollView scroll=new ScrollView(this); scroll.addView(form); setContentView(scroll);
         TextView title=new TextView(this); title.setText("Projects and backups"); title.setTextSize(24); form.addView(title);
+        TextView availability=new TextView(this);
+        availability.setText("Queue or review cartridges while Picotron runs. Close Picotron before finishing imports, transferring folders, exporting or backing up. Android Back returns to your session.");
+        form.addView(availability);
         status=new TextView(this); form.addView(status);
         button(form,"Import cartridge",() -> pick(2,false,"*/*",null));
         button(form,"Finish queued imports",() -> job(() -> AndroidRuntimeStore.open(getApplicationContext())

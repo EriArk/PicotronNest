@@ -27,7 +27,8 @@ final class LabInputControls implements AutoCloseable {
     private LabSession session;
     private final int[] menuKeys;
     boolean workstation;
-    Runnable openingMenu;
+    Runnable openingMenu,openingControls;
+    int commandKey(int index) { return menuKeys==null ? new int[]{108,96,97}[index] : menuKeys[index]; }
     final Button[] wheelButtons=new Button[4];
     private final LinearLayout holds, wheels, commands;
     private final Runnable refresh=new Runnable() {
@@ -47,7 +48,10 @@ final class LabInputControls implements AutoCloseable {
                         ((MainActivity)activity).restartAfterExit(active);
                     else activity.finish();
                 });
-                if (workstation) menu.useProductLabels();
+                if (workstation) {
+                    menu.useProductLabels();
+                    menu.controlsAction(() -> { if (openingControls!=null) openingControls.run(); });
+                }
                 if (openingMenu!=null) menu.button.setOnClickListener(v -> { openingMenu.run(); menu.open(); });
                 commands.addView(menu.button,0,cell());
             }

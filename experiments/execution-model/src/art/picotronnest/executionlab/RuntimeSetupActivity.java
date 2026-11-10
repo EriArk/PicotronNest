@@ -129,13 +129,14 @@ public class RuntimeSetupActivity extends Activity {
         if (selection!=null) text((selection.contract.version.equals("Imported") ? "Imported ARM64 build" : "Picotron "+selection.contract.version)
                 +" / "+selection.contract.id.substring(0,8),16,MUTED);
         button(running ? "Return to Picotron" : "Start Picotron",running || selection!=null,this::launch);
+        if (running) text("You can open settings without quitting. Sound changes apply now; saved input bindings apply on the next launch. Close Picotron before changing its runtime or finishing imports, folder transfers, exports and backups.",16,MUTED);
         button("Import your runtime",!running,() -> new AlertDialog.Builder(this).setTitle("Change Picotron build")
                 .setMessage("Back up your projects before changing versions. PicotronNest keeps the previous build for rollback; Picotron itself may update files when opening them.")
                 .setPositiveButton("Choose ZIP",(d,w) -> pick()).setNegativeButton("Cancel",null).show());
         if (selection!=null && !selection.previous.isEmpty()) button("Use previous runtime",!running,() -> job(null,true));
         button("Input settings",true,() -> startActivity(new Intent(this,InputSettingsActivity.class)));
         button("Sound buffer",true,() -> AudioSettings.show(this,() -> { }));
-        button("Projects and backups",!running,() -> startActivity(new Intent(this,ProjectFilesActivity.class)));
+        button("Projects and backups",true,() -> startActivity(new Intent(this,ProjectFilesActivity.class)));
         button("About and diagnostics",true,() -> startActivity(new Intent(this,AboutActivity.class)));
         text("Runtime changes preserve your private home. Uninstalling removes private data. Save in Picotron before quitting from its menu.",15,MUTED);
     }

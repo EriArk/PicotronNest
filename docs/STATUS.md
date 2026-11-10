@@ -18,6 +18,14 @@ fullscreen Splore have scoped Retroid evidence; list maximization is a separate 
 
 ## Latest evidence
 
+- **2026-11-10 in-session controls (#7):** first-use touch guidance and a controller
+  menu entry open the same drawer. D-pad, configured confirm/cancel and sliders now
+  work there; live versus closed-session operations are explained. Three owned
+  Android 11/API 30 groups pass, including touch-to-controller focus, edge dragging
+  and no shutdown request. Screenshot/community regressions pass.
+  [Behavior, evidence and remaining acceptance](IN_SESSION_CONTROLS.md).
+  Physical controls, full management lifecycle and official-runtime return remain open.
+
 - **2026-11-10 cartridge folders (#6):** bounded SAF collection import/export
   preserves nested names in new folders; originals are never replaced. Six host
   groups and three real owned SAF-provider groups pass on Android 11/API 30.
@@ -352,9 +360,11 @@ Do not upgrade a status because code compiles, ADB starts an activity, a process
 
 ## Next action
 
-Continue with [#7: in-session controls discovery](https://github.com/EriArk/PicotronNest/issues/7).
-Explain live options versus operations requiring shutdown, and provide a clear
-controller route to the same options without intercepting Picotron drawing gestures.
+Prepare the current product APK locally for end-to-end acceptance of #1–#7.
+Resolve the existing Linux build-tooling gap as needed, then verify restart,
+queued imports, screenshots, folder transfer and controls with an authorized
+physical device and the owner's official runtime. The connected device remains
+ADB-unauthorized. Do not publish an APK or Release without owner authorization.
 For #5, verify and adopt the first-party `/discord` redirect after the website
 implements it; current discovery uses the verified contacts section.
 
@@ -364,7 +374,7 @@ The reviewed queue below records implementation and remaining acceptance:
 | --- | --- |
 | [#3](https://github.com/EriArk/PicotronNest/issues/3) | Queued imports implemented; external SAF/lifecycle and official-runtime acceptance pending |
 | [#6](https://github.com/EriArk/PicotronNest/issues/6) | Bounded cartridge folder transfer implemented; loose assets excluded; external-provider/device acceptance pending |
-| [#7](https://github.com/EriArk/PicotronNest/issues/7) | Make live controls/settings easier to find; explain which operations require stopping Picotron |
+| [#7](https://github.com/EriArk/PicotronNest/issues/7) | Shared touch/controller drawer and operation guidance implemented; physical input and full-session acceptance pending |
 | [#4](https://github.com/EriArk/PicotronNest/issues/4) | PNG document export implemented and fixture-tested; physical/runtime acceptance pending |
 | [#2](https://github.com/EriArk/PicotronNest/issues/2) | Verified restart flow implemented; real normal/hung runtime acceptance pending |
 | [#5](https://github.com/EriArk/PicotronNest/issues/5) | Website-based community discovery implemented; direct first-party redirect and external-browser acceptance pending |

@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+**Picotron controls** now opens from the controller menu as well as the floating
+hamburger. The shared drawer supports D-pad navigation, configured confirm/cancel
+and immediate slider changes. First-use guidance and live/closed-session explanations
+help users reach settings without quitting. [Checks and limits](docs/IN_SESSION_CONTROLS.md).
+
 **Import cartridge folder** and **Export cartridge folder** transfer nested
 collections through Android SAF into separate new folders, with entry/byte/depth
 limits and partial-result reporting. Only validated cartridges are copied; loose

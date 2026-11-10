@@ -23,6 +23,8 @@ final class HostMenu implements AutoCloseable {
     private boolean confirming, closed, keyboardPending;
     private boolean confirmingRestart, paused, completionHandled;
     private boolean productLabels;
+    private Runnable controlsAction;
+    void controlsAction(Runnable action) { controlsAction=action; }
     void useProductLabels() { productLabels=true; button.setText("Picotron"); }
     private AlertDialog.Builder dialogBuilder() {
         return productLabels ? new AlertDialog.Builder(new android.view.ContextThemeWrapper(activity,android.R.style.Theme_Material_Dialog_Alert)) : new AlertDialog.Builder(activity);
@@ -115,12 +117,15 @@ final class HostMenu implements AutoCloseable {
         choices=confirmation ? new String[]{"Keep working",restarting ? "Restart Picotron" : productLabels ? "Quit Picotron" : "End session"}
                 : productLabels ? new String[]{"Resume","Show keyboard","Quit Picotron","Restart Picotron","Save screenshot","Help and community"}
                 : new String[]{"Resume","Show keyboard","Exit session"};
+        if (!confirmation && productLabels && controlsAction!=null) {
+            choices=java.util.Arrays.copyOf(choices,choices.length+1); choices[choices.length-1]="Picotron controls";
+        }
         AlertDialog next=dialogBuilder()
                 .setTitle(confirmation ? restarting ? "Restart Picotron? Unsaved work will be lost" : "Save your work before quitting" : productLabels ? "Picotron" : "Session menu")
                 .setItems(choices,(d,index) -> choose(index)).create();
         dialog=next;
         next.setOnKeyListener((d,code,event) -> key(event));
-        next.setOnDismissListener(d -> { if (dialog==next) { dialog=null; heldCode=-1; } desktop.requestFocus(); });
+        next.setOnDismissListener(d -> { if (dialog==next) { dialog=null; heldCode=-1; desktop.requestFocus(); } });
         next.show();
         ListView list=next.getListView(); list.setSelection(0); list.requestFocus();
     }
@@ -142,6 +147,7 @@ final class HostMenu implements AutoCloseable {
         } else if (index==2 || productLabels && index==3) show(true,index==3);
         else if (productLabels && index==4) ScreenshotActivity.start(activity);
         else if (productLabels && index==5) activity.startActivity(new android.content.Intent(activity,AboutActivity.class));
+        else if (productLabels && index==6 && controlsAction!=null) controlsAction.run();
     }
     private void progress() {
         button.setEnabled(false);

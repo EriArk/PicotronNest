@@ -1,5 +1,19 @@
 # Using PicotronNest
 
+## Development build: in-session controls
+
+The unreleased development build adds a first-use hint beside the floating controls.
+Tap **Picotron controls** (☰), or open the host menu with Guide in game mode / Android
+Back and choose **Picotron controls**. Pointer mode uses your configured menu key.
+D-pad up/down moves between drawer options; your configured confirm/cancel buttons
+select/close, and left/right adjusts sliders. There is no edge-swipe shortcut.
+
+Open **Your games** or **Settings and projects** from this same drawer without
+quitting. Pointer/touch-gamepad and sound changes apply live; saved input bindings
+apply next launch. Queue/review imports while running, then close Picotron before
+applying them, transferring folders, exporting/backing up or replacing the runtime.
+See [validation and limits](IN_SESSION_CONTROLS.md).
+
 ## First launch
 
 These instructions describe published **beta 3**. The older beta 2 has an earlier

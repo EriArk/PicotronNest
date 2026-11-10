@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+Android document imports now reject reliable-provider transfer errors at EOF,
+preventing a valid cartridge prefix from being silently accepted after a failed
+copy. Owned emulator tests cover cancellation and actual process death during
+copying and before/after queue publication. [Checks and limits](docs/QUEUED_IMPORT.md).
+
 Product and owned native-fixture builds now support Linux x86-64 alongside Windows
 path resolution. Private output directories preserve published candidates; build
 receipts record host/tool identities. [Build and emulator evidence](docs/LINUX_BUILD.md).

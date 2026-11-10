@@ -79,6 +79,8 @@ def main():
             android:targetPackage="art.picotronnest.bridgetest" />
         <instrumentation android:name="art.picotronnest.executionlab.StorageInstrumentation"
             android:targetPackage="art.picotronnest.bridgetest" />
+        <instrumentation android:name="art.picotronnest.executionlab.QueueInstrumentation"
+            android:targetPackage="art.picotronnest.bridgetest" />
         <instrumentation android:name="art.picotronnest.executionlab.AudioInstrumentation"
             android:targetPackage="art.picotronnest.bridgetest" />
         <instrumentation android:name="art.picotronnest.executionlab.TouchGamepadInstrumentation"

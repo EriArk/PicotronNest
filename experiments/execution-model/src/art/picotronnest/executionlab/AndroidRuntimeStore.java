@@ -60,7 +60,13 @@ final class AndroidRuntimeStore {
                             if (signal.isCanceled() || cancel.cancelled()) throw new IOException("document import cancelled or timed out");
                             if (android.os.SystemClock.elapsedRealtime()>=idle) throw new IOException("document stream stalled");
                             if (Os.poll(new StructPollfd[]{poll},100)==0) continue;
-                            int n=Os.read(poll.fd,bytes,offset,count); return n==0 ? -1 : n;
+                            int n=Os.read(poll.fd,bytes,offset,count);
+                            if (n==0) {
+                                // Reliable providers can signal failure after delivering a valid prefix.
+                                document.checkError();
+                                return -1;
+                            }
+                            return n;
                         }
                     } catch (ErrnoException error) { throw new IOException("document read failed",error); }
                 }

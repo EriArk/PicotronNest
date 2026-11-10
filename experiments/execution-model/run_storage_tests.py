@@ -4,6 +4,7 @@ import hashlib
 import json
 import subprocess
 import uuid
+from pathlib import Path
 from build import ROOT, digest
 
 PACKAGE = 'art.picotronnest.bridgetest'
@@ -12,6 +13,7 @@ PACKAGE = 'art.picotronnest.bridgetest'
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--serial', required=True)
+    parser.add_argument('--artifacts-dir', type=Path, help='Reviewed private fixture build directory')
     args = parser.parse_args()
 
     def adb(*command, timeout=20):
@@ -22,7 +24,10 @@ def main():
         raise ValueError('Only the owned x86_64 emulator is permitted')
     if adb('shell', 'getprop', 'sys.boot_completed').strip() != b'1':
         raise ValueError('Wait for the emulator to finish booting before collecting evidence')
-    build = json.loads((ROOT / '.local/bridge-tests/artifacts/build.json').read_text())
+    artifact = args.artifacts_dir.resolve() if args.artifacts_dir else ROOT / '.local/bridge-tests/artifacts'
+    build = json.loads((artifact / 'build.json').read_text())
+    if digest(artifact / 'bridge-tests.apk') != build['apk_sha256']:
+        raise ValueError('Build APK hash changed')
     if any(digest(ROOT / name) != value for name, value in build['source_sha256'].items()):
         raise ValueError('Rebuild changed sources')
     path = adb('shell', 'pm', 'path', PACKAGE).decode().strip()

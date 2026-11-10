@@ -57,8 +57,79 @@ copies, faults before/after publication, fresh queue-instance recovery without
 replay, explicit retry/discard, locking and count/byte limits. Signature admission
 is not proof that a PNG contains a valid native cartridge.
 
-All 53 production Java sources compile with warnings as errors against API 36
-and pass D8 at minimum API 26; Android test sources compile. No new Android SAF,
-lifecycle or official-runtime device acceptance is claimed. The physical device
-remains ADB-unauthorized. An emulator belonging to another project was observed
-but not used. Full UI/device checks remain open for issue #3.
+## Android provider failure and process-death evidence (2026-11-10)
+
+The shared document reader previously treated pipe EOF as success without checking
+an Android reliable pipe's error channel. An owned provider sent a valid cartridge
+signature and then `closeWithError`; the queue incorrectly accepted those bytes.
+Collection `5bf447f5-9d92-4a18-8009-41f516f81eba` reproduces that failure before the
+fix. The reader now calls `ParcelFileDescriptor.checkError()` before accepting EOF.
+A reported transfer failure rejects and cleans that attempt, retaining older queued
+copies. This also protects folder imports and other users of the shared reader;
+it cannot detect truncation that a provider does not report.
+
+The owned API 30 / Android 11 x86-64 emulator (SELinux Enforcing), target-36 fixture,
+passed seven assertion groups in collection
+`d0be5256-9b0a-47e4-8f45-ce0ff4cd8419`:
+
+- Non-seekable content-URI queueing while the runtime-store lease is held;
+  attempted home application is rejected until the lease is completed.
+- Reliable-provider failure after a valid prefix rejects the copy and cleans its
+  staging; provider-open failure and bounded stalled-provider cancellation retain
+  existing queued files. Cancellation before application leaves the job waiting.
+- Explicit idle application preserves Unicode/extension case and original bytes.
+- Actual `am force-stop` during provider-copy staging leaves a non-retryable copy
+  for explicit discard. The copy interruption uses an owned InputStream barrier;
+  the provider success/error/cancellation checks use real content URIs.
+- Actual process death after claiming, before publication, requires explicit retry.
+- Actual process death after publication preserves both the imported project and
+  the retained review copy. A fresh process never silently replays it; discarding
+  the review copy does not delete the project or create a numbered duplicate.
+
+The runner records seven distinct host PIDs (4612, 4665, 4715, 4760, 4813, 4857,
+4910), observes each barrier process before force-stop, and verifies its absence
+before the next phase. These are process-death tests, not power-loss durability
+tests. Test-only barriers do not alter production queue behavior.
+Fixture APK SHA-256:
+`fede0d4469ceda5a64d1e9aa41bf8619bc74cba08374e4fd75cd6ddf980dcf60`.
+
+The same fixture also passed all three existing runtime-storage scenarios in
+collection `596ffd2f-e872-4d52-abc1-e37845f6f6e9`: setup recreation and non-seekable
+runtime import; native home write, fresh-process upgrade/native read and rollback;
+unfinished-session recovery guards. Native children 5030 and 5101 exited 0, with
+no surviving child from the fixture UID. All runtime/cart bytes were owned test
+fixtures; official Picotron was neither included nor executed.
+
+Run from a clean LF checkout; see [Linux build setup](LINUX_BUILD.md) for tools and
+an isolated source export when a working tree contains unrelated line endings:
+
+```sh
+python3 -B experiments/execution-model/build_bridge_tests.py \
+  --sdk "$ANDROID_HOME" --jdk "$JAVA_HOME" --artifacts-dir .local/queue-tests/final
+adb -s emulator-5582 install -r .local/queue-tests/final/bridge-tests.apk
+python3 -B experiments/execution-model/run_queue_tests.py \
+  --serial emulator-5582 --artifacts-dir .local/queue-tests/final
+python3 -B experiments/execution-model/run_storage_tests.py \
+  --serial emulator-5582 --artifacts-dir .local/queue-tests/final
+```
+
+Reuse the existing owned fixture's debug key for replacement installs; do not
+uninstall the product or erase user data. Both runners refuse physical devices,
+verify source/build/installed APK identities and require fresh report tokens.
+Evidence stays under `.local/queue-tests/evidence` and `.local/storage-tests/evidence`.
+The queue runner force-stops only `art.picotronnest.bridgetest` on that emulator.
+
+The three host checks for queued imports, project files and folder transfers also
+pass. All production and Android fixture Java sources compile with warnings as
+errors against API 36 and pass D8 at minimum API 26 as part of the fixture build.
+External system-picker/provider behavior, complete management-activity lifecycle,
+actual running Picotron and physical-device acceptance remain open for issue #3.
+Retroid is unavailable; the owner explicitly deferred all testing until permission
+is given to resume. No APK or release is published by these checks.
+
+A private ARM64 product candidate includes this fix (same beta-3 package version;
+not a release). SHA-256: `3a44aafcabb049380b3f7596144ba87e8df3e4ac070a1c24302c08303d1d8eaf`.
+Its sources, payload allowlist and existing signing identity are verified; the
+previous Linux candidate and published artifacts remain unchanged. It has not
+been installed on Retroid. Local path:
+`.local/queue-tests/candidate/PicotronNest-0.1.0-beta.3-arm64.apk`.

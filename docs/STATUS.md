@@ -18,6 +18,14 @@ fullscreen Splore have scoped Retroid evidence; list maximization is a separate 
 
 ## Latest evidence
 
+- **2026-11-10 import failure and recovery (#3):** reproduced and fixed acceptance
+  of a cartridge prefix when an Android reliable provider reports transfer failure.
+  Seven owned queue assertion groups pass on Android 11/API 30 x86-64, including
+  three actual process deaths with fresh-process recovery and no automatic replay.
+  All three runtime-storage scenarios and three host checks pass.
+  [Reproduction, receipts and limits](QUEUED_IMPORT.md).
+  System-picker/full management lifecycle and official-runtime acceptance remain open.
+
 - **2026-11-10 Linux product build:** the current ARM64 candidate, including #1–#7,
   builds locally with the existing signing identity. Its 93 source hashes and 44
   payload entries verify; previous candidate/release files are preserved. Nineteen
@@ -58,8 +66,8 @@ fullscreen Splore have scoped Retroid evidence; list maximization is a separate 
   cartridge picker without quitting. Validated copies remain outside the live
   home until the owner closes Picotron and finishes the queue. Interrupted
   application requires explicit review; no automatic replay or overwrites.
-  Three host checks pass; all 53 Java sources compile/dex. [Workflow and limits](QUEUED_IMPORT.md).
-  Android SAF/lifecycle and official-runtime acceptance remain open.
+  Host checks and owned Android provider/process-death checks pass. [Workflow and limits](QUEUED_IMPORT.md).
+  External SAF/full management lifecycle and official-runtime acceptance remain open.
 
 - **2026-11-10 in-session restart (#2):** the product host menu now offers
   **Restart Picotron** with an explicit unsaved-work warning. A session-owned
@@ -368,8 +376,10 @@ Do not upgrade a status because code compiles, ADB starts an activity, a process
 
 ## Next action
 
-Continue emulator-based SAF, queued-import and recovery/lifecycle acceptance.
-The current product APK is prepared locally; the Linux build-tooling gap is closed.
+Continue emulator-based folder-transfer failure and cancellation acceptance (#6),
+then the management-activity return/recreation flow (#3/#7). Queue provider errors
+and actual process-death recovery now have scoped emulator evidence.
+The Linux build-tooling gap is closed.
 Retroid is unavailable and the owner explicitly deferred all device testing until
 they give permission to resume. Do not poll, install or test on that device meanwhile.
 No APK or Release may be published without separate owner authorization.
@@ -380,7 +390,7 @@ The reviewed queue below records implementation and remaining acceptance:
 
 | Issue | Requested behavior / sequencing |
 | --- | --- |
-| [#3](https://github.com/EriArk/PicotronNest/issues/3) | Queued imports implemented; external SAF/lifecycle and official-runtime acceptance pending |
+| [#3](https://github.com/EriArk/PicotronNest/issues/3) | Queue provider errors and process-death recovery fixture-tested; external SAF/full UI and official-runtime acceptance pending |
 | [#6](https://github.com/EriArk/PicotronNest/issues/6) | Bounded cartridge folder transfer implemented; loose assets excluded; external-provider/device acceptance pending |
 | [#7](https://github.com/EriArk/PicotronNest/issues/7) | Shared touch/controller drawer and operation guidance implemented; physical input and full-session acceptance pending |
 | [#4](https://github.com/EriArk/PicotronNest/issues/4) | PNG document export implemented and fixture-tested; physical/runtime acceptance pending |

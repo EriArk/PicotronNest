@@ -18,6 +18,13 @@ fullscreen Splore have scoped Retroid evidence; list maximization is a separate 
 
 ## Latest evidence
 
+- **2026-11-10 cartridge folders (#6):** bounded SAF collection import/export
+  preserves nested names in new folders; originals are never replaced. Six host
+  groups and three real owned SAF-provider groups pass on Android 11/API 30.
+  [Workflow, partial results and limits](FOLDER_TRANSFER.md). Only validated
+  cartridges transfer; loose assets are skipped. System-picker, physical-device
+  and official-runtime acceptance remain open.
+
 - **2026-11-10 community links (#5):** touch/controller Help opens website,
   website-maintained Discord discovery and GitHub reporting beside diagnostics.
   Three owned Android 11/API 30 fixture groups pass. [Destinations and limits](COMMUNITY_LINKS.md).
@@ -345,21 +352,22 @@ Do not upgrade a status because code compiles, ADB starts an activity, a process
 
 ## Next action
 
-Continue with [#6: folder import/export](https://github.com/EriArk/PicotronNest/issues/6).
-Preserve hierarchy and existing files, bound traversal and report partial results.
+Continue with [#7: in-session controls discovery](https://github.com/EriArk/PicotronNest/issues/7).
+Explain live options versus operations requiring shutdown, and provide a clear
+controller route to the same options without intercepting Picotron drawing gestures.
 For #5, verify and adopt the first-party `/discord` redirect after the website
 implements it; current discovery uses the verified contacts section.
 
-The remaining reviewed requests are:
+The reviewed queue below records implementation and remaining acceptance:
 
 | Issue | Requested behavior / sequencing |
 | --- | --- |
-| [#3](https://github.com/EriArk/PicotronNest/issues/3) | Initiate safe cartridge import during a session; retain staging, collision handling and home/session protection |
-| [#6](https://github.com/EriArk/PicotronNest/issues/6) | Transfer whole game folders through SAF; build on the same import rules with bounded traversal and partial-result reporting |
+| [#3](https://github.com/EriArk/PicotronNest/issues/3) | Queued imports implemented; external SAF/lifecycle and official-runtime acceptance pending |
+| [#6](https://github.com/EriArk/PicotronNest/issues/6) | Bounded cartridge folder transfer implemented; loose assets excluded; external-provider/device acceptance pending |
 | [#7](https://github.com/EriArk/PicotronNest/issues/7) | Make live controls/settings easier to find; explain which operations require stopping Picotron |
-| [#4](https://github.com/EriArk/PicotronNest/issues/4) | Save/share the current Picotron frame with explicit user action |
-| [#2](https://github.com/EriArk/PicotronNest/issues/2) | Restart game/workstation with unsaved-work warning and process-confirmed shutdown |
-| [#5](https://github.com/EriArk/PicotronNest/issues/5) | Website/community links; verify the first-party Discord destination before integration |
+| [#4](https://github.com/EriArk/PicotronNest/issues/4) | PNG document export implemented and fixture-tested; physical/runtime acceptance pending |
+| [#2](https://github.com/EriArk/PicotronNest/issues/2) | Verified restart flow implemented; real normal/hung runtime acceptance pending |
+| [#5](https://github.com/EriArk/PicotronNest/issues/5) | Website-based community discovery implemented; direct first-party redirect and external-browser acceptance pending |
 
 Continue collecting beta 3 results for phone sound, physical controllers,
 interruptions, ergonomics and network transitions. Deep acceptance remains with

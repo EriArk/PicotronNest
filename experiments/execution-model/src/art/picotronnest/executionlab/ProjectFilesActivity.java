@@ -35,6 +35,8 @@ public final class ProjectFilesActivity extends Activity {
                 .withHome(AndroidRuntimeStore::requireIdleProcesses,home -> queue().apply(home,staging(),() -> cancel).message())));
         button(form,"Review queued imports",this::reviewQueued);
         button(form,"Export cartridge",this::chooseProject);
+        button(form,"Import cartridge folder",() -> confirmFolder(false));
+        button(form,"Export cartridge folder",() -> confirmFolder(true));
         button(form,"Back up Picotron home",() -> pick(3,true,"application/zip","Picotron-home-"+System.currentTimeMillis()+".zip"));
         button(form,"Restore backup into a separate folder",() -> new AlertDialog.Builder(this).setTitle("Restore a backup")
                 .setMessage("Your current files stay in place. The backup is opened into a new Restored folder on Picotron Drive; copy the projects you need from there.")
@@ -82,6 +84,24 @@ public final class ProjectFilesActivity extends Activity {
         if (name!=null) intent.putExtra(Intent.EXTRA_TITLE,name);
         startActivityForResult(intent,request);
     }
+    private void confirmFolder(boolean exportFolder) {
+        new AlertDialog.Builder(this).setTitle(exportFolder ? "Export cartridge folder" : "Import cartridge folder")
+                .setMessage("Close Picotron first. Choose a collection of .p64 / .p64.png cartridges; other files (including loose assets) are skipped. Nested folders and names are preserved in a new, uniquely named folder. Existing files are never replaced. Limit: 4096 entries, 32 levels, 128 MiB. Export cancellation can leave completed files in the new destination folder.")
+                .setPositiveButton("Choose folder",(d,w) -> { if (exportFolder) chooseFolder(); else pickTree(6); })
+                .setNegativeButton("Cancel",null).show();
+    }
+    private void pickTree(int request) { startActivityForResult(new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE),request); }
+    private void chooseFolder() {
+        job(() -> {
+            List<String> folders=AndroidRuntimeStore.open(getApplicationContext()).withHome(AndroidRuntimeStore::requireIdleProcesses,FolderTransfer::folders);
+            runOnUiThread(() -> {
+                if (isFinishing() || isDestroyed()) return;
+                new AlertDialog.Builder(this).setTitle("Choose source on Picotron Drive")
+                        .setItems(folders.toArray(new String[0]),(d,index) -> { selected=folders.get(index); pickTree(7); }).show();
+            });
+            return "Choose a source folder, then an Android destination folder.";
+        });
+    }
     private void chooseProject() {
         job(() -> {
             List<String> names=AndroidRuntimeStore.open(getApplicationContext()).withHome(AndroidRuntimeStore::requireIdleProcesses,ProjectFiles::projects);
@@ -125,6 +145,14 @@ public final class ProjectFilesActivity extends Activity {
             RuntimeStore store=AndroidRuntimeStore.open(getApplicationContext());
             File staging=staging();
             return store.withHome(AndroidRuntimeStore::requireIdleProcesses,home -> {
+                if (request==6) {
+                    FolderDocuments source=new FolderDocuments(getApplicationContext(),uri);
+                    return FolderTransfer.importFolder(source,home,staging,() -> cancel,AndroidRuntimeStore.IO).message("Folder import");
+                }
+                if (request==7 && project!=null) {
+                    FolderDocuments destination=new FolderDocuments(getApplicationContext(),uri);
+                    return FolderTransfer.exportFolder(FolderTransfer.local(home,project),destination,destination.root(),staging,() -> cancel).message("Folder export");
+                }
                 if (request==4) {
                     String path=AndroidRuntimeStore.readDocument(getApplicationContext(),uri,() -> cancel,input -> ProjectFiles.restore(home,staging,input,() -> cancel));
                     AndroidRuntimeStore.IO.syncDirectory(new File(home,"drive"));

@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+**Import cartridge folder** and **Export cartridge folder** transfer nested
+collections through Android SAF into separate new folders, with entry/byte/depth
+limits and partial-result reporting. Only validated cartridges are copied; loose
+assets are skipped. [Checks and limits](docs/FOLDER_TRANSFER.md).
+
 **Help and community** is reachable from touch/controller controls. Website,
 Discord discovery on the official website, GitHub reporting and missing-browser
 copy fallback sit beside diagnostics. [Checks and redirect dependency](docs/COMMUNITY_LINKS.md).

@@ -92,8 +92,9 @@ Install over an earlier beta to preserve your runtime and projects; do not clear
 
 The current hardware check is **Retroid Pocket Classic, Android 14**. A 64-bit
 ARM Android device is required; other phones, tablets and handhelds still need
-testing. Audio listening and longer play sessions also need tester confirmation;
-the buffering changes do not establish that reported crackling is resolved.
+testing. The owner reported good Phoenix sound on Retroid after beta 3;
+[phone listening, audio interruptions and longer sessions](docs/AUDIO_AND_LIBRARY.md#owner-listening-follow-up--2026-11-02)
+still need confirmation. The friend's phone crackling report remains unresolved.
 
 Splore catalog browsing, downloads and game launch have been checked on Retroid.
 Accounts, uploads and different network setups still need tester confirmation.

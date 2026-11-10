@@ -118,5 +118,17 @@ APK is now published with matching source/dependency archives and notices; all
 12 uploaded digests and an anonymous APK download were verified. The lab APK,
 private runtime, user carts and their screenshots remain unpublished.
 
+## Owner listening follow-up — 2026-11-02
+
+After beta 3 publication, the owner reported that Phoenix sounded good. The
+conversation identifies the listening device as the Retroid used above (Retroid
+Pocket Classic / Android 14, with official 0.3.0d2 in the recorded setup). This is
+owner-reported listening evidence, recovered on 2026-11-10; no new device test
+was performed during recovery. The report does not specify the listening duration,
+output route or buffer mode, or provide a separate session ID/build hash.
+
+This supports audible Phoenix playback on that setup. It does not close A2.6:
+background/foreground and sleep/wake audio continuity still require listening.
+The earlier automated session and its counters remain separately scoped above.
 Listening on the reporting friend's Android phone, Bluetooth, sustained sessions
 after the reprime fix and other Picotron versions remain separate acceptance checks.

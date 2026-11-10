@@ -61,7 +61,7 @@ or real IME typing acceptance is claimed.
 - [ ] A2.3 Android soft keyboard/IME permits entering and editing Lua, symbols and filenames; limitations explicitly documented.
 - [ ] A2.4 Handheld gamepad can navigate, position the pointer, select/edit objects, summon keyboard and exit; a controller-only path is testable.
 - [ ] A2.5 Switching focus, dialogs, Home/return and sleep never leave stuck inputs.
-- [ ] A2.6 Music/SFX are audibly heard on hardware; audio remains functional after background/foreground and short sleep/wake.
+- [ ] A2.6 Music/SFX are audibly heard on hardware; audio remains functional after background/foreground and short sleep/wake. Partial evidence: the owner reported good Phoenix sound on Retroid after beta 3 on 2026-11-02 ([scope](AUDIO_AND_LIBRARY.md#owner-listening-follow-up--2026-11-02)); interruption listening remains NOT TESTED.
 
 ## A3 — Picotron workflows and persistence
 

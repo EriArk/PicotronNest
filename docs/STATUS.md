@@ -1,6 +1,6 @@
 # Project status
 
-**2026-11-02 - [0.1.0-beta.3 is published as a prerelease](https://github.com/EriArk/PicotronNest/releases/tag/v0.1.0-beta.3), with owner authorization, from `2dbdbf68f88c807b5adc785a147a31b1a096736b`. It adds guided setup, version-flexible imports, a cartridge launcher and audio buffering controls. All 12 uploaded assets match local SHA-256; an anonymous public APK download and the tag target were independently verified. Audio listening remains open.**
+**2026-11-02 - [0.1.0-beta.3 is published as a prerelease](https://github.com/EriArk/PicotronNest/releases/tag/v0.1.0-beta.3), with owner authorization, from `2dbdbf68f88c807b5adc785a147a31b1a096736b`. It adds guided setup, version-flexible imports, a cartridge launcher and audio buffering controls. All 12 uploaded assets match local SHA-256; an anonymous public APK download and the tag target were independently verified. Owner listening feedback and remaining audio checks are recorded below.**
 
 PicotronNest is an Android wrapper for the **official, user-imported Picotron runtime**.
 The repository contains a bounded archive inspector and a temporary target-36
@@ -10,13 +10,21 @@ Picotron now also executes an owned Lua probe on Retroid. The development APK
 now has a separately signed, non-debuggable product candidate that opens Picotron
 directly after runtime import. Original desktop frames stream into an Android View;
 the shared input bundle has emulator evidence. Official Picotron interaction and actual save/reopen now have scoped Retroid evidence.
-Audible output acceptance, broader phone ergonomics and modern-device compatibility
-remain open. Native HTTP(S) and Android DNS are integrated; accounts, uploads,
+Audio interruption and phone listening acceptance, broader phone ergonomics and
+modern-device compatibility remain open. Native HTTP(S) and Android DNS are integrated; accounts, uploads,
 VPN/network-change behavior and raw socket workflows remain tester checks. Public
 beta 3 is now published; future releases require owner authorization. Windowed and
 fullscreen Splore have scoped Retroid evidence; list maximization is a separate action.
 
 ## Latest evidence
+
+- **2026-11-10 context recovery and issue review:** the owner's 2026-11-02
+  follow-up reports good Phoenix sound on Retroid after beta 3. This is a listening
+  report, not a new automated or device run. Duration, output route and buffer mode
+  were not recorded. [Evidence and limits](AUDIO_AND_LIBRARY.md#owner-listening-follow-up--2026-11-02).
+  A2.6 remains partial because interruption listening is untested; the friend's
+  phone crackling report remains unresolved. Seven open GitHub issues were read,
+  with no follow-up comments present. The next increment is selected below.
 
 - **Beta 3 audio and library:** [implementation and evidence](AUDIO_AND_LIBRARY.md).
   Persistent live buffer modes and sample-count pacing in the open-source SDL
@@ -300,10 +308,33 @@ Do not upgrade a status because code compiles, ADB starts an activity, a process
 
 ## Next action
 
-Collect beta 2 tester results for sound, physical controllers, phone ergonomics
-and network transitions. The suspected Splore fullscreen layout defect was
-resolved as expected native behavior by the follow-up check. Retroid was released
-by the owner for the scoped checks recorded above; deep acceptance remains with
+Investigate [#1: missing library cartridges](https://github.com/EriArk/PicotronNest/issues/1)
+first. Source review on 2026-11-10 shows that local import/discovery permit spaces
+and parentheses, but match lowercase extensions only. Splore cache discovery
+accepts only ASCII letters, digits, underscore and hyphen before `.p64.png`.
+The reported `Phoenix.p8.png` is a PICO-8 format, not a Picotron cartridge.
+These observations do not reproduce the tester's missing entries or establish
+that changing the cache filter alone would provide valid native BBS launch URIs.
+
+Next development step: add owned regression cases for import/discovery with
+spaces, parentheses, Unicode, mixed-case extensions, nested folders and unsupported
+formats. Preserve names and canonical-path checks; distinguish admission errors
+from missing library entries. Exact affected filenames and import locations are
+still needed from the tester before attributing the original report to a cause.
+
+The remaining reviewed requests are:
+
+| Issue | Requested behavior / sequencing |
+| --- | --- |
+| [#3](https://github.com/EriArk/PicotronNest/issues/3) | Initiate safe cartridge import during a session; retain staging, collision handling and home/session protection |
+| [#6](https://github.com/EriArk/PicotronNest/issues/6) | Transfer whole game folders through SAF; build on the same import rules with bounded traversal and partial-result reporting |
+| [#7](https://github.com/EriArk/PicotronNest/issues/7) | Make live controls/settings easier to find; explain which operations require stopping Picotron |
+| [#4](https://github.com/EriArk/PicotronNest/issues/4) | Save/share the current Picotron frame with explicit user action |
+| [#2](https://github.com/EriArk/PicotronNest/issues/2) | Restart game/workstation with unsaved-work warning and process-confirmed shutdown |
+| [#5](https://github.com/EriArk/PicotronNest/issues/5) | Website/community links; verify the first-party Discord destination before integration |
+
+Continue collecting beta 3 results for phone sound, physical controllers,
+interruptions, ergonomics and network transitions. Deep acceptance remains with
 the owner/testers. Enforcing ARM64 Android execution remains an explicit
 compatibility gap; Retroid evidence does not close it.
 

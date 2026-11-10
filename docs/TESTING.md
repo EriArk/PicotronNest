@@ -38,7 +38,8 @@ See [onboarding evidence and limits](ONBOARDING.md).
 5. Show the touch gamepad, change its size/opacity, switch compact/full layouts,
    then hide it. Check both screen orientations and keyboard show/hide.
 6. Play a known sound in Picotron. Confirm audible output, volume control and
-   sound after leaving and returning to the app. This listening check is still open.
+   sound after leaving and returning to the app. The owner reported good Phoenix
+   playback on Retroid; interruption listening and other devices remain open.
 7. Export a cartridge and a home backup. Restore into the separate Restored
    folder and open the copied project. Confirm the original still exists.
 8. Save, leave the app, return, then quit normally. Report frozen frames,

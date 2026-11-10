@@ -10,6 +10,12 @@ attachment digests and the anonymous public APK download were verified. Its
 scoped evidence is tracked in [ONBOARDING](ONBOARDING.md) and
 [AUDIO_AND_LIBRARY](AUDIO_AND_LIBRARY.md).
 
+## Build on Linux
+
+The product and owned native fixture now support Linux x86-64 with explicit SDK/JDK
+paths and separate development artifact directories. See [Linux build and validation](LINUX_BUILD.md)
+for reproducible commands, current private artifact hashes and acceptance limits.
+
 ## Build on Windows
 
 Required local tools: Python 3.11+, Android SDK platform/build-tools 36.0.0,

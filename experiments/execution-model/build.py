@@ -3,12 +3,13 @@
 import argparse
 import hashlib
 import json
-import os
 from pathlib import Path
 import shutil
 import subprocess
 import uuid
 import zipfile
+
+from host_tools import executable, ndk_host, default_sdk, default_jdk
 
 
 HERE = Path(__file__).resolve().parent
@@ -26,8 +27,8 @@ def digest(path):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--sdk', type=Path, default=Path(os.environ['LOCALAPPDATA']) / 'Android/Sdk')
-    parser.add_argument('--jdk', type=Path, default=Path(r'C:\Program Files\Android\Android Studio\jbr'))
+    parser.add_argument('--sdk', type=Path, default=default_sdk())
+    parser.add_argument('--jdk', type=Path, default=default_jdk())
     parser.add_argument('--linux-loader', action='store_true', help='Include the pinned PRoot guest probe')
     parser.add_argument('--headless', action='store_true', help='Include the ARM64 glibc/SDL probe; runtime is imported separately')
     parser.add_argument('--desktop-base', type=Path, help='Build the desktop observer using a verified headless APK and sibling build.json')
@@ -35,7 +36,15 @@ def main():
     parser.add_argument('--keystore', type=Path)
     parser.add_argument('--key-alias', default='picotronnest')
     parser.add_argument('--password-file', type=Path)
+    parser.add_argument('--artifacts-dir', type=Path, help='Separate output directory for private development builds')
     args = parser.parse_args()
+    if args.jdk is None:
+        parser.error('Provide --jdk, set JAVA_HOME, or put javac on PATH')
+    args.sdk, args.jdk = args.sdk.resolve(), args.jdk.resolve()
+    try:
+        host = ndk_host()
+    except ValueError as error:
+        parser.error(str(error))
     if args.candidate and (not args.desktop_base or not args.keystore or not args.password_file):
         parser.error('--candidate requires --desktop-base, --keystore and --password-file')
     product = json.loads((ROOT / 'packaging/candidate.json').read_text()) if args.candidate else None
@@ -45,16 +54,16 @@ def main():
         args.linux_loader = True
     ndk_version = '28.2.13676358'
     ndk = args.sdk / 'ndk' / ndk_version
-    llvm = ndk / 'toolchains/llvm/prebuilt/windows-x86_64/bin'
+    llvm = ndk / 'toolchains/llvm/prebuilt' / host / 'bin'
     build_tools = args.sdk / 'build-tools/36.0.0'
     android = args.sdk / 'platforms/android-36/android.jar'
-    java, javac, jar, keytool = (args.jdk / 'bin' / (n + '.exe') for n in ('java', 'javac', 'jar', 'keytool'))
-    for path in (llvm / 'clang.exe', llvm / 'llvm-readelf.exe', android, java, javac, jar, keytool,
-                 build_tools / 'aapt.exe', build_tools / 'lib/d8.jar', ndk / 'NOTICE'):
+    java, javac, jar, keytool = (executable(args.jdk / 'bin', n) for n in ('java', 'javac', 'jar', 'keytool'))
+    for path in (executable(llvm, 'clang'), executable(llvm, 'llvm-readelf'), android, java, javac, jar, keytool,
+                 executable(build_tools, 'aapt'), executable(build_tools, 'zipalign'), build_tools / 'lib/d8.jar', build_tools / 'lib/apksigner.jar', ndk / 'NOTICE'):
         if not path.is_file():
             raise SystemExit(f'Required build input missing: {path}')
     sources = sorted((HERE / 'src').rglob('*.java'))
-    recorded_sources = [HERE / 'AndroidManifest.xml', HERE / 'native/probe.c', HERE / 'build.py', *sources]
+    recorded_sources = [HERE / 'AndroidManifest.xml', HERE / 'native/probe.c', HERE / 'build.py', HERE / 'host_tools.py', *sources]
     if args.candidate:
         recorded_sources += sorted(p for p in (ROOT / 'packaging').rglob('*') if p.is_file())
         recorded_sources += [ROOT / 'THIRD_PARTY_NOTICES.md']
@@ -73,7 +82,7 @@ def main():
                                                'native/keyboard_protocol.h', 'native/keyboard_sdl.h', 'native/keyboard_channel.h', 'native/ordered_input.h', 'native/audio_bridge.h', 'native/gamepad_protocol.h', 'native/gamepad_sdl.h')]
     source_hashes = {str(p.relative_to(ROOT)).replace('\\', '/'): digest(p) for p in recorded_sources}
     work = ROOT / '.local/execution-model/builds' / uuid.uuid4().hex
-    artifacts = ROOT / ('.local/release/candidate' if args.candidate else '.local/execution-model/artifacts')
+    artifacts = args.artifacts_dir.resolve() if args.artifacts_dir else ROOT / ('.local/release/candidate' if args.candidate else '.local/execution-model/artifacts')
     for directory in (work / 'classes', work / 'dex', work / 'assets', artifacts):
         directory.mkdir(parents=True, exist_ok=True)
     # NDK CRT/compiler support notices accompany the native fixture.
@@ -113,17 +122,17 @@ def main():
     for abi, triple in ([] if args.candidate else [('arm64-v8a', 'aarch64-linux-android26'), ('x86_64', 'x86_64-linux-android26')]):
         native = work / abi / 'libexecution_probe.so'
         native.parent.mkdir()
-        run(llvm / 'clang.exe', f'--target={triple}', '-fPIE', '-pie',
+        run(executable(llvm, 'clang'), f'--target={triple}', '-fPIE', '-pie',
             '-Wall', '-Wextra', '-Werror', '-O2', '-Wl,-z,max-page-size=16384',
             HERE / 'native/probe.c', '-o', native)
-        elf = subprocess.run([str(llvm / 'llvm-readelf.exe'), '-h', '-l', '-d', str(native)],
+        elf = subprocess.run([str(executable(llvm, 'llvm-readelf')), '-h', '-l', '-d', str(native)],
                              capture_output=True, text=True, check=True, timeout=10).stdout
         (native.parent / 'fixture-elf.txt').write_text(elf, encoding='utf-8')
         natives[abi] = native
         if args.linux_loader:
             guest = work / 'assets/guest' / abi / 'probe'
             guest.parent.mkdir(parents=True)
-            run(llvm / 'clang.exe', f'--target={triple}', '-nostdlib', '-static',
+            run(executable(llvm, 'clang'), f'--target={triple}', '-nostdlib', '-static',
                 '-fno-builtin', '-fno-stack-protector', '-fno-unwind-tables', '-fno-asynchronous-unwind-tables',
                 '-Wall', '-Wextra', '-Werror', '-O2', '-Wl,-e,_start', '-Wl,-z,max-page-size=16384',
                 HERE / 'native/linux_guest.c', '-o', guest)
@@ -157,7 +166,7 @@ def main():
         version = '6' if args.desktop_base else ('3' if args.headless else '2')
         manifest.write_text((HERE / 'AndroidManifest.xml').read_text().replace('versionCode="1"', 'versionCode="' + version + '"')
                             .replace('versionName="0.0.1"', 'versionName="0.0.' + version + '"'), encoding='utf-8')
-    run(build_tools / 'aapt.exe', 'package', '-f', '-M', manifest,
+    run(executable(build_tools, 'aapt'), 'package', '-f', '-M', manifest,
         *(['-S', ROOT / 'packaging/res'] if args.candidate else []),
         '-A', work / 'assets', '-I', android, '-F', unsigned)
     with zipfile.ZipFile(unsigned, 'a', compression=zipfile.ZIP_DEFLATED) as archive:
@@ -168,7 +177,7 @@ def main():
             if name.startswith('lib/'):
                 archive.write(file, name)
     aligned = work / 'aligned.apk'
-    run(build_tools / 'zipalign.exe', '-f', '-P', '16', '4', unsigned, aligned)
+    run(executable(build_tools, 'zipalign'), '-f', '-P', '16', '4', unsigned, aligned)
     key = args.keystore if args.candidate else artifacts / 'execution-lab-debug.keystore'
     if args.candidate and (not key.is_file() or not args.password_file.is_file()):
         raise SystemExit('Signing key/password file not found')
@@ -201,7 +210,12 @@ def main():
                 raise SystemExit(f'Packaged component hash mismatch: {name}')
     if any(digest(ROOT / name) != value for name, value in source_hashes.items()):
         raise SystemExit('Build inputs changed during compilation; rebuild before installation')
-    metadata = {'ndk': ndk_version, 'build_tools': '36.0.0', 'compile_sdk': 36, 'target_sdk': 36,
+    metadata = {'build_host': host, 'tools_sha256': {name: digest(path) for name, path in {
+                    'clang': executable(llvm, 'clang'), 'llvm-readelf': executable(llvm, 'llvm-readelf'),
+                    'java': java, 'javac': javac, 'android.jar': android,
+                    'aapt': executable(build_tools, 'aapt'), 'zipalign': executable(build_tools, 'zipalign'),
+                    'd8.jar': build_tools / 'lib/d8.jar', 'apksigner.jar': build_tools / 'lib/apksigner.jar'}.items()},
+                'ndk': ndk_version, 'build_tools': '36.0.0', 'compile_sdk': 36, 'target_sdk': 36,
                 'apk_sha256': digest(apk), 'fixture_sha256': {abi: digest(p) for abi, p in natives.items()},
                 'source_sha256': source_hashes}
     if args.candidate:

@@ -2,6 +2,7 @@
 import hashlib
 import io
 import json
+from host_tools import executable
 from pathlib import Path, PurePosixPath
 import re
 import subprocess
@@ -101,7 +102,7 @@ def prepare(destination, llvm):
     toolchain = destination / 'toolchain.cmake'
     toolchain.write_text(f'''set(CMAKE_SYSTEM_NAME Linux)
 set(CMAKE_SYSTEM_PROCESSOR aarch64)
-set(CMAKE_C_COMPILER "{llvm.as_posix()}/clang.exe")
+set(CMAKE_C_COMPILER "{executable(llvm, 'clang').as_posix()}")
 set(CMAKE_C_COMPILER_TARGET aarch64-linux-gnu)
 set(CMAKE_SYSROOT "{sysroot.as_posix()}")
 set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
@@ -119,7 +120,7 @@ set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
     run_logged(['cmake', '--build', build, '--target', 'SDL2', '--parallel', '8'], destination / 'compile.log')
     sdl = build / 'libSDL2-2.0.so.0.3200.10'
     guest = destination / 'headless-exec'
-    run_logged([llvm / 'clang.exe', '--target=aarch64-linux-gnu', '--sysroot=' + str(sysroot),
+    run_logged([executable(llvm, 'clang'), '--target=aarch64-linux-gnu', '--sysroot=' + str(sysroot),
                 '-fPIE', '-pie', '-nostdlib', '-fuse-ld=lld', '-mno-outline-atomics', '-O2',
                 '-Wall', '-Wextra', '-Werror', '-I' + str(source / 'include'),
                 sysroot / 'usr/lib/aarch64-linux-gnu/Scrt1.o',
@@ -132,13 +133,13 @@ set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
     manifest = {'schema': 1, 'abi': 'arm64-v8a', 'files': {}, 'inputs': lock}
     manifest['tools'] = {}
     for name, command in [('cmake', ['cmake', '--version']), ('ninja', ['ninja', '--version']),
-                          ('clang', [str(llvm / 'clang.exe'), '--version'])]:
+                          ('clang', [str(executable(llvm, 'clang')), '--version'])]:
         manifest['tools'][name] = subprocess.run(command, capture_output=True, text=True,
                                                 check=True, timeout=10).stdout.splitlines()[0]
     manifest['sdl_disabled'] = DISABLED
     files = {}
     for name, path in selected.items():
-        output = subprocess.run([str(llvm / 'llvm-readelf.exe'), '-h', '-l', '-d', str(path)],
+        output = subprocess.run([str(executable(llvm, 'llvm-readelf')), '-h', '-l', '-d', str(path)],
                                 capture_output=True, text=True, check=True, timeout=10).stdout
         needed = re.findall(r'\(NEEDED\).*?\[([^\]]+)\]', output)
         if 'AArch64' not in output or any('lib/' + n not in selected for n in needed):

@@ -1,4 +1,5 @@
 """Reproducible, marked modification of the pinned SDL dummy output backend."""
+from host_tools import executable
 from pathlib import Path
 import json
 
@@ -8,7 +9,7 @@ HERE = Path(__file__).resolve().parent
 def identity():
     from prepare_headless import digest
     return {name: digest(HERE / name) for name in
-            ('patch_audio_clock.py', 'native/audio_clock.h', 'native/dummy_audio_clock.h')}
+            ('host_tools.py', 'patch_audio_clock.py', 'native/audio_clock.h', 'native/dummy_audio_clock.h')}
 
 
 def build(source, sysroot, destination, llvm):
@@ -20,7 +21,7 @@ def build(source, sysroot, destination, llvm):
     toolchain = destination / 'audio-toolchain.cmake'
     toolchain.write_text(f'''set(CMAKE_SYSTEM_NAME Linux)
 set(CMAKE_SYSTEM_PROCESSOR aarch64)
-set(CMAKE_C_COMPILER "{llvm.as_posix()}/clang.exe")
+set(CMAKE_C_COMPILER "{executable(llvm, 'clang').as_posix()}")
 set(CMAKE_C_COMPILER_TARGET aarch64-linux-gnu)
 set(CMAKE_SYSROOT "{sysroot.as_posix()}")
 set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)

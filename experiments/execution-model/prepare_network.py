@@ -4,6 +4,7 @@ import json
 import re
 import shutil
 import subprocess
+from host_tools import executable
 from pathlib import Path
 
 from prepare_headless import HERE, ROOT, digest, fetch, regular_files, run_logged
@@ -13,8 +14,8 @@ from prepare_proot import deb_payload
 def prepare(destination, llvm, manifest):
     lock = json.loads((HERE / 'network.lock.json').read_text())
     # Cache only this reproducible dependency build, not the Android/native adapters.
-    key = hashlib.sha256((digest(Path(__file__)) + digest(HERE / 'network.lock.json')
-                         + digest(HERE / 'headless.lock.json') + digest(llvm / 'clang.exe')).encode()).hexdigest()
+    key = hashlib.sha256((digest(Path(__file__)) + digest(HERE / 'host_tools.py') + digest(HERE / 'prepare_headless.py') + digest(HERE / 'network.lock.json')
+                         + digest(HERE / 'headless.lock.json') + digest(executable(llvm, 'clang'))).encode()).hexdigest()
     work = ROOT / '.local/network' / key
     work.mkdir(parents=True, exist_ok=True)
     receipt = work / 'built.json'
@@ -38,7 +39,7 @@ def prepare(destination, llvm, manifest):
         toolchain = work / 'toolchain.cmake'
         toolchain.write_text(f'''set(CMAKE_SYSTEM_NAME Linux)
 set(CMAKE_SYSTEM_PROCESSOR aarch64)
-set(CMAKE_C_COMPILER "{llvm.as_posix()}/clang.exe")
+set(CMAKE_C_COMPILER "{executable(llvm, 'clang').as_posix()}")
 set(CMAKE_C_COMPILER_TARGET aarch64-linux-gnu)
 set(CMAKE_SYSROOT "{sysroot.as_posix()}")
 set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
@@ -88,7 +89,7 @@ set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
                                                        for p in sorted(license_files)), encoding='utf-8')
         outputs = {name:digest(work / name) for name in ('libcurl.so.4','CURL-COPYING.txt','MBEDTLS-NOTICES.txt')}
         receipt.write_text(json.dumps(outputs, indent=2)+'\n', encoding='utf-8')
-    elf = subprocess.check_output([str(llvm / 'llvm-readelf.exe'), '-h', '-d', str(work / 'libcurl.so.4')], text=True)
+    elf = subprocess.check_output([str(executable(llvm, 'llvm-readelf')), '-h', '-d', str(work / 'libcurl.so.4')], text=True)
     needed = re.findall(r'\(NEEDED\).*?\[([^\]]+)\]', elf)
     if 'AArch64' not in elf or any('lib/'+n not in manifest['files'] for n in needed):
         raise ValueError('Network dependency closure is incomplete')

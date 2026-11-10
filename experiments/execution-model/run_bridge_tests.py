@@ -4,6 +4,7 @@ import hashlib
 import json
 import subprocess
 import uuid
+from pathlib import Path
 from build import ROOT, digest
 
 PACKAGE = 'art.picotronnest.bridgetest'
@@ -13,6 +14,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--serial', required=True)
     parser.add_argument('--mode', choices=['all','normal','abrupt','partial','keyboard','cursor','combined','profile','menu','pointer','mouse','actions','session','keysession','bundle','bundle-disconnect'], default='all')
+    parser.add_argument('--artifacts-dir', type=Path, help='Reviewed private fixture build directory')
     args = parser.parse_args()
     def adb(*command, timeout=15):
         return subprocess.run(['adb', '-s', args.serial, *command], check=True,
@@ -20,7 +22,7 @@ def main():
     if (not args.serial.startswith('emulator-') or adb('shell', 'getprop', 'ro.kernel.qemu').strip() != b'1'
             or adb('shell', 'getprop', 'ro.product.cpu.abi').strip() != b'x86_64'):
         raise ValueError('This runner permits only the owned x86_64 emulator, never physical hardware')
-    artifact = ROOT / '.local/bridge-tests/artifacts'
+    artifact = args.artifacts_dir.resolve() if args.artifacts_dir else ROOT / '.local/bridge-tests/artifacts'
     build = json.loads((artifact / 'build.json').read_text())
     if digest(artifact / 'bridge-tests.apk') != build['apk_sha256']:
         raise ValueError('Build APK hash changed')

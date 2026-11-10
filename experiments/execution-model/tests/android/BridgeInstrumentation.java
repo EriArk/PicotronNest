@@ -171,7 +171,8 @@ public final class BridgeInstrumentation extends Instrumentation {
     }
     private void keys(int count, int mods) {
         await(() -> BridgeTestActivity.keyPackets >= count,"native keyboard count " + count);
-        check(BridgeTestActivity.keyPackets==count && BridgeTestActivity.keyMods==mods,"key count/modifiers");
+        check(BridgeTestActivity.keyPackets==count && BridgeTestActivity.keyMods==mods,"key count/modifiers: expected "+count+"/"+mods
+                +" actual "+BridgeTestActivity.keyPackets+"/"+BridgeTestActivity.keyMods);
     }
     private android.view.inputmethod.InputConnection showIme() {
         android.view.inputmethod.InputConnection previousConnection=BridgeTestActivity.keyboard.latestConnection();
@@ -1172,12 +1173,14 @@ public final class BridgeInstrumentation extends Instrumentation {
             check(list.performItemClick(list.getChildAt(index),index,index),"shared menu selection");
         });
     }
-    private void virtualTouch(int index,int action) {
+    private void virtualTouch(int index,int... actions) {
         ui(() -> {
             android.widget.Button button=BridgeTestActivity.current.inputControls().keys.buttons[index];
             long now=SystemClock.uptimeMillis();
-            MotionEvent event=MotionEvent.obtain(now,now,action,button.getWidth()/2f,button.getHeight()/2f,0);
-            try { check(button.dispatchTouchEvent(event),"virtual key touch rejected"); } finally { event.recycle(); }
+            for (int action:actions) {
+                MotionEvent event=MotionEvent.obtain(now,now,action,button.getWidth()/2f,button.getHeight()/2f,0);
+                try { check(button.dispatchTouchEvent(event),"virtual key touch rejected"); } finally { event.recycle(); }
+            }
         });
     }
     private void inputBundle() throws Exception {
@@ -1279,7 +1282,8 @@ public final class BridgeInstrumentation extends Instrumentation {
         SystemClock.sleep(160);
         check(stopped==BridgeTestActivity.activeKeyWriter.ordered.accepted(),"virtual repeat survived cancellation");
         int tapBase=BridgeTestActivity.keyPackets;
-        virtualTouch(0,MotionEvent.ACTION_DOWN); virtualTouch(0,MotionEvent.ACTION_UP); keys(tapBase+2,0);
+        // Keep a tap in one UI turn; waiting for idle between edges can turn it into a held repeat.
+        virtualTouch(0,MotionEvent.ACTION_DOWN,MotionEvent.ACTION_UP); keys(tapBase+2,0);
         checks.put("virtual_touch_hold_repeat_cancel_and_tap_without_duplicate_click");
         ui(() -> BridgeTestActivity.current.showReceipt()); screenshot();
         // The same Activity dispatcher and menu used by the official lab consume the configured shortcut.

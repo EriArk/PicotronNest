@@ -18,6 +18,14 @@ fullscreen Splore have scoped Retroid evidence; list maximization is a separate 
 
 ## Latest evidence
 
+- **2026-11-10 Linux product build:** the current ARM64 candidate, including #1–#7,
+  builds locally with the existing signing identity. Its 93 source hashes and 44
+  payload entries verify; previous candidate/release files are preserved. Nineteen
+  host/manifest checks and 28 owned native checks pass on Android 11/API 30 x86-64.
+  [Build commands, artifact hashes and evidence](LINUX_BUILD.md).
+  No official runtime was included or run. The owner has deferred Retroid testing
+  until explicit permission to resume; continue local and emulator work only.
+
 - **2026-11-10 in-session controls (#7):** first-use touch guidance and a controller
   menu entry open the same drawer. D-pad, configured confirm/cancel and sliders now
   work there; live versus closed-session operations are explained. Three owned
@@ -360,11 +368,11 @@ Do not upgrade a status because code compiles, ADB starts an activity, a process
 
 ## Next action
 
-Prepare the current product APK locally for end-to-end acceptance of #1–#7.
-Resolve the existing Linux build-tooling gap as needed, then verify restart,
-queued imports, screenshots, folder transfer and controls with an authorized
-physical device and the owner's official runtime. The connected device remains
-ADB-unauthorized. Do not publish an APK or Release without owner authorization.
+Continue emulator-based SAF, queued-import and recovery/lifecycle acceptance.
+The current product APK is prepared locally; the Linux build-tooling gap is closed.
+Retroid is unavailable and the owner explicitly deferred all device testing until
+they give permission to resume. Do not poll, install or test on that device meanwhile.
+No APK or Release may be published without separate owner authorization.
 For #5, verify and adopt the first-party `/discord` redirect after the website
 implements it; current discovery uses the verified contacts section.
 

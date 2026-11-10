@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+Product and owned native-fixture builds now support Linux x86-64 alongside Windows
+path resolution. Private output directories preserve published candidates; build
+receipts record host/tool identities. [Build and emulator evidence](docs/LINUX_BUILD.md).
+
 **Picotron controls** now opens from the controller menu as well as the floating
 hamburger. The shared drawer supports D-pad navigation, configured confirm/cancel
 and immediate slider changes. First-use guidance and live/closed-session explanations

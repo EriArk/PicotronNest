@@ -92,7 +92,7 @@ def main():
     with zipfile.ZipFile(output/f'PicotronNest-{version}-dependency-sources.zip','w',zipfile.ZIP_DEFLATED) as bundle:
         for item,cache in inputs:
             bundle.write(pinned(item,cache),'upstream/'+item['file'])
-        for name in ('proot.lock.json','headless.lock.json','network.lock.json','prepare_proot.py','prepare_headless.py','prepare_desktop.py','prepare_network.py','patch_audio_clock.py','native/audio_clock.h','native/dummy_audio_clock.h','build.py'):
+        for name in ('proot.lock.json','headless.lock.json','network.lock.json','prepare_proot.py','prepare_headless.py','prepare_desktop.py','prepare_network.py','patch_audio_clock.py','native/audio_clock.h','native/dummy_audio_clock.h','host_tools.py','build.py'):
             bundle.write(ROOT/'experiments/execution-model'/name,'picotronnest-build/'+name)
         bundle.write(ROOT/'THIRD_PARTY_NOTICES.md','THIRD_PARTY_NOTICES.md')
     checked['commit']=commit

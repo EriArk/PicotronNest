@@ -1,5 +1,6 @@
 """Build owned SDL observers against a verified previous headless build."""
 import json
+from host_tools import executable
 from pathlib import Path
 import subprocess
 import zipfile
@@ -13,9 +14,9 @@ def prepare(destination, llvm, base_apk):
     base = json.loads(base_apk.with_name('build.json').read_text(encoding='utf-8'))
     if digest(base_apk) != base['apk_sha256']:
         raise ValueError('Headless base APK hash mismatch')
-    for name in ('prepare_headless.py', 'headless.lock.json', 'runtime-contract.json', 'native/headless_exec.c'):
+    for name in ('host_tools.py', 'prepare_headless.py', 'headless.lock.json', 'runtime-contract.json', 'native/headless_exec.c'):
         path = HERE / name
-        if digest(path) != base['source_sha256'][str(path.relative_to(ROOT)).replace('\\', '/')]:
+        if digest(path) != base['source_sha256'].get(str(path.relative_to(ROOT)).replace('\\', '/')):
             raise ValueError('Headless base input changed; rebuild --headless first')
     manifest = base['headless_components']
     files = {}
@@ -46,7 +47,7 @@ def prepare(destination, llvm, base_apk):
         patched = build_audio_sdl(destination / 'source/SDL2-2.32.10', sysroot, destination, llvm)
         target = lib / 'libSDL2-2.0.so.0'
         shutil.copyfile(patched, target)
-        needed_text = subprocess.run([str(llvm / 'llvm-readelf.exe'), '-d', str(target)],
+        needed_text = subprocess.run([str(executable(llvm, 'llvm-readelf')), '-d', str(target)],
                                      capture_output=True, text=True, check=True, timeout=10).stdout
         import re
         needed = re.findall(r'\(NEEDED\).*?\[([^\]]+)\]', needed_text)
@@ -60,7 +61,7 @@ def prepare(destination, llvm, base_apk):
                       'Patch source: experiments/execution-model/patch_audio_clock.py and native/audio_clock.h, '
                       'native/dummy_audio_clock.h in the PicotronNest source archive. Picotron itself is unchanged.\n')
     files['assets/licenses/SDL2-PicotronNest-CHANGES.txt'] = notice
-    common = [llvm / 'clang.exe', '--target=aarch64-linux-gnu', '--sysroot=' + str(sysroot),
+    common = [executable(llvm, 'clang'), '--target=aarch64-linux-gnu', '--sysroot=' + str(sysroot),
               '-nostdlib', '-fuse-ld=lld', '-mno-outline-atomics', '-O2', '-Wall', '-Wextra', '-Werror',
               '-I' + str(destination / 'source/SDL2-2.32.10/include')]
     selected = {'lib/libdesktop_trace.so': 'desktop_trace.c', 'probe/desktop-exec': 'desktop_exec.c',
@@ -78,7 +79,7 @@ def prepare(destination, llvm, base_apk):
                     lib / 'libc.so.6', lib / 'libdl.so.2',
                     *([] if name.endswith('.so') else [sysroot / 'usr/lib/aarch64-linux-gnu/crtn.o']),
                     '-o', output], destination / (source + '.log'))
-        elf = subprocess.run([str(llvm / 'llvm-readelf.exe'), '-d', str(output)],
+        elf = subprocess.run([str(executable(llvm, 'llvm-readelf')), '-d', str(output)],
                              capture_output=True, text=True, check=True, timeout=10).stdout
         import re
         needed = re.findall(r'\(NEEDED\).*?\[([^\]]+)\]', elf)

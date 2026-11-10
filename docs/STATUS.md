@@ -18,6 +18,13 @@ fullscreen Splore have scoped Retroid evidence; list maximization is a separate 
 
 ## Latest evidence
 
+- **2026-11-10 screenshots (#4):** touch/controller host commands save an immutable
+  native-size frame through Android's create-document flow, without host overlays
+  or new permissions. Six owned Android 11/API 30 fixture groups pass, including
+  exact PNG pixels, rotation, cancellation, provider failure and repeated capture.
+  [Workflow, reproducible fixture and acceptance limits](SCREENSHOTS.md).
+  External picker/provider and official-runtime physical acceptance remain open.
+
 - **2026-11-10 queued in-session import (#3):** the floating controls open a
   cartridge picker without quitting. Validated copies remain outside the live
   home until the owner closes Picotron and finishes the queue. Interrupted
@@ -332,10 +339,10 @@ Do not upgrade a status because code compiles, ADB starts an activity, a process
 
 ## Next action
 
-Continue with [#4: in-app screenshots](https://github.com/EriArk/PicotronNest/issues/4).
-Host-side #1–#3 work is recorded above; device acceptance remains open. Capture a
-stable copy of the native frame, save only through an explicit Android destination,
-and keep host overlays out of the image. No automatic sharing or uploading.
+Continue with [#5: website and Discord access](https://github.com/EriArk/PicotronNest/issues/5).
+Use verified first-party destinations and preserve the current session on external
+navigation. The proposed `/discord` redirect currently returns 404; do not ship
+that URL or copy an expiring invite into the app.
 
 The remaining reviewed requests are:
 

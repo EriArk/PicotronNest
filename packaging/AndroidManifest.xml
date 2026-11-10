@@ -18,6 +18,7 @@
         <activity android:name="art.picotronnest.executionlab.InputSettingsActivity" android:exported="false" />
         <activity android:name="art.picotronnest.executionlab.GamepadSettingsActivity" android:exported="false" />
         <activity android:name="art.picotronnest.executionlab.ProjectFilesActivity" android:exported="false" />
+        <activity android:name="art.picotronnest.executionlab.ScreenshotActivity" android:exported="false" />
         <activity android:name="art.picotronnest.executionlab.AboutActivity" android:exported="false" />
         <service android:name="art.picotronnest.executionlab.RuntimeService" android:foregroundServiceType="mediaPlayback" android:exported="false" />
     </application>

@@ -113,7 +113,7 @@ final class HostMenu implements AutoCloseable {
         confirming=confirmation; selected=0; heldCode=-1;
         confirmingRestart=restarting;
         choices=confirmation ? new String[]{"Keep working",restarting ? "Restart Picotron" : productLabels ? "Quit Picotron" : "End session"}
-                : productLabels ? new String[]{"Resume","Show keyboard","Quit Picotron","Restart Picotron"}
+                : productLabels ? new String[]{"Resume","Show keyboard","Quit Picotron","Restart Picotron","Save screenshot"}
                 : new String[]{"Resume","Show keyboard","Exit session"};
         AlertDialog next=dialogBuilder()
                 .setTitle(confirmation ? restarting ? "Restart Picotron? Unsaved work will be lost" : "Save your work before quitting" : productLabels ? "Picotron" : "Session menu")
@@ -140,6 +140,7 @@ final class HostMenu implements AutoCloseable {
             // Dialog dismissal returns window focus asynchronously.
             if (desktop.hasWindowFocus()) handler.post(keyboardRequest);
         } else if (index==2 || productLabels && index==3) show(true,index==3);
+        else if (productLabels && index==4) ScreenshotActivity.start(activity);
     }
     private void progress() {
         button.setEnabled(false);

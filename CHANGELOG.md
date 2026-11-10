@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+**Save screenshot** captures the native Picotron frame from touch/controller
+controls and writes PNG through Android's document picker. Owned Android tests
+cover pixels, rotation, cancellation and failure. [Limits](docs/SCREENSHOTS.md).
+
 Cartridges can be selected from the live overlay and queued outside the active
 home. Finish imports after closing Picotron; interrupted attempts require review
 and existing files are preserved. [Checks and limits](docs/QUEUED_IMPORT.md).

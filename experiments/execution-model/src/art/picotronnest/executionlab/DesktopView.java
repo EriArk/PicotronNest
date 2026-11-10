@@ -13,6 +13,7 @@ import java.lang.ref.WeakReference;
 /** Lab-only complete-frame display. Store survives Activity recreation, never starts a process. */
 final class DesktopView extends View {
     private static Bitmap frame;
+    private static boolean liveFrame;
     private static String state = "Preparing Picotron…";
     private static int sequence, drawn;
     private static WeakReference<DesktopView> attached = new WeakReference<>(null);
@@ -59,6 +60,7 @@ final class DesktopView extends View {
     }
 
     static synchronized void begin() {
+        liveFrame=false;
         frame = null;
         sequence = drawn = 0;
         state = "Starting Picotron…";
@@ -71,14 +73,24 @@ final class DesktopView extends View {
         if (frame == null || frame.getWidth() != width || frame.getHeight() != height)
             frame = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
         frame.setPixels(pixels, 0, width, 0, 0, width, height);
+        liveFrame=true;
         sequence = next;
         state = "Picotron — live";
         invalidateAttached();
     }
 
     static synchronized void ended(String message) {
+        liveFrame=false;
         state = message;
         invalidateAttached();
+    }
+
+    /** Own immutable pixels, never the mutable receiver bitmap or an Android overlay. */
+    static synchronized Bitmap snapshot() throws java.io.IOException {
+        if (!liveFrame || frame==null) throw new java.io.IOException("No live Picotron frame is available yet.");
+        Bitmap copy=frame.copy(Bitmap.Config.ARGB_8888,false);
+        if (copy==null) throw new java.io.IOException("Could not copy the Picotron frame.");
+        return copy;
     }
 
     static synchronized int drawnSequence() { return drawn; }

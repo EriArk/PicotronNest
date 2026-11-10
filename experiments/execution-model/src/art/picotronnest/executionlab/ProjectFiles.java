@@ -82,7 +82,7 @@ final class ProjectFiles {
         zip.finish(); zip.flush();
         }
     }
-    static String importProject(File home,File staging,InputStream input,String name,RuntimeStore.Cancel cancel) throws IOException {
+    static String validateCartridgeName(String name) throws IOException {
         if (name!=null && pico8Name(name))
             throw new IOException("This is a PICO-8 cartridge. Choose the Picotron .p64 or .p64.png version; renaming the extension does not convert it.");
         String suffix=name==null ? "" : cartridgeSuffix(name);
@@ -90,13 +90,33 @@ final class ProjectFiles {
         String base=name.substring(0,name.length()-suffix.length());
         if (!base.matches("[^/\\\\:\\p{Cntrl}]{1,180}") || name.startsWith("."))
             throw new IOException("Unsupported cartridge filename. Use a visible name without path separators or control characters.");
-        File stage=Files.createTempDirectory(staging.toPath(),"cart-").toFile(), file=new File(stage,name);
-        try (FileOutputStream out=new FileOutputStream(file)) { copy(input,out,new long[]{0},cancel); out.getFD().sync(); }
+        return suffix;
+    }
+    static void validateCartridge(File file,String name) throws IOException {
+        String suffix=validateCartridgeName(name);
+        if (!Files.isRegularFile(file.toPath(),LinkOption.NOFOLLOW_LINKS) || file.length()>MAX_BYTES)
+            throw new IOException("invalid cartridge file");
         byte[] signature=new byte[19]; int n;
         try (InputStream in=new FileInputStream(file)) { n=in.read(signature); }
-        boolean png=suffix.length()==8;
-        byte[] expected=png ? new byte[]{(byte)137,80,78,71,13,10,26,10} : "picotron cartridge".getBytes(java.nio.charset.StandardCharsets.US_ASCII);
+        byte[] expected=suffix.length()==8 ? new byte[]{(byte)137,80,78,71,13,10,26,10} : "picotron cartridge".getBytes(java.nio.charset.StandardCharsets.US_ASCII);
         if (n<expected.length || !Arrays.equals(expected,Arrays.copyOf(signature,expected.length))) throw new IOException("cartridge signature mismatch");
+    }
+    static File stageCartridge(File staging,InputStream input,String name,RuntimeStore.Cancel cancel) throws IOException {
+        validateCartridgeName(name);
+        File stage=Files.createTempDirectory(staging.toPath(),"cart-").toFile(), file=new File(stage,name);
+        try {
+        try (FileOutputStream out=new FileOutputStream(file)) { copy(input,out,new long[]{0},cancel); out.getFD().sync(); }
+        validateCartridge(file,name); check(cancel); return file;
+        } catch (IOException | RuntimeException error) {
+            try { Files.deleteIfExists(file.toPath()); Files.delete(stage.toPath()); }
+            catch (IOException cleanup) { error.addSuppressed(cleanup); }
+            throw error;
+        }
+    }
+    static String importProject(File home,File staging,InputStream input,String name,RuntimeStore.Cancel cancel) throws IOException {
+        File file=stageCartridge(staging,input,name,cancel), stage=file.getParentFile();
+        try {
+        String suffix=cartridgeSuffix(name), base=name.substring(0,name.length()-suffix.length());
         File desktop=safe(home,"drive/desktop"); Files.createDirectories(desktop.toPath());
         File destination=safe(desktop,name);
         for (int copy=2;destination.exists();copy++) {
@@ -106,6 +126,11 @@ final class ProjectFiles {
         check(cancel); Files.move(file.toPath(),destination.toPath(),StandardCopyOption.ATOMIC_MOVE);
         Files.delete(stage.toPath());
         return "drive/desktop/"+destination.getName();
+        } catch (IOException | RuntimeException error) {
+            try { Files.deleteIfExists(file.toPath()); Files.deleteIfExists(stage.toPath()); }
+            catch (IOException cleanup) { error.addSuppressed(cleanup); }
+            throw error;
+        }
     }
     static String restore(File home,File staging,InputStream input,RuntimeStore.Cancel cancel) throws IOException {
         File attempt=Files.createTempDirectory(staging.toPath(),"restore-").toFile(), archive=new File(attempt,"source.zip");

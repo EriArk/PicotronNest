@@ -18,6 +18,13 @@ fullscreen Splore have scoped Retroid evidence; list maximization is a separate 
 
 ## Latest evidence
 
+- **2026-11-10 queued in-session import (#3):** the floating controls open a
+  cartridge picker without quitting. Validated copies remain outside the live
+  home until the owner closes Picotron and finishes the queue. Interrupted
+  application requires explicit review; no automatic replay or overwrites.
+  Three host checks pass; all 53 Java sources compile/dex. [Workflow and limits](QUEUED_IMPORT.md).
+  Android SAF/lifecycle and official-runtime acceptance remain open.
+
 - **2026-11-10 in-session restart (#2):** the product host menu now offers
   **Restart Picotron** with an explicit unsaved-work warning. A session-owned
   request waits for native receipts and full worker/storage teardown, then
@@ -325,11 +332,10 @@ Do not upgrade a status because code compiles, ADB starts an activity, a process
 
 ## Next action
 
-Continue with [#3: importing cartridges during a session](https://github.com/EriArk/PicotronNest/issues/3).
-The host-side #1 and #2 changes are recorded above; their device acceptance remains
-open. Evaluate safe staging/queued import before changing the runtime-store lease
-or permitting writes into a live home. Preserve originals and explicit error,
-cancellation and collision handling.
+Continue with [#4: in-app screenshots](https://github.com/EriArk/PicotronNest/issues/4).
+Host-side #1–#3 work is recorded above; device acceptance remains open. Capture a
+stable copy of the native frame, save only through an explicit Android destination,
+and keep host overlays out of the image. No automatic sharing or uploading.
 
 The remaining reviewed requests are:
 

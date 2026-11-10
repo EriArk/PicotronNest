@@ -15,7 +15,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @SuppressWarnings("deprecation")
 public final class ProjectFilesActivity extends Activity {
     private static final AtomicBoolean BUSY=new AtomicBoolean();
-    private static volatile String message="Close Picotron before transferring projects. Backups include your projects and Picotron settings.";
+    private static volatile String message="You can queue a cartridge while Picotron is running. Close Picotron, then finish queued imports. Export and backup also require a closed session.";
     private static volatile boolean cancel;
     private final Handler handler=new Handler(Looper.getMainLooper());
     private TextView status;
@@ -31,12 +31,46 @@ public final class ProjectFilesActivity extends Activity {
         TextView title=new TextView(this); title.setText("Projects and backups"); title.setTextSize(24); form.addView(title);
         status=new TextView(this); form.addView(status);
         button(form,"Import cartridge",() -> pick(2,false,"*/*",null));
+        button(form,"Finish queued imports",() -> job(() -> AndroidRuntimeStore.open(getApplicationContext())
+                .withHome(AndroidRuntimeStore::requireIdleProcesses,home -> queue().apply(home,staging(),() -> cancel).message())));
+        button(form,"Review queued imports",this::reviewQueued);
         button(form,"Export cartridge",this::chooseProject);
         button(form,"Back up Picotron home",() -> pick(3,true,"application/zip","Picotron-home-"+System.currentTimeMillis()+".zip"));
         button(form,"Restore backup into a separate folder",() -> new AlertDialog.Builder(this).setTitle("Restore a backup")
                 .setMessage("Your current files stay in place. The backup is opened into a new Restored folder on Picotron Drive; copy the projects you need from there.")
                 .setPositiveButton("Choose backup",(d,w) -> pick(4,false,"*/*",null)).setNegativeButton("Cancel",null).show());
         button(form,"Cancel transfer",() -> cancel=true);
+        if (saved==null && getIntent().getBooleanExtra("import_cartridge",false)) pick(2,false,"*/*",null);
+    }
+    private PendingCartridges queue() throws IOException {
+        return new PendingCartridges(new File(getFilesDir().getCanonicalFile(),"pending-cartridges"),AndroidRuntimeStore.IO);
+    }
+    private File staging() throws IOException {
+        File staging=ProjectFiles.safe(getFilesDir().getCanonicalFile(),"project-staging");
+        if (!staging.mkdir() && !staging.isDirectory()) throw new IOException("transfer staging unavailable");
+        return staging;
+    }
+    private void reviewQueued() {
+        job(() -> {
+            List<PendingCartridges.Entry> entries=queue().entries();
+            runOnUiThread(() -> {
+                if (isFinishing() || isDestroyed() || entries.isEmpty()) return;
+                String[] labels=new String[entries.size()];
+                for (int i=0;i<labels.length;i++) labels[i]=(entries.get(i).ready() ? "Queued: " : "Needs review: ")+entries.get(i).name();
+                new AlertDialog.Builder(this).setTitle("Queued imports").setItems(labels,(d,index) -> {
+                    PendingCartridges.Entry entry=entries.get(index);
+                    AlertDialog.Builder action=new AlertDialog.Builder(this).setTitle(entry.name())
+                            .setMessage(entry.ready() ? "This copy is waiting. Close Picotron, then finish queued imports. Discard removes only the queued copy."
+                                    : !entry.retryable() ? "Copying this file was interrupted. Discard this incomplete copy and select the original file again."
+                                    : "An import was interrupted and a project copy may already exist. Check Picotron Drive before retrying. Retry creates a separate copy on a name collision; discard removes only the queued copy.")
+                            .setNegativeButton("Keep queued",null)
+                            .setNeutralButton("Discard queued copy",(dialog,which) -> job(() -> { queue().discard(entry.id); return "Queued copy discarded. Your original and imported projects are preserved."; }));
+                    if (entry.retryable()) action.setPositiveButton("Queue another attempt",(dialog,which) -> job(() -> { queue().retry(entry.id); return "Queued for another attempt. Close Picotron, then finish queued imports."; }));
+                    action.show();
+                }).show();
+            });
+            return entries.isEmpty() ? "No queued imports." : "Review queued copies below. Existing projects are preserved.";
+        });
     }
     private void button(LinearLayout form,String label,Runnable action) {
         Button button=new Button(this); button.setText(label); form.addView(button);
@@ -83,16 +117,16 @@ public final class ProjectFilesActivity extends Activity {
         Uri uri=data.getData(); final String project=selected;
         job(() -> {
             if (!"content".equals(uri.getScheme())) throw new IOException("choose an Android document");
-            RuntimeStore store=AndroidRuntimeStore.open(getApplicationContext());
-            File staging=new File(getFilesDir().getCanonicalFile(),"project-staging");
-            if (!staging.getCanonicalFile().equals(staging.getAbsoluteFile())) throw new IOException("invalid staging path");
-            if (!staging.mkdir() && !staging.isDirectory()) throw new IOException("transfer staging unavailable");
             String name=request==2 ? documentName(uri) : null;
+            if (request==2) {
+                AndroidRuntimeStore.readDocument(getApplicationContext(),uri,() -> cancel,input -> queue().enqueue(input,name,() -> cancel));
+                return "Cartridge checked and queued. Your running session is unchanged. Close Picotron, then tap Finish queued imports. Open Your games after launching Picotron again.";
+            }
+            RuntimeStore store=AndroidRuntimeStore.open(getApplicationContext());
+            File staging=staging();
             return store.withHome(AndroidRuntimeStore::requireIdleProcesses,home -> {
-                if (request==2 || request==4) {
-                    String path=AndroidRuntimeStore.readDocument(getApplicationContext(),uri,() -> cancel,input -> request==2
-                            ? ProjectFiles.importProject(home,staging,input,name,() -> cancel)
-                            : ProjectFiles.restore(home,staging,input,() -> cancel));
+                if (request==4) {
+                    String path=AndroidRuntimeStore.readDocument(getApplicationContext(),uri,() -> cancel,input -> ProjectFiles.restore(home,staging,input,() -> cancel));
                     AndroidRuntimeStore.IO.syncDirectory(new File(home,"drive"));
                     File desktop=new File(home,"drive/desktop");
                     if (desktop.isDirectory()) AndroidRuntimeStore.IO.syncDirectory(desktop);

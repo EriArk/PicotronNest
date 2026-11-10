@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+Cartridges can be selected from the live overlay and queued outside the active
+home. Finish imports after closing Picotron; interrupted attempts require review
+and existing files are preserved. [Checks and limits](docs/QUEUED_IMPORT.md).
+
 The in-session host menu offers **Restart Picotron** with an unsaved-work warning,
 verified native exit and storage teardown before one relaunch. Failed shutdowns
 do not restart. [Checks and limits](docs/IN_SESSION_RESTART.md).

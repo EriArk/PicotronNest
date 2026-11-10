@@ -49,6 +49,10 @@ final class WorkstationOverlay extends FrameLayout {
         slider("Opacity",15,80,touchGamepad.opacityPercent(),value ->
             touchGamepad.configure(touchGamepad.mode(),touchGamepad.sizePercent(),value,touchGamepad.full()));
         Button settings=new Button(activity); settings.setText("Settings and projects"); controls.view.addView(settings);
+        Button importCart=new Button(activity); importCart.setText("Import cartridge (queue)"); controls.view.addView(importCart);
+        importCart.setOnClickListener(v -> {
+            closeDrawer(); activity.startActivity(new android.content.Intent(activity,ProjectFilesActivity.class).putExtra("import_cartridge",true));
+        });
         Button sound=new Button(activity); sound.setText("Sound buffer: "+AudioSettings.label(activity)); controls.view.addView(sound);
         sound.setOnClickListener(v -> AudioSettings.show(activity,() -> sound.setText("Sound buffer: "+AudioSettings.label(activity))));
         settings.setOnClickListener(v -> { closeDrawer(); activity.startActivity(new android.content.Intent(activity,RuntimeSetupActivity.class)); });

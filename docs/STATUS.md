@@ -18,6 +18,12 @@ fullscreen Splore have scoped Retroid evidence; list maximization is a separate 
 
 ## Latest evidence
 
+- **2026-11-10 community links (#5):** touch/controller Help opens website,
+  website-maintained Discord discovery and GitHub reporting beside diagnostics.
+  Three owned Android 11/API 30 fixture groups pass. [Destinations and limits](COMMUNITY_LINKS.md).
+  The direct `/discord` route still returns 404; the app uses the verified first-party
+  contacts section. External browser/Discord and live-runtime return remain untested.
+
 - **2026-11-10 screenshots (#4):** touch/controller host commands save an immutable
   native-size frame through Android's create-document flow, without host overlays
   or new permissions. Six owned Android 11/API 30 fixture groups pass, including
@@ -339,10 +345,10 @@ Do not upgrade a status because code compiles, ADB starts an activity, a process
 
 ## Next action
 
-Continue with [#5: website and Discord access](https://github.com/EriArk/PicotronNest/issues/5).
-Use verified first-party destinations and preserve the current session on external
-navigation. The proposed `/discord` redirect currently returns 404; do not ship
-that URL or copy an expiring invite into the app.
+Continue with [#6: folder import/export](https://github.com/EriArk/PicotronNest/issues/6).
+Preserve hierarchy and existing files, bound traversal and report partial results.
+For #5, verify and adopt the first-party `/discord` redirect after the website
+implements it; current discovery uses the verified contacts section.
 
 The remaining reviewed requests are:
 

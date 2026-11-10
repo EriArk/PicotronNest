@@ -1,4 +1,4 @@
-"""Install/run the owned screenshot fixture on an explicitly selected emulator only."""
+"""Install/run the owned screenshot/community fixture on an explicitly selected emulator only."""
 import argparse
 import json
 from pathlib import Path
@@ -11,6 +11,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--adb', default='adb')
     parser.add_argument('--serial', required=True)
+    parser.add_argument('--mode', choices=['screenshot', 'community'], default='screenshot')
     args = parser.parse_args()
 
     def adb(*cmd, timeout=30):
@@ -35,15 +36,18 @@ def main():
     evidence = ROOT / '.local/screenshot-tests/evidence' / session
     evidence.mkdir(parents=True)
     (evidence / 'build.json').write_text(json.dumps(build, indent=2))
+    instrument = 'CommunityInstrumentation' if args.mode == 'community' else 'ScreenshotInstrumentation'
     output = adb('shell', 'am', 'instrument', '-w', '-r', '-e', 'session', session,
-                 package + '/art.picotronnest.executionlab.ScreenshotInstrumentation', timeout=120)
+                 package + '/art.picotronnest.executionlab.' + instrument, timeout=120)
     (evidence / 'instrument.txt').write_bytes(output)
-    raw = adb('exec-out', 'run-as', package, 'cat', 'files/screenshot-report.json')
+    raw = adb('exec-out', 'run-as', package, 'cat', 'files/' + args.mode + '-report.json')
     (evidence / 'report.json').write_bytes(raw)
     report = json.loads(raw)
     if report.get('session') != session or report.get('outcome') != 'PASS' or report.get('official_runtime') != 'NOT TESTED':
         raise ValueError(report)
-    (evidence / 'owned-frame.png').write_bytes(adb('exec-out', 'run-as', package, 'cat', 'files/saved.png'))
+    source = 'community-preview.png' if args.mode == 'community' else 'saved.png'
+    (evidence / ('community-preview.png' if args.mode == 'community' else 'owned-frame.png')).write_bytes(
+        adb('exec-out', 'run-as', package, 'cat', 'files/' + source))
     print(json.dumps(report, indent=2))
     print(evidence)
 

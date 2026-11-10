@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+**Help and community** is reachable from touch/controller controls. Website,
+Discord discovery on the official website, GitHub reporting and missing-browser
+copy fallback sit beside diagnostics. [Checks and redirect dependency](docs/COMMUNITY_LINKS.md).
+
 **Save screenshot** captures the native Picotron frame from touch/controller
 controls and writes PNG through Android's document picker. Owned Android tests
 cover pixels, rotation, cancellation and failure. [Limits](docs/SCREENSHOTS.md).

@@ -26,6 +26,7 @@ public final class AboutActivity extends Activity {
                 .putExtra(Intent.EXTRA_TITLE,"PicotronNest-diagnostics.json"),1));
         Button licenses=new Button(this); licenses.setText("Open-source notices"); form.addView(licenses);
         licenses.setOnClickListener(v -> notices());
+        CommunityLinks.addButtons(this,form);
     }
     private void notices() {
         try {

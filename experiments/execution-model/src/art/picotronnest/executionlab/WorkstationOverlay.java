@@ -51,6 +51,8 @@ final class WorkstationOverlay extends FrameLayout {
         Button settings=new Button(activity); settings.setText("Settings and projects"); controls.view.addView(settings);
         Button screenshot=new Button(activity); screenshot.setText("Save screenshot"); controls.view.addView(screenshot);
         screenshot.setOnClickListener(v -> { closeDrawer(); ScreenshotActivity.start(activity); });
+        Button help=new Button(activity); help.setText("Help and community"); controls.view.addView(help);
+        help.setOnClickListener(v -> { closeDrawer(); activity.startActivity(new android.content.Intent(activity,AboutActivity.class)); });
         Button importCart=new Button(activity); importCart.setText("Import cartridge (queue)"); controls.view.addView(importCart);
         importCart.setOnClickListener(v -> {
             closeDrawer(); activity.startActivity(new android.content.Intent(activity,ProjectFilesActivity.class).putExtra("import_cartridge",true));

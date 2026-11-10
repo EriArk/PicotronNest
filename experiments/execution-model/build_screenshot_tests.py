@@ -1,4 +1,4 @@
-"""Build a Java-only Android screenshot fixture; no native or proprietary payloads."""
+"""Build Java-only screenshot/community fixtures; no native or proprietary payloads."""
 import argparse
 import hashlib
 import json
@@ -34,7 +34,7 @@ def main():
         subprocess.run(list(map(str, cmd)), check=True, timeout=120)
 
     sources = sorted((HERE / 'src').rglob('*.java')) + [HERE / 'tests/android' / (name + '.java') for name in
-                ('ScreenshotTestActivity', 'ScreenshotDocuments', 'ScreenshotInstrumentation')]
+                ('ScreenshotTestActivity', 'ScreenshotDocuments', 'ScreenshotInstrumentation', 'CommunityTestActivity', 'CommunityInstrumentation')]
     hashes = {p.relative_to(ROOT).as_posix(): digest(p) for p in sources + [Path(__file__)]}
     config = work / 'BuildConfig.java'
     config.write_text('package art.picotronnest.executionlab; final class BuildConfig {'
@@ -52,10 +52,14 @@ def main():
             android:allowBackup="false" android:theme="@android:style/Theme.Material.Light.NoActionBar">
             <activity android:name="art.picotronnest.executionlab.ScreenshotTestActivity" android:exported="false" />
             <activity android:name="art.picotronnest.executionlab.ScreenshotActivity" android:exported="false" />
+            <activity android:name="art.picotronnest.executionlab.AboutActivity" android:exported="false" />
+            <activity android:name="art.picotronnest.executionlab.CommunityTestActivity" android:exported="false" />
             <provider android:name="art.picotronnest.executionlab.ScreenshotDocuments"
                 android:authorities="art.picotronnest.screenshottest.documents" android:exported="false" />
         </application>
         <instrumentation android:name="art.picotronnest.executionlab.ScreenshotInstrumentation"
+            android:targetPackage="art.picotronnest.screenshottest" />
+        <instrumentation android:name="art.picotronnest.executionlab.CommunityInstrumentation"
             android:targetPackage="art.picotronnest.screenshottest" />
     </manifest>''', encoding='utf-8')
     unsigned = work / 'unsigned.apk'

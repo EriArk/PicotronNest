@@ -40,6 +40,15 @@ public final class InputSettingsActivity extends Activity {
                 speed.setText(Double.toString(p.speed)); deadzone.setText(Double.toString(p.deadzone)); precision.setText(Double.toString(p.precision));
             }
         } catch (java.io.IOException error) { label(error.getMessage()); }
+        if (saved!=null && saved.getBoolean("input_draft",false)) {
+            int[] draft=saved.getIntArray("keys");
+            if (draft!=null && draft.length==keys.length) System.arraycopy(draft,0,keys,0,keys.length);
+            kind.setSelection(saved.getInt("kind",0));
+            xAxis.setSelection(saved.getInt("x_axis",0)); yAxis.setSelection(saved.getInt("y_axis",1));
+            // Keep raw text, including temporarily invalid edits, until the user presses Save.
+            speed.setText(saved.getString("speed","320")); deadzone.setText(saved.getString("deadzone","0.18"));
+            precision.setText(saved.getString("precision","0.25"));
+        }
         String[] labels={"Move left","Move right","Move up","Move down","Primary click","Hold for precision","Secondary click","Scroll left","Scroll right","Scroll up","Scroll down","Open menu","Menu confirm","Menu cancel"};
         for (int i=0;i<keys.length;i++) {
             final int slot=i; Button button=new Button(this); form.addView(button); binding(button,labels[i],keys[i]);
@@ -73,6 +82,14 @@ public final class InputSettingsActivity extends Activity {
                 },"input-settings").start();
             } catch (Exception error) { message.setText("Check your bindings and ranges: "+error.getMessage()); }
         });
+    }
+    @Override protected void onSaveInstanceState(Bundle saved) {
+        super.onSaveInstanceState(saved);
+        saved.putBoolean("input_draft",true); saved.putIntArray("keys",keys.clone());
+        saved.putInt("kind",kind.getSelectedItemPosition());
+        saved.putInt("x_axis",xAxis.getSelectedItemPosition()); saved.putInt("y_axis",yAxis.getSelectedItemPosition());
+        saved.putString("speed",speed.getText().toString()); saved.putString("deadzone",deadzone.getText().toString());
+        saved.putString("precision",precision.getText().toString());
     }
     private void binding(Button button,String name,int code) { button.setText(name+": "+(code==0 ? "Unassigned" : KeyEvent.keyCodeToString(code).replace("KEYCODE_",""))); }
     private TextView label(String text) { TextView view=new TextView(this); view.setText(text); form.addView(view); return view; }

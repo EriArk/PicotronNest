@@ -34,7 +34,7 @@ def main():
         subprocess.run(list(map(str, cmd)), check=True, timeout=120)
 
     sources = sorted((HERE / 'src').rglob('*.java')) + [HERE / 'tests/android' / (name + '.java') for name in
-                ('ScreenshotTestActivity', 'ScreenshotDocuments', 'ScreenshotInstrumentation', 'CommunityTestActivity', 'CommunityInstrumentation', 'FolderTestDocuments', 'FolderInstrumentation', 'ControlsTestActivity', 'ControlsInstrumentation')]
+                ('ScreenshotTestActivity', 'ScreenshotDocuments', 'ScreenshotInstrumentation', 'CommunityTestActivity', 'CommunityInstrumentation', 'FolderTestDocuments', 'FolderInstrumentation', 'ControlsTestActivity', 'ControlsInstrumentation', 'ManagementDocuments', 'ManagementInstrumentation')]
     hashes = {p.relative_to(ROOT).as_posix(): digest(p) for p in sources + [Path(__file__)]}
     config = work / 'BuildConfig.java'
     config.write_text('package art.picotronnest.executionlab; final class BuildConfig {'
@@ -55,6 +55,11 @@ def main():
             <activity android:name="art.picotronnest.executionlab.AboutActivity" android:exported="false" />
             <activity android:name="art.picotronnest.executionlab.CommunityTestActivity" android:exported="false" />
             <activity android:name="art.picotronnest.executionlab.ControlsTestActivity" android:exported="false" />
+            <activity android:name="art.picotronnest.executionlab.InputSettingsActivity" android:exported="false" />
+            <activity android:name="art.picotronnest.executionlab.GamepadSettingsActivity" android:exported="false" />
+            <activity android:name="art.picotronnest.executionlab.ProjectFilesActivity" android:exported="false" />
+            <provider android:name="art.picotronnest.executionlab.ManagementDocuments"
+                android:authorities="art.picotronnest.screenshottest.management" android:exported="false" />
             <provider android:name="art.picotronnest.executionlab.ScreenshotDocuments"
                 android:authorities="art.picotronnest.screenshottest.documents" android:exported="false" />
             <provider android:name="art.picotronnest.executionlab.FolderTestDocuments"
@@ -68,6 +73,8 @@ def main():
         <instrumentation android:name="art.picotronnest.executionlab.FolderInstrumentation"
             android:targetPackage="art.picotronnest.screenshottest" />
         <instrumentation android:name="art.picotronnest.executionlab.ControlsInstrumentation"
+            android:targetPackage="art.picotronnest.screenshottest" />
+        <instrumentation android:name="art.picotronnest.executionlab.ManagementInstrumentation"
             android:targetPackage="art.picotronnest.screenshottest" />
     </manifest>''', encoding='utf-8')
     unsigned = work / 'unsigned.apk'

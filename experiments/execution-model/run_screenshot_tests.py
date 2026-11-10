@@ -11,7 +11,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--adb', default='adb')
     parser.add_argument('--serial', required=True)
-    parser.add_argument('--mode', choices=['screenshot', 'community', 'folder', 'controls'], default='screenshot')
+    parser.add_argument('--mode', choices=['screenshot', 'community', 'folder', 'controls', 'management'], default='screenshot')
     args = parser.parse_args()
 
     def adb(*cmd, timeout=30):
@@ -36,16 +36,20 @@ def main():
     evidence = ROOT / '.local/screenshot-tests/evidence' / session
     evidence.mkdir(parents=True)
     (evidence / 'build.json').write_text(json.dumps(build, indent=2))
-    instrument = {'controls': 'ControlsInstrumentation', 'community': 'CommunityInstrumentation', 'folder': 'FolderInstrumentation', 'screenshot': 'ScreenshotInstrumentation'}[args.mode]
-    output = adb('shell', 'am', 'instrument', '-w', '-r', '-e', 'session', session,
-                 package + '/art.picotronnest.executionlab.' + instrument, timeout=120)
+    instrument = {'management': 'ManagementInstrumentation', 'controls': 'ControlsInstrumentation', 'community': 'CommunityInstrumentation', 'folder': 'FolderInstrumentation', 'screenshot': 'ScreenshotInstrumentation'}[args.mode]
+    try:
+        output = adb('shell', 'am', 'instrument', '-w', '-r', '-e', 'session', session,
+                     package + '/art.picotronnest.executionlab.' + instrument, timeout=120)
+    except subprocess.CalledProcessError as error:
+        (evidence / 'instrument.txt').write_bytes(error.stdout + error.stderr)
+        raise RuntimeError('Instrumentation failed; inspect ' + str(evidence / 'instrument.txt')) from error
     (evidence / 'instrument.txt').write_bytes(output)
     raw = adb('exec-out', 'run-as', package, 'cat', 'files/' + args.mode + '-report.json')
     (evidence / 'report.json').write_bytes(raw)
     report = json.loads(raw)
     if report.get('session') != session or report.get('outcome') != 'PASS' or report.get('official_runtime') != 'NOT TESTED':
         raise ValueError(report)
-    if args.mode != 'folder':
+    if args.mode not in ('folder', 'management'):
         source = args.mode+'-preview.png' if args.mode in ('community','controls') else 'saved.png'
         (evidence / (source if args.mode in ('community','controls') else 'owned-frame.png')).write_bytes(
             adb('exec-out', 'run-as', package, 'cat', 'files/' + source))

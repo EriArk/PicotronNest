@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+Unsaved input settings now survive Android Activity recreation, including pointer
+mode, axes, raw numeric edits and button bindings. Saving remains explicit.
+Owned Android checks also verify nested game-control drafts and one queued import
+across screen recreation and Back. [Checks and limits](docs/IN_SESSION_CONTROLS.md).
+
 Folder export always reports that incomplete files may remain when cleanup fails,
 even if earlier errors filled the bounded detail list. Expanded owned Android
 checks cover provider failures and cancellation after transfer starts.

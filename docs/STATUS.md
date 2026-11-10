@@ -18,6 +18,13 @@ fullscreen Splore have scoped Retroid evidence; list maximization is a separate 
 
 ## Latest evidence
 
+- **2026-11-10 settings and queue Activity recreation (#3/#7):** fixed lost unsaved
+  input choices/text/bindings when Android recreates the settings screen. Four
+  owned Android 11/API 30 groups pass: nested game-control drafts, explicit save,
+  Back to the same test workstation, one picker and one queued copy through
+  recreation during/after an import. [Reproduction and limits](IN_SESSION_CONTROLS.md).
+  Live native management, system picker and process-death draft restoration remain open.
+
 - **2026-11-10 folder transfer failures (#6):** incomplete-export warnings now remain
   visible after the six-detail limit, including failed cleanup of provider-renamed
   entries. Nine owned SAF groups pass on Android 11/API 30 x86-64, covering read,
@@ -384,9 +391,9 @@ Do not upgrade a status because code compiles, ADB starts an activity, a process
 
 ## Next action
 
-Continue the emulator-based management-activity return/recreation flow (#3/#7),
-then folder-transfer process-death checks (#6). Queue recovery and folder-provider
-failure/cancellation now have scoped emulator evidence.
+Continue the live management-screen return/recreation flow with an owned native
+session (#3/#7), then folder-transfer process-death checks (#6). Real input/project
+Activity recreation and Back navigation now have scoped Java-fixture evidence.
 The Linux build-tooling gap is closed.
 Retroid is unavailable and the owner explicitly deferred all device testing until
 they give permission to resume. Do not poll, install or test on that device meanwhile.

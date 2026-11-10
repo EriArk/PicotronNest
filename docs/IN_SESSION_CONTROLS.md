@@ -91,3 +91,63 @@ navigation; real `LabSession` attachment, management lifecycle, landscape/cutout
 IME, accessibility and physical-device return remain acceptance work. The USB device
 was still ADB-unauthorized; no official-runtime device run or product APK release is
 claimed.
+
+## Settings and queue Activity recreation — 2026-11-10
+
+Input settings now retain their unsaved pointer kind, axes, numeric text and all
+pointer/menu bindings in Android saved instance state. Raw temporary input such
+as `-` survives recreation; validation and persistence still happen only on
+**Save input settings**. Leaving the Activity without saving does not commit the
+new draft. Opening **Game controls** and returning keeps the parent's draft.
+
+The owned fixture reproduced lost pointer selections before the fix, collection
+`1c7c1135-d01d-44ca-aca0-012259562dac`. With the fix, collection
+`bbe4d9b8-db75-463f-ac55-62a92e679108` passes four groups on the dedicated Android
+11/API 30 x86-64 emulator, SELinux Enforcing, target 36:
+
+1. Real `InputSettingsActivity.recreate()` restores unsaved choices, raw invalid
+   text and remapped bindings without writing preferences.
+2. The actual nested `GamepadSettingsActivity` retains its draft on recreation;
+   Android Back returns to the input draft without implicitly saving either.
+3. An explicit save persists the exact selected values. Android Back returns to
+   the same owned workstation Activity, whose session-exit state stays RUNNING.
+4. The real overlay opens `ProjectFilesActivity` and one intercepted document
+   picker. Recreating before the picker result does not launch another picker.
+   Recreating during a blocked owned content-URI read retains the worker; after
+   release exactly one queued cartridge contains the expected bytes. Recreation
+   after completion, picker cancellation and Back preserve that queue and return
+   to the same owned workstation without a second provider open. The fixture
+   discards only its own queued copy after verification.
+
+Build the Java-only fixture as above, then run:
+
+```sh
+python3 -B experiments/execution-model/run_screenshot_tests.py \
+  --adb /path/to/adb --serial emulator-5582 --mode management
+```
+
+Fixture APK SHA-256:
+`0d43b49a69379345ab6f7b13d72e6a2758b15a7f6170dc004307139123f90a67`.
+The fixture starts from its own empty queue and uses only its own preferences,
+bytes and Java input acknowledgements. Picker results are injected; settings and
+project Activities and their recreation/Back navigation are real. This does not
+prove a running native/official session, process-death draft restoration, external
+DocumentsUI behavior, export-source selection, or the live `RuntimeSetupActivity`
+management screen. Those boundaries remain acceptance work; no device-proven
+status is inferred. Retroid testing remains deferred by the owner.
+
+The private ARM64 candidate is
+`.local/management-tests/candidate/PicotronNest-0.1.0-beta.3-arm64.apk`, SHA-256
+`0ce306a24747da76459fd2299c0338a7f5e76b6da6b2aea499540e068efa957e`.
+Its 93 source hashes, 44 payload entries and original signing identity verify;
+both candidate-manifest tests pass. The version remains beta 3 but this is a new
+local development artifact, not the published beta-3 APK. No product install on
+Retroid or APK/Release publication was performed.
+
+The same APK passes all three existing controls groups in collection
+`9cadf4ea-06de-45bc-a451-1804c1d27ede`. An earlier collection
+`9a12657b-9ff4-4cfc-8a2f-05fdaeed112c` stopped at screenshot collection with Android's
+UiAutomation service-registration error after two groups passed. Soft-reboot retry
+attempts lost ADB transport; a full restart of only the owned emulator produced the
+passing collection. No controls behavior was changed to obtain that result. The
+runner now retains instrumentation stdout/stderr when Android returns a failure.

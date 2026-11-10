@@ -18,6 +18,26 @@ fullscreen Splore have scoped Retroid evidence; list maximization is a separate 
 
 ## Latest evidence
 
+- **2026-11-10 Retroid access resumed; device checks incomplete:** the owner released
+  Retroid for testing. The connected Pocket Classic reports Android 14/API 34.
+  Published beta 3 (`0be3e848c28e7e72b7664c7902ceb6b6fa5821284fa9bb7310fbf80cb2d08051`)
+  had a live Picotron process (PID 8534) and a visible Splore search window.
+  After the host Quit confirmation, the app UID census showed no Picotron/PRoot
+  child. That census alone did not establish completed host teardown.
+  An in-place update installed the reviewed `f7ce7a8` candidate; installed APK
+  SHA-256 matches `0ce306a24747da76459fd2299c0338a7f5e76b6da6b2aea499540e068efa957e`.
+  No uninstall, data clear, forced stop or runtime reimport was performed.
+  First launch displayed **Resume safely**, so clean closure of the old session
+  is not claimed; whether update timing interrupted final teardown remains unknown.
+  Recovery/diagnostic collection was then paused when another application took
+  the foreground during the Android document flow. Exclusive device control must
+  be confirmed before further UI input. No current-candidate official-runtime,
+  management-return or recreation acceptance is claimed. Private receipts and
+  screenshots are under `.local/retroid-management`; the initial capture of another
+  app is excluded from Picotron evidence. Current SELinux mode could not be read
+  by the shell (permission denied), and the imported runtime version was not
+  independently reverified in this attempt.
+
 - **2026-11-10 settings and queue Activity recreation (#3/#7):** fixed lost unsaved
   input choices/text/bindings when Android recreates the settings screen. Four
   owned Android 11/API 30 groups pass: nested game-control drafts, explicit save,
@@ -395,8 +415,12 @@ Continue the live management-screen return/recreation flow with an owned native
 session (#3/#7), then folder-transfer process-death checks (#6). Real input/project
 Activity recreation and Back navigation now have scoped Java-fixture evidence.
 The Linux build-tooling gap is closed.
-Retroid is unavailable and the owner explicitly deferred all device testing until
-they give permission to resume. Do not poll, install or test on that device meanwhile.
+The owner explicitly resumed Retroid testing on 2026-11-10. The current blocker
+is conflicting foreground/device control, not missing testing authorization.
+After exclusive access is confirmed, export the retained session diagnostics and
+use the app's recovery flow before testing the current official-runtime session.
+Wait for complete host teardown and a fresh diagnostic receipt before another
+update; disappearance of native child processes alone is insufficient.
 No APK or Release may be published without separate owner authorization.
 For #5, verify and adopt the first-party `/discord` redirect after the website
 implements it; current discovery uses the verified contacts section.

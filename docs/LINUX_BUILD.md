@@ -97,6 +97,7 @@ tap. Production input code was not changed to satisfy that test.
 
 This proves the Linux build pipeline and owned Android/native fixtures, not operation
 of the ARM64 product with official Picotron, physical inputs, audible sound or modern
-ARM64 execution policy. Per the owner's instruction, Retroid testing is deferred
-until explicit permission to resume. Continue emulator-based storage/lifecycle work
-in the meantime; do not poll, install or run tests on the owner's device.
+ARM64 execution policy. The owner resumed Retroid testing on 2026-11-10; the later
+device attempt and current exclusive-control requirement are recorded in
+[STATUS.md](STATUS.md). The earlier device hold no longer applies, but these Linux
+and emulator results do not themselves establish physical-device acceptance.

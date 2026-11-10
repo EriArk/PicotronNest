@@ -140,6 +140,7 @@ public final class BridgeTestActivity extends MainActivity {
         super.onWindowFocusChanged(focused);
         if (hostMenu!=null) hostMenu.focus(focused);
     }
+    @Override protected void onResume() { super.onResume(); if (hostMenu!=null) hostMenu.resume(); }
     @Override protected void onPause() { if (hostMenu!=null) hostMenu.pause(); super.onPause(); }
     @Override protected void onDestroy() { if (hostMenu!=null) hostMenu.close(); super.onDestroy(); }
     private static void exitFixture() throws Exception {

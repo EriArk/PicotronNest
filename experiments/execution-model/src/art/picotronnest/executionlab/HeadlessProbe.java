@@ -127,7 +127,7 @@ final class HeadlessProbe {
                  KeyboardChannel keyboard=keyboardControls ? new KeyboardChannel(app,socketName+".keys",receiver) : null;
                  AudioReceiver audio=storage==null ? null : new AudioReceiver(app,socketName+".audio",receiver)) {
                 network.checkStarted();
-                LabSession controls=keyboard==null ? null : new LabSession(keyboard);
+                LabSession controls=keyboard==null ? null : new LabSession(keyboard,storage!=null);
                 try {
                     if (library!=null) {
                         java.util.ArrayList<String> bound=new java.util.ArrayList<>(java.util.Arrays.asList(command));

@@ -1,4 +1,5 @@
 import os
+import shutil
 from pathlib import Path
 import subprocess
 import tempfile
@@ -41,9 +42,16 @@ class FrameProtocolHost(unittest.TestCase):
 
     def run_java(self, test):
         here = Path(__file__).resolve().parent
-        jdk = Path(os.environ.get('JAVA_HOME', r'C:\Program Files\Android\Android Studio\jbr')) / 'bin'
+        suffix = '.exe' if os.name == 'nt' else ''
+        jdk_home = os.environ.get('JAVA_HOME')
+        if not jdk_home and os.name == 'nt':
+            jdk_home = r'C:\Program Files\Android\Android Studio\jbr'
+        java = str(Path(jdk_home) / 'bin' / ('java' + suffix)) if jdk_home else shutil.which('java')
+        javac = str(Path(jdk_home) / 'bin' / ('javac' + suffix)) if jdk_home else shutil.which('javac')
+        if not java or not javac:
+            self.fail('A JDK is required; set JAVA_HOME or add java and javac to PATH')
         with tempfile.TemporaryDirectory() as destination:
-            subprocess.run([str(jdk / 'javac.exe'), '--release', '8', '-Xlint:all,-options', '-Werror', '-d', destination,
+            subprocess.run([javac, '--release', '8', '-Xlint:all,-options', '-Werror', '-d', destination,
                             str(here / 'src/art/picotronnest/executionlab/FrameProtocol.java'),
                             str(here / 'src/art/picotronnest/executionlab/PointerSender.java'),
                             str(here / 'src/art/picotronnest/executionlab/PointerState.java'),
@@ -57,6 +65,6 @@ class FrameProtocolHost(unittest.TestCase):
                             str(here / 'src/art/picotronnest/executionlab/OrderedInputWriter.java'),
                             str(here / 'src/art/picotronnest/executionlab/TouchGamepadState.java'),
                             str(here / ('tests/' + test + '.java'))], check=True, capture_output=True, timeout=30)
-            subprocess.run([str(jdk / 'java.exe'), '-cp', destination,
+            subprocess.run([java, '-cp', destination,
                             'art.picotronnest.executionlab.' + test],
                            check=True, capture_output=True, timeout=10)

@@ -120,10 +120,29 @@ public class MainActivity extends Activity {
         new Thread(() -> {
             try { runProbe(app); }
             finally {
-                if (managedRuntime) app.stopService(new android.content.Intent(app,RuntimeService.class));
-                managedRunning=false; RUNNING.set(false);
+                LabSession finished=LabSession.current();
+                try { if (managedRuntime) app.stopService(new android.content.Intent(app,RuntimeService.class)); }
+                catch (RuntimeException error) { if (finished!=null) finished.fail("Session service cleanup failed"); }
+                finally {
+                    managedRunning=false; RUNNING.set(false);
+                    // ExecutionProbe has returned: reports, runtime lease and process guard are closed.
+                    if (finished!=null) finished.released();
+                }
             }
         }, "execution-probe").start();
+    }
+
+    void restartAfterExit(LabSession previous) {
+        if (!managedRuntime || RUNNING.get() || LabSession.current()!=previous || !previous.exit.claimRestart()) return;
+        try {
+            startActivity(new android.content.Intent(this,MainActivity.class)
+                    .putExtra("managed_runtime",true).putExtra("session_controls",true));
+            finish();
+        } catch (RuntimeException error) {
+            new android.app.AlertDialog.Builder(this).setTitle("Picotron could not restart")
+                    .setMessage("The previous session is closed. Reopen PicotronNest to try again. Saved projects and diagnostics are retained.")
+                    .setPositiveButton("OK",null).show();
+        }
     }
 
     @SuppressWarnings("deprecation")

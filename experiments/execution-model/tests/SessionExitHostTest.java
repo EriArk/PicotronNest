@@ -27,5 +27,36 @@ public final class SessionExitHostTest {
         check(failed.request()); finished(failed);
         check(failed.state()==SessionExit.State.FAILED && !failed.request()
                 && failed.failure().contains("native process still alive"));
+        check(!failed.claimRestart() && !exit.claimRestart());
+
+        CountDownLatch nativeClosed=new CountDownLatch(1);
+        SessionExit restart=new SessionExit(nativeClosed::countDown,1000);
+        check(!restart.restartRequested() && !restart.claimRestart());
+        check(restart.requestRestart() && restart.restartRequested());
+        check(nativeClosed.await(1,TimeUnit.SECONDS));
+        check(restart.state()==SessionExit.State.EXITING && !restart.claimRestart());
+        check(!restart.request() && !restart.requestRestart());
+        restart.released(null); finished(restart);
+        check(restart.state()==SessionExit.State.ENDED && restart.claimRestart() && !restart.claimRestart());
+
+        SessionExit cleanupFailed=new SessionExit(() -> { },1000);
+        check(cleanupFailed.requestRestart());
+        cleanupFailed.released("storage lease close failed");
+        cleanupFailed.released(null); // A repeated callback cannot erase failed teardown.
+        finished(cleanupFailed);
+        check(cleanupFailed.state()==SessionExit.State.FAILED && !cleanupFailed.claimRestart()
+                && cleanupFailed.failure().contains("storage lease close failed"));
+
+        SessionExit timeout=new SessionExit(() -> { },20);
+        check(timeout.requestRestart()); finished(timeout);
+        check(timeout.state()==SessionExit.State.FAILED && !timeout.claimRestart()
+                && timeout.failure().contains("teardown timeout"));
+        timeout.released(null);
+        check(!timeout.claimRestart()); // Late cleanup never revives an abandoned restart.
+
+        SessionExit hung=new SessionExit(() -> { throw new IOException("native shutdown timeout"); },1000);
+        check(hung.requestRestart()); hung.released(null); finished(hung);
+        check(hung.state()==SessionExit.State.FAILED && !hung.claimRestart());
+        System.out.println("PASS quit/restart single ownership, native confirmation, teardown gate/failure/timeout and no late relaunch");
     }
 }

@@ -21,6 +21,7 @@ final class HostMenu implements AutoCloseable {
     private AlertDialog dialog;
     private String[] choices;
     private boolean confirming, closed, keyboardPending;
+    private boolean confirmingRestart, paused, completionHandled;
     private boolean productLabels;
     void useProductLabels() { productLabels=true; button.setText("Picotron"); }
     private AlertDialog.Builder dialogBuilder() {
@@ -30,14 +31,16 @@ final class HostMenu implements AutoCloseable {
     final Button button;
     private final Runnable completion=new Runnable() {
         @Override public void run() {
-            if (closed) return;
+            if (closed || paused || completionHandled) return;
             if (exit.state()==SessionExit.State.EXITING) { handler.postDelayed(this,50); return; }
             if (exit.state()==SessionExit.State.ENDED) {
+                completionHandled=true;
                 dismiss(); button.setEnabled(false); ended.run();
             } else if (exit.state()==SessionExit.State.FAILED) {
+                completionHandled=true;
                 dismiss();
-                dialog=new AlertDialog.Builder(activity).setTitle("Session could not be ended")
-                        .setMessage("The session has not been confirmed closed.").setPositiveButton("OK",null).create();
+                dialog=new AlertDialog.Builder(activity).setTitle(exit.restartRequested() ? "Restart cancelled" : "Session could not be ended")
+                        .setMessage("The session has not been confirmed closed. No new session was started. Saved projects and diagnostics are retained; use Settings and projects for recovery.").setPositiveButton("OK",null).create();
                 dialog.show(); button.setEnabled(false);
             }
         }
@@ -68,7 +71,8 @@ final class HostMenu implements AutoCloseable {
         heldCode=-1;
         if (focused && keyboardPending) handler.post(keyboardRequest);
     }
-    void pause() { heldCode=-1; keyboardPending=false; handler.removeCallbacks(keyboardRequest); }
+    void pause() { paused=true; heldCode=-1; keyboardPending=false; handler.removeCallbacks(keyboardRequest); handler.removeCallbacks(completion); }
+    void resume() { paused=false; if (!closed && exit.state()!=SessionExit.State.RUNNING) handler.post(completion); }
     private static boolean controller(KeyEvent event) {
         return event.isFromSource(InputDevice.SOURCE_GAMEPAD) || event.isFromSource(InputDevice.SOURCE_JOYSTICK)
                 || event.isFromSource(InputDevice.SOURCE_DPAD);
@@ -103,14 +107,16 @@ final class HostMenu implements AutoCloseable {
         keyboardPending=false;
         DesktopView.releaseInput();
         ((InputMethodManager)activity.getSystemService(Activity.INPUT_METHOD_SERVICE)).hideSoftInputFromWindow(desktop.getWindowToken(),0);
-        show(false);
+        show(false,false);
     }
-    private void show(boolean confirmation) {
+    private void show(boolean confirmation,boolean restarting) {
         confirming=confirmation; selected=0; heldCode=-1;
-        choices=confirmation ? new String[]{"Keep working",productLabels ? "Quit Picotron" : "End session"}
-                : new String[]{"Resume","Show keyboard",productLabels ? "Quit Picotron" : "Exit session"};
+        confirmingRestart=restarting;
+        choices=confirmation ? new String[]{"Keep working",restarting ? "Restart Picotron" : productLabels ? "Quit Picotron" : "End session"}
+                : productLabels ? new String[]{"Resume","Show keyboard","Quit Picotron","Restart Picotron"}
+                : new String[]{"Resume","Show keyboard","Exit session"};
         AlertDialog next=dialogBuilder()
-                .setTitle(confirmation ? "Save your work before quitting" : productLabels ? "Picotron" : "Session menu")
+                .setTitle(confirmation ? restarting ? "Restart Picotron? Unsaved work will be lost" : "Save your work before quitting" : productLabels ? "Picotron" : "Session menu")
                 .setItems(choices,(d,index) -> choose(index)).create();
         dialog=next;
         next.setOnKeyListener((d,code,event) -> key(event));
@@ -121,19 +127,24 @@ final class HostMenu implements AutoCloseable {
     private void choose(int index) {
         if (closed || exit.state()!=SessionExit.State.RUNNING) return;
         boolean confirmation=confirming;
+        boolean restarting=confirmingRestart;
         dismiss();
         if (confirmation) {
-            if (index==1) { DesktopView.releaseInput(); exit.request(); progress(); }
+            if (index==1) {
+                DesktopView.releaseInput();
+                if (restarting) exit.requestRestart(); else exit.request();
+                progress();
+            }
         } else if (index==1) {
             keyboardPending=true; desktop.requestFocus();
             // Dialog dismissal returns window focus asynchronously.
             if (desktop.hasWindowFocus()) handler.post(keyboardRequest);
-        } else if (index==2) show(true);
+        } else if (index==2 || productLabels && index==3) show(true,index==3);
     }
     private void progress() {
         button.setEnabled(false);
         if (exit.state()==SessionExit.State.EXITING) {
-            dialog=dialogBuilder().setTitle(productLabels ? "Closing Picotron…" : "Ending session…").setCancelable(false).create();
+            dialog=dialogBuilder().setTitle(exit.restartRequested() ? "Closing Picotron before restart…" : productLabels ? "Closing Picotron…" : "Ending session…").setCancelable(false).create();
             dialog.show();
         }
         handler.post(completion);

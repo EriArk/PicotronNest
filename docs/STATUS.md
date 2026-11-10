@@ -18,6 +18,15 @@ fullscreen Splore have scoped Retroid evidence; list maximization is a separate 
 
 ## Latest evidence
 
+- **2026-11-10 in-session restart (#2):** the product host menu now offers
+  **Restart Picotron** with an explicit unsaved-work warning. A session-owned
+  request waits for native receipts and full worker/storage teardown, then
+  permits one relaunch; failure and timeout do not restart. Eleven host checks
+  pass, all production Java sources compile/dex, and Android test sources compile.
+  [Flow, tests and remaining hardware acceptance](IN_SESSION_RESTART.md).
+  Normal/hung official runtime restart and Android lifecycle execution remain
+  untested while ADB authorization is unavailable.
+
 - **2026-11-10 cartridge discovery (#1):** reproduced and fixed lowercase-only
   import/discovery checks; original names and launch paths are preserved. PICO-8
   imports and skipped cache entries now have explicit explanations. Two focused
@@ -316,11 +325,11 @@ Do not upgrade a status because code compiles, ADB starts an activity, a process
 
 ## Next action
 
-Continue in issue-number order with [#2: in-session restart](https://github.com/EriArk/PicotronNest/issues/2).
-The host-side #1 fixes and focused checks are recorded above; device acceptance
-and exact filenames from the original report remain open. Restart must wait for
-native exit receipts and storage/session teardown before relaunching, retain the
-home and diagnostics, and fail safely when shutdown is unconfirmed.
+Continue with [#3: importing cartridges during a session](https://github.com/EriArk/PicotronNest/issues/3).
+The host-side #1 and #2 changes are recorded above; their device acceptance remains
+open. Evaluate safe staging/queued import before changing the runtime-store lease
+or permitting writes into a live home. Preserve originals and explicit error,
+cancellation and collision handling.
 
 The remaining reviewed requests are:
 

@@ -756,6 +756,17 @@ public final class BridgeInstrumentation extends Instrumentation {
         await(() -> BridgeTestActivity.current.hasWindowFocus(),"cancel exit focus");
         check(BridgeTestActivity.exitRequests==0 && BridgeTestActivity.child.isAlive(),"cancel exit stopped process");
         checks.put("touch_menu_exit_confirmation_cancel_preserves_live_session");
+        ui(() -> BridgeTestActivity.current.hostMenu.useProductLabels());
+        menuTouch(-1);
+        menuTouch(3);
+        await(() -> BridgeTestActivity.current.hostMenu.dialog()!=null
+                && BridgeTestActivity.current.hostMenu.dialog().getListView().getCount()==2,"restart confirmation");
+        ui(() -> check("Restart Picotron".equals(BridgeTestActivity.current.hostMenu.dialog()
+                .getListView().getAdapter().getItem(1)),"restart confirmation label"));
+        menuTouch(0);
+        check(BridgeTestActivity.exitRequests==0 && BridgeTestActivity.child.isAlive()
+                && !BridgeTestActivity.sessionExit.restartRequested(),"cancel restart changed session");
+        checks.put("product_restart_confirmation_cancel_preserves_live_session");
         hostKey(101,android.view.KeyEvent.KEYCODE_BUTTON_START,0,0,0);
         hostKey(101,android.view.KeyEvent.KEYCODE_BUTTON_START,1,0,android.view.KeyEvent.FLAG_CANCELED);
         check(!BridgeTestActivity.current.hostMenu.visible(),"canceled shortcut opened menu");

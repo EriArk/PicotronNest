@@ -42,7 +42,11 @@ final class LabInputControls implements AutoCloseable {
             if (menuKeys!=null && active!=null && active!=session) {
                 if (menu!=null) { commands.removeView(menu.button); menu.close(); }
                 session=active;
-                menu=new HostMenu(activity,desktop,active.exit,menuKeys[0],menuKeys[1],menuKeys[2],activity::finish);
+                menu=new HostMenu(activity,desktop,active.exit,menuKeys[0],menuKeys[1],menuKeys[2],() -> {
+                    if (workstation && active.exit.restartRequested() && activity instanceof MainActivity)
+                        ((MainActivity)activity).restartAfterExit(active);
+                    else activity.finish();
+                });
                 if (workstation) menu.useProductLabels();
                 if (openingMenu!=null) menu.button.setOnClickListener(v -> { openingMenu.run(); menu.open(); });
                 commands.addView(menu.button,0,cell());
@@ -171,7 +175,7 @@ final class LabInputControls implements AutoCloseable {
     private void dismiss() { AlertDialog old=dialog; dialog=null; if (old!=null) old.dismiss(); }
     boolean key(android.view.KeyEvent event) { return menu!=null && menu.key(event,desktop.gameControls()); }
     void focus(boolean focused) { if (menu!=null) menu.focus(focused); }
-    void resume() { if (!closed) { paused=false; keys.resume(); handler.removeCallbacks(refresh); handler.post(refresh); } }
+    void resume() { if (!closed) { paused=false; keys.resume(); if (menu!=null) menu.resume(); handler.removeCallbacks(refresh); handler.post(refresh); } }
     void pause() {
         paused=true; handler.removeCallbacks(refresh); dismiss();
         keys.pause(); if (menu!=null) menu.pause();

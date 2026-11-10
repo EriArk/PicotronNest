@@ -54,6 +54,7 @@ final class ExecutionProbe {
                 }
             }
         } catch (Exception error) {
+            if (managedRuntime && LabSession.current()!=null) LabSession.current().fail(error.toString());
             Log.e("PicotronNestProbe", "Probe failed; retained evidence: " + error);
             if (managedRuntime) DesktopView.ended("Session failed. Return to setup for recovery. " + error.getMessage());
         }

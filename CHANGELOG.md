@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+The in-session host menu offers **Restart Picotron** with an unsaved-work warning,
+verified native exit and storage teardown before one relaunch. Failed shutdowns
+do not restart. [Checks and limits](docs/IN_SESSION_RESTART.md).
+
 Cartridge import and discovery preserve mixed-case Picotron extensions. PICO-8
 imports explain the format mismatch; the library explains skipped PICO-8 and
 unindexable cached cartridges. [Checks and limits](docs/CARTRIDGE_DISCOVERY.md).

@@ -16,6 +16,15 @@ final class GameLibrary implements AutoCloseable {
         final String title,path,source; final File cover;
         Entry(String title,String path,String source,File cover) { this.title=title; this.path=path; this.source=source; this.cover=cover; }
     }
+    static final class Scan {
+        final List<Entry> entries=new ArrayList<>();
+        int pico8, skippedCache;
+        String explanation() {
+            String text=pico8==0 ? "" : "\n"+pico8+" PICO-8 cartridges skipped. Use Picotron .p64 or .p64.png versions; renaming does not convert them.";
+            if (skippedCache>0) text+="\n"+skippedCache+" cached cartridges could not be indexed. Open them in Splore, or import a separate Picotron download through Settings and projects.";
+            return text;
+        }
+    }
     GameLibrary(File home,File session) throws IOException {
         this.home=home;
         if (ProjectFiles.safe(home,"drive"+NATIVE_DIR).exists())
@@ -57,36 +66,46 @@ final class GameLibrary implements AutoCloseable {
                 "-b",startup.getPath()+":/home/drive/appdata/system/startup.lua"));
     }
     List<Entry> entries() throws IOException {
+        return discover().entries;
+    }
+    Scan discover() throws IOException {
         if (closed) throw new IOException("Picotron session ended");
-        List<Entry> result=new ArrayList<>(); int[] visited={0};
+        Scan discovery=new Scan(); List<Entry> result=discovery.entries; int[] visited={0};
         File drive=ProjectFiles.safe(home,"drive");
-        scan(drive,drive,"",0,visited,result);
+        scan(drive,drive,"",0,visited,discovery);
         File cache=ProjectFiles.safe(home,"cache/carts"); File[] files=cache.listFiles();
         if (files!=null) for (File file:files) {
             if (++visited[0]>8192) throw new IOException("Library is too large to scan");
             String name=file.getName();
-            if (name.matches("[a-zA-Z0-9_\\-]+\\.p64\\.png") && file.isFile()
-                    && file.getCanonicalFile().equals(file.getAbsoluteFile()) && file.length()>8)
+            if (!file.isFile() || Files.isSymbolicLink(file.toPath())
+                    || !file.getCanonicalFile().equals(file.getAbsoluteFile())) continue;
+            if (ProjectFiles.pico8Name(name)) { discovery.pico8++; continue; }
+            // Only the observed native cache naming scheme maps to a proven BBS URI.
+            if (name.matches("[a-zA-Z0-9_\\-]+\\.p64\\.png") && file.length()>8)
                 result.add(new Entry(title(name),"bbs://"+name.substring(0,name.length()-4),"Downloaded",file));
+            else if (!ProjectFiles.cartridgeSuffix(name).isEmpty()) discovery.skippedCache++;
         }
         result.sort(Comparator.comparing((Entry e)->e.title.toLowerCase(Locale.ROOT)).thenComparing(e->e.path));
         if (result.size()>512) throw new IOException("Library exceeds 512 cartridges");
-        return result;
+        return discovery;
     }
-    private static void scan(File root,File dir,String prefix,int depth,int[] visited,List<Entry> out) throws IOException {
+    private static void scan(File root,File dir,String prefix,int depth,int[] visited,Scan out) throws IOException {
         if (depth>12) return;
         File[] children=dir.listFiles(); if (children==null) return;
         for (File file:children) {
             if (++visited[0]>8192) throw new IOException("Library is too large to scan");
             String name=prefix+file.getName();
             if (Files.isSymbolicLink(file.toPath()) || !file.getCanonicalFile().equals(file.getAbsoluteFile())) continue;
-            if (name.equals("appdata") || name.startsWith(".")) continue;
-            if (name.endsWith(".p64") || name.endsWith(".p64.png")) {
-                out.add(new Entry(title(file.getName()),"/"+name,"On Picotron Drive",name.endsWith(".png") && file.isFile() ? file : null));
+            if (name.equals("appdata") || file.getName().startsWith(".")) continue;
+            try { ProjectFiles.safe(root,name); } catch (IOException unsafe) { continue; }
+            if (ProjectFiles.pico8Name(name)) { out.pico8++; continue; }
+            String suffix=ProjectFiles.cartridgeSuffix(name);
+            if (!suffix.isEmpty() && (file.isFile() || suffix.length()==4 && file.isDirectory())) {
+                out.entries.add(new Entry(title(file.getName()),"/"+name,"On Picotron Drive",suffix.length()==8 ? file : null));
             } else if (file.isDirectory()) scan(root,file,name+"/",depth+1,visited,out);
         }
     }
-    private static String title(String name) { return name.replaceFirst("\\.p64(?:\\.png)?$","").replace('_',' '); }
+    private static String title(String name) { return name.substring(0,name.length()-ProjectFiles.cartridgeSuffix(name).length()).replace('_',' '); }
     synchronized void launch(Entry entry) throws IOException,InterruptedException {
         if (closed) throw new IOException("Picotron session ended");
         if (!text(new File(bridge,"ready.txt")).contains(token))

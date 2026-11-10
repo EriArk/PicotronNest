@@ -18,6 +18,14 @@ fullscreen Splore have scoped Retroid evidence; list maximization is a separate 
 
 ## Latest evidence
 
+- **2026-11-10 cartridge discovery (#1):** reproduced and fixed lowercase-only
+  import/discovery checks; original names and launch paths are preserved. PICO-8
+  imports and skipped cache entries now have explicit explanations. Two focused
+  Java host checks pass on Linux/JDK 17; all 52 Android sources compile against
+  API 36 and D8 passes. [Reproduction, checks and limits](CARTRIDGE_DISCOVERY.md).
+  Official runtime launch with these names and the tester's original report
+  remain unverified; the connected ADB device is not yet authorized.
+
 - **2026-11-10 context recovery and issue review:** the owner's 2026-11-02
   follow-up reports good Phoenix sound on Retroid after beta 3. This is a listening
   report, not a new automated or device run. Duration, output route and buffer mode
@@ -308,19 +316,11 @@ Do not upgrade a status because code compiles, ADB starts an activity, a process
 
 ## Next action
 
-Investigate [#1: missing library cartridges](https://github.com/EriArk/PicotronNest/issues/1)
-first. Source review on 2026-11-10 shows that local import/discovery permit spaces
-and parentheses, but match lowercase extensions only. Splore cache discovery
-accepts only ASCII letters, digits, underscore and hyphen before `.p64.png`.
-The reported `Phoenix.p8.png` is a PICO-8 format, not a Picotron cartridge.
-These observations do not reproduce the tester's missing entries or establish
-that changing the cache filter alone would provide valid native BBS launch URIs.
-
-Next development step: add owned regression cases for import/discovery with
-spaces, parentheses, Unicode, mixed-case extensions, nested folders and unsupported
-formats. Preserve names and canonical-path checks; distinguish admission errors
-from missing library entries. Exact affected filenames and import locations are
-still needed from the tester before attributing the original report to a cause.
+Continue in issue-number order with [#2: in-session restart](https://github.com/EriArk/PicotronNest/issues/2).
+The host-side #1 fixes and focused checks are recorded above; device acceptance
+and exact filenames from the original report remain open. Restart must wait for
+native exit receipts and storage/session teardown before relaunching, retain the
+home and diagnostics, and fail safely when shutdown is unconfirmed.
 
 The remaining reviewed requests are:
 

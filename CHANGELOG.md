@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+Cartridge import and discovery preserve mixed-case Picotron extensions. PICO-8
+imports explain the format mismatch; the library explains skipped PICO-8 and
+unindexable cached cartridges. [Checks and limits](docs/CARTRIDGE_DISCOVERY.md).
+
 ## 0.1.0-beta.2 - 2026-11-02 prerelease
 
 Native Splore catalog/download/play, source-built libcurl and Mbed TLS, Android

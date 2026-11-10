@@ -30,6 +30,28 @@ public final class ProjectFilesChecks {
         byte[] truncated=Arrays.copyOf(backup.toByteArray(),backup.size()-12);
         reject(() -> ProjectFiles.restore(home,stage,new ByteArrayInputStream(truncated),() -> false));
         check(Arrays.equals(cart,Files.readAllBytes(new File(home,first).toPath())));
+        for (String name:new String[]{"Game Name.p64","Game (demo).p64","Луна 日本語.p64","Mixed.P64"}) {
+            String imported=ProjectFiles.importProject(home,stage,new ByteArrayInputStream(cart),name,() -> false);
+            check(imported.equals("drive/desktop/"+name));
+            check(ProjectFiles.projects(home).contains(imported));
+            check(Arrays.equals(cart,Files.readAllBytes(new File(home,imported).toPath())));
+        }
+        byte[] png=new byte[]{(byte)137,80,78,71,13,10,26,10,0,0,0,0};
+        for (String name:new String[]{"Game (demo).p64.png","Луна 日本語.P64.PnG"}) {
+            String imported=ProjectFiles.importProject(home,stage,new ByteArrayInputStream(png),name,() -> false);
+            check(imported.equals("drive/desktop/"+name) && ProjectFiles.projects(home).contains(imported));
+            String duplicate=ProjectFiles.importProject(home,stage,new ByteArrayInputStream(png),name,() -> false);
+            check(duplicate.equals("drive/desktop/"+name.substring(0,name.length()-8)+" (2)"+name.substring(name.length()-8)));
+            check(Arrays.equals(png,Files.readAllBytes(new File(home,imported).toPath())));
+        }
+        for (String name:new String[]{"Phoenix.p8.png","Game.P8"}) {
+            try { ProjectFiles.importProject(home,stage,new ByteArrayInputStream(cart),name,() -> false); throw new AssertionError("PICO-8 admitted"); }
+            catch (IOException expected) { check(expected.getMessage().contains("PICO-8") && expected.getMessage().contains("renaming")); }
+        }
+        for (String name:new String[]{".hidden.p64","line\nbreak.p64","bad:name.P64","../escape.P64.PNG","ordinary.png",".p64","name.p64.txt"})
+            reject(() -> ProjectFiles.importProject(home,stage,new ByteArrayInputStream(cart),name,() -> false));
+        reject(() -> ProjectFiles.importProject(home,stage,new ByteArrayInputStream(cart),"not-png.P64.PNG",() -> false));
+        reject(() -> ProjectFiles.importProject(home,stage,new ByteArrayInputStream(png),"not-text.P64",() -> false));
         System.out.println("PASS project import/export, collision preservation, backup/restore, cancellation, traversal, truncation");
     }
 }

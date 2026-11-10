@@ -10,6 +10,15 @@ final class ProjectFiles {
     static final long MAX_BYTES=128L*1024*1024;
     static final int MAX_FILES=4096;
     private ProjectFiles() { }
+    static String cartridgeSuffix(String name) {
+        String lower=name.toLowerCase(Locale.ROOT);
+        return lower.endsWith(".p64.png") ? name.substring(name.length()-8)
+                : lower.endsWith(".p64") ? name.substring(name.length()-4) : "";
+    }
+    static boolean pico8Name(String name) {
+        String lower=name.toLowerCase(Locale.ROOT);
+        return lower.endsWith(".p8") || lower.endsWith(".p8.png");
+    }
     private static void check(RuntimeStore.Cancel cancel) throws IOException {
         if (cancel.cancelled() || Thread.currentThread().isInterrupted()) throw new IOException("transfer cancelled");
     }
@@ -50,7 +59,7 @@ final class ProjectFiles {
                 if (!cartsOnly) names.add(name+"/");
                 collect(root,file,name+"/",names,count,cartsOnly);
             } else if (!Files.isRegularFile(file.toPath(),LinkOption.NOFOLLOW_LINKS)) throw new IOException("unsupported project file");
-            else if (!cartsOnly || name.endsWith(".p64") || name.endsWith(".p64.png")) names.add(name);
+            else if (!cartsOnly || !cartridgeSuffix(name).isEmpty()) names.add(name);
         }
     }
     static void exportProject(File home,String relative,OutputStream output,RuntimeStore.Cancel cancel) throws IOException {
@@ -74,17 +83,22 @@ final class ProjectFiles {
         }
     }
     static String importProject(File home,File staging,InputStream input,String name,RuntimeStore.Cancel cancel) throws IOException {
-        if (name==null || !name.matches("[^/\\\\:\\p{Cntrl}]{1,180}\\.p64(?:\\.png)?")) throw new IOException("select a .p64 or .p64.png cartridge");
+        if (name!=null && pico8Name(name))
+            throw new IOException("This is a PICO-8 cartridge. Choose the Picotron .p64 or .p64.png version; renaming the extension does not convert it.");
+        String suffix=name==null ? "" : cartridgeSuffix(name);
+        if (suffix.isEmpty()) throw new IOException("Choose a Picotron .p64 or .p64.png cartridge.");
+        String base=name.substring(0,name.length()-suffix.length());
+        if (!base.matches("[^/\\\\:\\p{Cntrl}]{1,180}") || name.startsWith("."))
+            throw new IOException("Unsupported cartridge filename. Use a visible name without path separators or control characters.");
         File stage=Files.createTempDirectory(staging.toPath(),"cart-").toFile(), file=new File(stage,name);
         try (FileOutputStream out=new FileOutputStream(file)) { copy(input,out,new long[]{0},cancel); out.getFD().sync(); }
         byte[] signature=new byte[19]; int n;
         try (InputStream in=new FileInputStream(file)) { n=in.read(signature); }
-        boolean png=name.endsWith(".png");
+        boolean png=suffix.length()==8;
         byte[] expected=png ? new byte[]{(byte)137,80,78,71,13,10,26,10} : "picotron cartridge".getBytes(java.nio.charset.StandardCharsets.US_ASCII);
         if (n<expected.length || !Arrays.equals(expected,Arrays.copyOf(signature,expected.length))) throw new IOException("cartridge signature mismatch");
         File desktop=safe(home,"drive/desktop"); Files.createDirectories(desktop.toPath());
         File destination=safe(desktop,name);
-        String suffix=png ? ".p64.png" : ".p64", base=name.substring(0,name.length()-suffix.length());
         for (int copy=2;destination.exists();copy++) {
             if (copy>9999) throw new IOException("too many cartridges with this name");
             destination=safe(desktop,base+" ("+copy+")"+suffix);

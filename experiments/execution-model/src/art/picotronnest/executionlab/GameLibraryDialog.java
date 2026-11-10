@@ -26,11 +26,12 @@ final class GameLibraryDialog {
         new Thread(() -> {
             try {
                 if (library==null) throw new java.io.IOException("Start Picotron to open your library.");
-                List<GameLibrary.Entry> entries=library.entries();
+                GameLibrary.Scan discovery=library.discover();
+                List<GameLibrary.Entry> entries=discovery.entries;
                 activity.runOnUiThread(() -> {
                     if (!dialog.isShowing() || activity.isFinishing()) return;
-                    status.setText(entries.isEmpty() ? "No games yet. Download a cartridge in Splore or import one in Settings and projects."
-                            : entries.size()+" cartridges · tap a cover to play");
+                    status.setText((entries.isEmpty() ? "No games yet. Download a cartridge in Splore or import one in Settings and projects."
+                            : entries.size()+" cartridges · tap a cover to play")+discovery.explanation());
                     int columns=activity.getResources().getConfiguration().screenWidthDp>=520 ? 3 : 2;
                     LinearLayout row=null;
                     for (int i=0;i<entries.size();i++) {

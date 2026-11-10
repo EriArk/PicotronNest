@@ -8,7 +8,12 @@ import java.util.*;
 
 /** Test-only SAF provider backed exclusively by the fixture's private directory. */
 public final class FolderTestDocuments extends DocumentsProvider {
-    static volatile String failWrite="",rename="";
+    static volatile String failWrite="",rename="",failRead="",stallRead="",failList="",failCreate="",failDelete="",cancelWrite="";
+    static volatile boolean cancelled,readStarted;
+    static void reset() {
+        failWrite=""; rename=""; failRead=""; stallRead=""; failList=""; failCreate=""; failDelete=""; cancelWrite="";
+        cancelled=false; readStarted=false;
+    }
     private File base() { return new File(getContext().getFilesDir(),"owned-folder-provider"); }
     private File file(String id) throws FileNotFoundException {
         try {
@@ -39,6 +44,7 @@ public final class FolderTestDocuments extends DocumentsProvider {
         MatrixCursor cursor=cursor(projection); row(cursor,id); return cursor;
     }
     @Override public Cursor queryChildDocuments(String id,String[] projection,String order) throws FileNotFoundException {
+        if (file(id).getName().equals(failList)) throw new FileNotFoundException("owned listing denial");
         MatrixCursor cursor=cursor(projection); File[] children=file(id).listFiles();
         if (children==null) throw new FileNotFoundException(id);
         Arrays.sort(children,Comparator.comparing(File::getName));
@@ -46,6 +52,7 @@ public final class FolderTestDocuments extends DocumentsProvider {
     }
     @Override public String createDocument(String parent,String mime,String name) throws FileNotFoundException {
         try {
+            if (name.equals(failCreate)) throw new IOException("owned create denial");
             FolderTransfer.name(name); if (name.equals(rename)) name="renamed-by-provider.p64";
             String id=parent+"/"+name; File path=file(id);
             if (DocumentsContract.Document.MIME_TYPE_DIR.equals(mime)) java.nio.file.Files.createDirectory(path.toPath()); else java.nio.file.Files.createFile(path.toPath());
@@ -54,9 +61,28 @@ public final class FolderTestDocuments extends DocumentsProvider {
     }
     @Override public ParcelFileDescriptor openDocument(String id,String mode,CancellationSignal signal) throws FileNotFoundException {
         if (mode.contains("w") && file(id).getName().equals(failWrite)) throw new FileNotFoundException("owned write denial");
+        if (mode.contains("w") && file(id).getName().equals(cancelWrite)) cancelled=true;
+        if (mode.equals("r") && (file(id).getName().equals(failRead) || file(id).getName().equals(stallRead))) {
+            final File source=file(id); final boolean fail=source.getName().equals(failRead);
+            try {
+                ParcelFileDescriptor[] pipe=ParcelFileDescriptor.createReliablePipe();
+                new Thread(() -> {
+                    try (OutputStream out=new ParcelFileDescriptor.AutoCloseOutputStream(pipe[1])) {
+                        out.write(java.nio.file.Files.readAllBytes(source.toPath())); readStarted=true;
+                        if (fail) pipe[1].closeWithError("owned source transfer failure");
+                        else {
+                            long until=SystemClock.elapsedRealtime()+6000;
+                            while (!cancelled && SystemClock.elapsedRealtime()<until) SystemClock.sleep(10);
+                        }
+                    } catch (IOException ignored) { /* Owned cancelled reader closes the pipe. */ }
+                },"owned-folder-source").start();
+                return pipe[0];
+            } catch (IOException error) { throw new FileNotFoundException(error.getMessage()); }
+        }
         return ParcelFileDescriptor.open(file(id),ParcelFileDescriptor.parseMode(mode));
     }
     @Override public void deleteDocument(String id) throws FileNotFoundException {
+        if (file(id).getName().equals(failDelete)) throw new FileNotFoundException("owned cleanup denial");
         if (!file(id).delete()) throw new FileNotFoundException("owned delete failure");
     }
     @Override public boolean isChildDocument(String parent,String child) { return child.startsWith(parent+"/"); }

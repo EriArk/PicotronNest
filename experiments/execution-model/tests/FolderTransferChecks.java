@@ -128,5 +128,13 @@ public final class FolderTransferChecks {
             try { FolderTransfer.name(unsafe); throw new AssertionError("control character admitted"); } catch (IOException expected) { }
         }
         System.out.println("PASS long Unicode folder roots and repeated control-character rejection");
+        Source noisy=new Source();
+        for (int i=0;i<8;i++) noisy.add(noisy.root,"bad"+i+".p64",new byte[]{1});
+        noisy.add(noisy.root,"b.p64",CART); target.fail="b.p64"; target.undeletable=true;
+        FolderTransfer.Result noisyFailure=FolderTransfer.exportFolder(noisy,target,target.root(),stage,() -> false);
+        check(noisyFailure.completed==0 && noisyFailure.failed==9 && noisyFailure.details.size()==6,"bounded failure report");
+        check(new File(target.root,noisyFailure.destination+"/b.p64").length()==1,"owned partial export missing");
+        check(noisyFailure.message("export").contains("incomplete export"),"cleanup warning hidden by six earlier details");
+        System.out.println("PASS incomplete-export warning survives a saturated detail list");
     }
 }

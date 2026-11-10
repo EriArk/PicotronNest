@@ -46,7 +46,8 @@ An incomplete newly created file is deleted when possible; failed cleanup produc
 an explicit warning. Reports count completed cartridges, skipped entries and failed
 operations (a directory/listing failure counts once, not as guessed child counts).
 Stopped batches say that unvisited entries are not counted. Details are limited to
-six messages to keep large failure batches bounded.
+six messages to keep large failure batches bounded. The incomplete-export warning
+is independent of that limit and remains visible even after six earlier errors.
 
 Sources and pre-existing destinations are preserved. Work runs off the UI thread.
 Cancellation is checked during traversal/copy, with the existing cancellable,
@@ -90,3 +91,50 @@ physical-device UI/controller navigation and official Picotron opening the impor
 collection remain acceptance work. The fixture calls the transfer engine directly;
 it does not prove the Activity flow or a running official session. Test APKs and
 fresh collection reports remain private under `.local/screenshot-tests`.
+
+## Provider failure and cancellation increment (2026-11-10)
+
+A host regression reproduced a hidden-warning defect: eight invalid source carts
+filled the six-detail list, then an export write failed and cleanup was denied.
+The newly created incomplete file remained, but its warning was omitted. Export
+results now retain a separate incomplete-entry flag. Failed cleanup after a write
+or after provider name/type validation sets that flag; the summary warning cannot
+be displaced by earlier details. File counts and the six-detail bound are unchanged.
+
+Nine groups pass on the dedicated Android 11/API 30 x86-64 emulator, SELinux
+Enforcing, using the Java-only target-36 fixture. Collection:
+`904b4c4d-d85c-4bac-91e0-fa1e381e0e95`. Fixture APK SHA-256:
+`c3ed2776ec74fb9c1b975f9cc966abc49c68bd7ad7d18429b2186ef71c597901`.
+Run the existing `--mode folder` command above to repeat them.
+
+New provider coverage, in addition to the original three groups:
+
+- A reliable read pipe delivers a valid cartridge prefix, then reports an error.
+  The failed entry is absent from the imported folder; the good sibling remains.
+- A denied nested listing reports partial success; a denied root listing activates
+  no folder and reports that the transfer stopped.
+- Cancellation after bytes reach private staging, with an earlier sibling already
+  staged, returns within the fixture's 2.5-second bound, activates nothing and
+  removes staging. This does not bound arbitrary provider query/create/write calls.
+- Export cancellation when opening the next file preserves the completed sibling
+  and removes the newly created unfinished entry. Source bytes remain unchanged.
+- A denied destination create counts one failure and retains the completed sibling.
+- Write/cleanup denial and provider-renaming/cleanup denial leave real owned
+  destination entries. Both retain the summary warning despite eight earlier
+  validation failures; the detail list remains limited to six. Existing destination
+  files, source files and already imported originals are byte-for-byte preserved.
+
+All seven folder host groups pass, along with the single-cartridge and queued-import
+host regressions and both candidate-manifest checks. All production and selected
+Android fixture Java sources compile with warnings as errors against API 36 and
+pass D8 at minimum API 26. These are real owned SAF-provider checks; they do not
+exercise a full disk, cloud upload acknowledgement, the system picker, transfer
+process death or a live official runtime. Full Activity/physical-device acceptance
+remains open. Retroid testing remains deferred until the owner permits it.
+
+The updated private ARM64 candidate is
+`.local/folder-tests/candidate/PicotronNest-0.1.0-beta.3-arm64.apk`, SHA-256
+`af066458f6b3b2c33f263737e2122063596297835e7aa18a9edaa2131f48bca3`.
+Its 93 source hashes, 44 payload entries and existing signing identity verify.
+The package version remains beta 3; this is not the published beta-3 artifact.
+No product install on Retroid or APK/Release publication was performed.

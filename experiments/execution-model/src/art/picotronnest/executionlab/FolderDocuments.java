@@ -57,7 +57,7 @@ final class FolderDocuments implements FolderTransfer.Source,FolderTransfer.Targ
         } catch (IOException | RuntimeException error) {
             // Only the just-created entry is eligible for cleanup; existing documents are never opened for write.
             try { if (!DocumentsContract.deleteDocument(context.getContentResolver(),created)) throw new IOException("cleanup refused"); }
-            catch (IOException | RuntimeException cleanup) { throw new IOException("An incomplete entry may remain: "+name,error); }
+            catch (IOException | RuntimeException cleanup) { throw new FolderTransfer.Incomplete(name,error); }
             throw error;
         }
     }

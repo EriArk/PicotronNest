@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+Folder export always reports that incomplete files may remain when cleanup fails,
+even if earlier errors filled the bounded detail list. Expanded owned Android
+checks cover provider failures and cancellation after transfer starts.
+[Checks and limits](docs/FOLDER_TRANSFER.md).
+
 Android document imports now reject reliable-provider transfer errors at EOF,
 preventing a valid cartridge prefix from being silently accepted after a failed
 copy. Owned emulator tests cover cancellation and actual process death during

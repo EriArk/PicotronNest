@@ -18,6 +18,14 @@ fullscreen Splore have scoped Retroid evidence; list maximization is a separate 
 
 ## Latest evidence
 
+- **2026-11-10 folder transfer failures (#6):** incomplete-export warnings now remain
+  visible after the six-detail limit, including failed cleanup of provider-renamed
+  entries. Nine owned SAF groups pass on Android 11/API 30 x86-64, covering read,
+  listing, create and cleanup failures plus cancellation during staged reading and
+  partial export. Seven folder host groups and adjacent regressions pass.
+  [Reproduction and scope](FOLDER_TRANSFER.md). System-picker, Activity lifecycle,
+  transfer process-death and official-runtime acceptance remain open.
+
 - **2026-11-10 import failure and recovery (#3):** reproduced and fixed acceptance
   of a cartridge prefix when an Android reliable provider reports transfer failure.
   Seven owned queue assertion groups pass on Android 11/API 30 x86-64, including
@@ -376,9 +384,9 @@ Do not upgrade a status because code compiles, ADB starts an activity, a process
 
 ## Next action
 
-Continue emulator-based folder-transfer failure and cancellation acceptance (#6),
-then the management-activity return/recreation flow (#3/#7). Queue provider errors
-and actual process-death recovery now have scoped emulator evidence.
+Continue the emulator-based management-activity return/recreation flow (#3/#7),
+then folder-transfer process-death checks (#6). Queue recovery and folder-provider
+failure/cancellation now have scoped emulator evidence.
 The Linux build-tooling gap is closed.
 Retroid is unavailable and the owner explicitly deferred all device testing until
 they give permission to resume. Do not poll, install or test on that device meanwhile.
@@ -391,7 +399,7 @@ The reviewed queue below records implementation and remaining acceptance:
 | Issue | Requested behavior / sequencing |
 | --- | --- |
 | [#3](https://github.com/EriArk/PicotronNest/issues/3) | Queue provider errors and process-death recovery fixture-tested; external SAF/full UI and official-runtime acceptance pending |
-| [#6](https://github.com/EriArk/PicotronNest/issues/6) | Bounded cartridge folder transfer implemented; loose assets excluded; external-provider/device acceptance pending |
+| [#6](https://github.com/EriArk/PicotronNest/issues/6) | Folder provider failures/cancellation fixture-tested; Activity/process-death/external-provider acceptance pending |
 | [#7](https://github.com/EriArk/PicotronNest/issues/7) | Shared touch/controller drawer and operation guidance implemented; physical input and full-session acceptance pending |
 | [#4](https://github.com/EriArk/PicotronNest/issues/4) | PNG document export implemented and fixture-tested; physical/runtime acceptance pending |
 | [#2](https://github.com/EriArk/PicotronNest/issues/2) | Verified restart flow implemented; real normal/hung runtime acceptance pending |

@@ -23,13 +23,14 @@ final class FolderTransfer {
         void remove(Node file) throws IOException;
     }
     static final class Result {
-        int completed,skipped,failed; boolean stopped; String destination="";
+        int completed,skipped,failed; boolean stopped,incomplete; String destination="";
         final List<String> details=new ArrayList<>();
         void problem(String text) { if (details.size()<6) details.add(text); }
         String message(String operation) {
             return operation+": "+completed+" completed, "+skipped+" skipped, "+failed+" failed."
                     +(stopped ? " Transfer stopped; unvisited items are not counted." : "")
                     +(destination.isEmpty() ? "" : "\nFolder: "+destination)
+                    +(incomplete ? "\nAn incomplete export may remain. Check the destination folder before retrying." : "")
                     +(details.isEmpty() ? "" : "\n"+String.join("\n",details))
                     +"\nOriginal files were not replaced. Only .p64 and .p64.png cartridges are transferred.";
         }
@@ -37,6 +38,10 @@ final class FolderTransfer {
     static final class Stop extends IOException {
         private static final long serialVersionUID=1L;
         Stop(String message) { super(message); }
+    }
+    static final class Incomplete extends IOException {
+        private static final long serialVersionUID=1L;
+        Incomplete(String name,Throwable cause) { super("An incomplete entry may remain: "+name,cause); }
     }
     private static void check(RuntimeStore.Cancel cancel) throws Stop {
         if (cancel.cancelled() || Thread.currentThread().isInterrupted()) throw new Stop("Cancelled.");
@@ -148,6 +153,7 @@ final class FolderTransfer {
             result.destination=root.name;
             exportChildren(batch.root,target,root,result,cancel);
         } catch (IOException | RuntimeException error) {
+            if (error instanceof Incomplete) result.incomplete=true;
             result.stopped=true; result.failed++; result.problem(error.getMessage());
         }
         return result;
@@ -169,8 +175,11 @@ final class FolderTransfer {
                     result.completed++; created=null;
                 }
             } catch (IOException | RuntimeException error) {
+                if (error instanceof Incomplete) result.incomplete=true;
                 if (created!=null) try { target.remove(created); }
-                catch (IOException | RuntimeException cleanup) { result.problem("An incomplete export may remain: "+created.name); }
+                catch (IOException | RuntimeException cleanup) {
+                    result.incomplete=true; result.problem("An incomplete export may remain: "+created.name);
+                }
                 if (error instanceof Stop) throw (Stop)error;
                 result.failed++; result.problem("Export failed: "+file.getName()+": "+error.getMessage());
             }

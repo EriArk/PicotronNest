@@ -9,7 +9,7 @@ your projects wherever you are.
 
 **Bring your own Picotron. One app. No root or Termux.**
 
-**[Download beta 3 for Android](https://github.com/EriArk/PicotronNest/releases/download/v0.1.0-beta.3/PicotronNest-0.1.0-beta.3-arm64.apk)** · [What's new](https://github.com/EriArk/PicotronNest/releases/tag/v0.1.0-beta.3)
+**[Download beta 4 for Android](https://github.com/EriArk/PicotronNest/releases/download/v0.1.0-beta.4/PicotronNest-0.1.0-beta.4-arm64.apk)** · [What's new](https://github.com/EriArk/PicotronNest/releases/tag/v0.1.0-beta.4)
 
 [Screenshots](docs/screenshots/README.md) · [Getting started](#getting-started) · [Help](docs/USER_GUIDE.md) · [Report a problem](https://github.com/EriArk/PicotronNest/issues)
 
@@ -62,13 +62,14 @@ offers **Auto**, **Low latency** and **More stable**; larger buffers add sound d
 | [<img src="docs/screenshots/touch-controls.png" width="360" alt="Original Pocket Orbit example running in PicotronNest">](docs/screenshots/touch-controls.png) | [<img src="docs/screenshots/sound-buffer.png" width="360" alt="Beta 3 audio buffer modes and latency explanation">](docs/screenshots/sound-buffer.png) |
 
 All screenshots are real Retroid captures. The gallery includes beta 1/2 screens
-and the new beta 3 launcher/audio controls. Open any image at full size or browse
+and the beta 3 launcher/audio controls. These earlier captures do not establish
+beta 4 hardware acceptance. Open any image at full size or browse
 the [gallery with credits and original PNGs](docs/screenshots/README.md).
 
 ## Getting started
 
-**[Download beta 3 APK](https://github.com/EriArk/PicotronNest/releases/download/v0.1.0-beta.3/PicotronNest-0.1.0-beta.3-arm64.apk)**
-or open the [release page](https://github.com/EriArk/PicotronNest/releases/tag/v0.1.0-beta.3)
+**[Download beta 4 APK](https://github.com/EriArk/PicotronNest/releases/download/v0.1.0-beta.4/PicotronNest-0.1.0-beta.4-arm64.apk)**
+or open the [release page](https://github.com/EriArk/PicotronNest/releases/tag/v0.1.0-beta.4)
 for source archives, screenshots, notices and checksums.
 
 To get started:
@@ -83,14 +84,18 @@ To get started:
 **Picotron is not included.** Windows, macOS, 32-bit and PICO-8 packages cannot
 be used. There is no separate helper app to install.
 
-Beta 3 accepts compatible older/newer ARM64 runtime packages without a fixed
+Since beta 3, imports accept compatible older/newer ARM64 runtime packages without a fixed
 version allowlist. Device checks used 0.3.0d2; accepting an archive does not prove
 every version works. See [onboarding and import evidence](docs/ONBOARDING.md).
-Install over an earlier beta to preserve your runtime and projects; do not clear data.
+Save and fully quit Picotron before updating. Install over an earlier beta to
+preserve your runtime and projects; do not uninstall or clear data.
 
 ## Before you try the beta
 
-The current hardware check is **Retroid Pocket Classic, Android 14**. A 64-bit
+Earlier scoped hardware checks used **Retroid Pocket Classic, Android 14**.
+Beta 4 adds queued/folder imports, screenshots, restart and control improvements;
+its fresh hardware upgrade/recovery cycle remains unverified. See the
+[release limits](docs/releases/0.1.0-beta.4.md). A 64-bit
 ARM Android device is required; other phones, tablets and handhelds still need
 testing. The owner reported good Phoenix sound on Retroid after beta 3;
 [phone listening, audio interruptions and longer sessions](docs/AUDIO_AND_LIBRARY.md#owner-listening-follow-up--2026-11-02)

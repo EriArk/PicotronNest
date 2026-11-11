@@ -1,6 +1,6 @@
 # Project status
 
-**2026-11-02 - [0.1.0-beta.3 is published as a prerelease](https://github.com/EriArk/PicotronNest/releases/tag/v0.1.0-beta.3), with owner authorization, from `2dbdbf68f88c807b5adc785a147a31b1a096736b`. It adds guided setup, version-flexible imports, a cartridge launcher and audio buffering controls. All 12 uploaded assets match local SHA-256; an anonymous public APK download and the tag target were independently verified. Owner listening feedback and remaining audio checks are recorded below.**
+**2026-11-11 - [0.1.0-beta.4 is published as a prerelease](https://github.com/EriArk/PicotronNest/releases/tag/v0.1.0-beta.4), following the owner's release request, from `1639feea750742ff0ee872e71fdeba79a4a32605`. All 12 uploaded assets match local SHA-256; the public APK download and tag target were independently verified. New official-runtime hardware/recovery acceptance remains open; see the release notes.**
 
 PicotronNest is an Android wrapper for the **official, user-imported Picotron runtime**.
 The repository contains a bounded archive inspector and a temporary target-36
@@ -13,17 +13,22 @@ the shared input bundle has emulator evidence. Official Picotron interaction and
 Audio interruption and phone listening acceptance, broader phone ergonomics and
 modern-device compatibility remain open. Native HTTP(S) and Android DNS are integrated; accounts, uploads,
 VPN/network-change behavior and raw socket workflows remain tester checks. Public
-beta 3 is now published; future releases require owner authorization. Windowed and
+beta 4 is now published; future releases require owner authorization. Windowed and
 fullscreen Splore have scoped Retroid evidence; list maximization is a separate action.
 
 ## Latest evidence
 
-- **2026-11-11 beta 4 preparation:** the owner requested a new beta release of the
-  accumulated changes. Package version is `0.1.0-beta.4`, code 1004, signed with
-  the existing product identity. [Release notes](releases/0.1.0-beta.4.md) explicitly
-  retain the unverified Retroid recovery/upgrade and hardware acceptance limits.
-  Preparation does not add new device-proven behavior. Publication verification
-  will be recorded after the assets are available.
+- **2026-11-11 beta 4 publication:** version `0.1.0-beta.4`, code 1004, uses the
+  existing product signing identity. All 51 host checks and 13 tools checks pass;
+  the repository/history audit found no prohibited payloads. The candidate's 93
+  source hashes and 44 payload entries verify. All 12 uploaded attachments were
+  downloaded and compared with local SHA-256 before publication; the public APK
+  was then independently downloaded without authentication. Its SHA-256 is
+  `804de1e26f41dc3c71276b1af77391cb1cdca8539f703ac3adf8742af0545fbb`.
+  Tag `v0.1.0-beta.4` points to the reviewed source commit `1639feea750742ff0ee872e71fdeba79a4a32605`.
+  [Release notes](releases/0.1.0-beta.4.md) retain unverified Retroid recovery/upgrade
+  and hardware limits. No new device-proven behavior is inferred. Private receipts:
+  `.local/beta4/publication-verified.json`; attachments: `.local/release/0.1.0-beta.4/`.
 
 - **2026-11-10 Retroid access resumed; device checks incomplete:** the owner released
   Retroid for testing. The connected Pocket Classic reports Android 14/API 34.

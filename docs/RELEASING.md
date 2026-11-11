@@ -1,7 +1,7 @@
 # Build and release preparation
 
-The current published prerelease is **0.1.0-beta.3**, application ID **art.picotronnest**,
-version code **1003**, ARM64, target SDK **36**, minimum SDK **26**. The minimum
+The current published prerelease is **0.1.0-beta.4**, application ID **art.picotronnest**,
+version code **1004**, ARM64, target SDK **36**, minimum SDK **26**. The minimum
 SDK is a manifest floor, not a claim that every Android 8+ device can execute the
 runtime. Retroid/Android 14 is the hardware evidence currently available.
 
@@ -10,9 +10,10 @@ attachment digests and the anonymous public APK download were verified. Its
 scoped evidence is tracked in [ONBOARDING](ONBOARDING.md) and
 [AUDIO_AND_LIBRARY](AUDIO_AND_LIBRARY.md).
 
-The next package configuration is **0.1.0-beta.4**, code **1004**. Its notes record
-pending fresh hardware acceptance; publication follows the owner's 2026-11-11
-request to release the accumulated work as a new beta.
+Beta 4 was published on 2026-11-11 from `1639feea750742ff0ee872e71fdeba79a4a32605`
+following the owner's release request. All 12 downloaded attachments match local
+hashes, and the unauthenticated public APK download and source tag were verified.
+Its notes retain pending fresh hardware upgrade/recovery acceptance.
 
 ## Build on Linux
 
@@ -39,10 +40,12 @@ py -3 -B tools/create_signing_key.py
 py -3 -B experiments/execution-model/build.py --candidate `
   --desktop-base .local/desktop/gamepad-base/picotronnest-execution-lab.apk `
   --keystore .local/release/signing/picotronnest.jks `
-  --password-file .local/release/signing/password.txt
+  --password-file .local/release/signing/password.txt `
+  --artifacts-dir .local/beta4/candidate
 ```
 
-The candidate APK and its `build.json` are placed in `.local/release/candidate/`.
+This example puts the candidate APK and `build.json` in `.local/beta4/candidate/`;
+omitting `--artifacts-dir` uses `.local/release/candidate/`.
 Candidate packaging has a strict payload allowlist and source hashes. It is
 non-debuggable, ships only ARM64 libraries and removes the owned execution/guest
 and headless diagnostic executables. Its only exported activity is the launcher,

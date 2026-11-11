@@ -3,19 +3,22 @@ from pathlib import Path
 import subprocess
 import tempfile
 import unittest
+from host_tools import default_jdk, executable
 import shutil
 
 
 class AudioHost(unittest.TestCase):
     def test_pcm_transport_bounds(self):
         here = Path(__file__).resolve().parent
-        jdk = Path(os.environ.get('JAVA_HOME', r'C:\Program Files\Android\Android Studio\jbr')) / 'bin'
+        jdk = default_jdk()
+        self.assertIsNotNone(jdk, 'Set JAVA_HOME or put javac on PATH')
+        jdk = jdk / 'bin'
         with tempfile.TemporaryDirectory() as temp:
-            subprocess.run([str(jdk / 'javac.exe'), '--release', '8', '-Xlint:all,-options', '-Werror', '-d', temp,
+            subprocess.run([str(executable(jdk, 'javac')), '--release', '8', '-Xlint:all,-options', '-Werror', '-d', temp,
                             str(here / 'src/art/picotronnest/executionlab/AudioProtocol.java'),
                             str(here / 'src/art/picotronnest/executionlab/AudioBufferPolicy.java'),
                             str(here / 'tests/AudioProtocolHostTest.java')], check=True, timeout=30)
-            subprocess.run([str(jdk / 'java.exe'), '-cp', temp, 'art.picotronnest.executionlab.AudioProtocolHostTest'], check=True, timeout=10)
+            subprocess.run([str(executable(jdk, 'java')), '-cp', temp, 'art.picotronnest.executionlab.AudioProtocolHostTest'], check=True, timeout=10)
 
     def test_sample_clock(self):
         compiler = shutil.which('gcc')

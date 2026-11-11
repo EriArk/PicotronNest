@@ -18,6 +18,13 @@ fullscreen Splore have scoped Retroid evidence; list maximization is a separate 
 
 ## Latest evidence
 
+- **2026-11-11 beta 4 preparation:** the owner requested a new beta release of the
+  accumulated changes. Package version is `0.1.0-beta.4`, code 1004, signed with
+  the existing product identity. [Release notes](releases/0.1.0-beta.4.md) explicitly
+  retain the unverified Retroid recovery/upgrade and hardware acceptance limits.
+  Preparation does not add new device-proven behavior. Publication verification
+  will be recorded after the assets are available.
+
 - **2026-11-10 Retroid access resumed; device checks incomplete:** the owner released
   Retroid for testing. The connected Pocket Classic reports Android 14/API 34.
   Published beta 3 (`0be3e848c28e7e72b7664c7902ceb6b6fa5821284fa9bb7310fbf80cb2d08051`)

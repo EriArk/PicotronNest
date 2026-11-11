@@ -1,8 +1,8 @@
 # Using PicotronNest
 
-## Development build: in-session controls
+## Beta 4: in-session controls
 
-The unreleased development build adds a first-use hint beside the floating controls.
+Beta 4 adds a first-use hint beside the floating controls.
 Tap **Picotron controls** (☰), or open the host menu with Guide in game mode / Android
 Back and choose **Picotron controls**. Pointer mode uses your configured menu key.
 D-pad up/down moves between drawer options; your configured confirm/cancel buttons
@@ -16,7 +16,7 @@ See [validation and limits](IN_SESSION_CONTROLS.md).
 
 ## First launch
 
-These instructions describe published **beta 3**. The older beta 2 has an earlier
+These instructions describe **beta 4**. The older beta 2 has an earlier
 import screen and accepts only the Picotron 0.3.0d2 Raspberry Pi 64-bit ZIP.
 
 1. Open PicotronNest and choose **Get started**. PicotronNest runs the real
@@ -28,7 +28,7 @@ import screen and accepts only the Picotron 0.3.0d2 Raspberry Pi 64-bit ZIP.
    Importing alone does not start the desktop. Later app launches go straight
    to your installed Picotron, unless an interrupted session needs recovery.
 
-Beta 3 checks architecture, package structure and required libraries instead of
+Since beta 3, imports check architecture, package structure and required libraries instead of
 allowlisting a Picotron version. Older/newer ARM64 builds can be imported if they
 pass those checks. Import success does not guarantee that an untested version
 will run correctly. Windows, macOS, 32-bit and PICO-8 downloads are unsuitable.
@@ -42,7 +42,7 @@ across runtime versions and preserved across app updates.
 
 ## Desktop and games
 
-- In beta 3, the four-square **Your games** button beside the hamburger opens
+- The four-square **Your games** button beside the hamburger opens
   covers for downloaded and local cartridges. Tap one to launch it. Download
   new games in native Splore; import local carts under Settings and projects.
 - Tap the original Picotron screen to point and click. Open the floating menu
@@ -57,6 +57,7 @@ across runtime versions and preserved across app updates.
   when you finish moving their sliders.
 - Controller button assignments are under **Settings and projects → Input
   settings → Game controls**. Saved assignments apply at the next launch.
+  Input drafts survive screen recreation; press **Save input settings** to persist them.
 
 The touch gamepad supplements player one. Press different controls with different
 fingers for combinations such as movement plus jump. Each control tracks one
@@ -97,15 +98,37 @@ floating controls/host menu, then confirm. The app waits for the session to clos
 Leaving for another Android app mutes sound while Picotron is in the background.
 Android can still stop background apps; unsaved work is not a backup.
 
+**Restart Picotron** is also available in the host menu. Save first: this closes
+and relaunches the workstation; it is not a save-state operation. Restart waits
+for confirmed teardown and does not relaunch after a failed shutdown.
+
+**Save screenshot** in Picotron controls/the host menu opens Android's save picker.
+The PNG contains the original frame without host overlays. Cancel to save nothing;
+files are never uploaded automatically.
+
 If Android interrupted a session, setup offers **Recover interrupted launch**.
 This checks that the old process is gone and preserves saved files. It cannot
 recover changes that Picotron never saved.
 
 ## Projects and backups
 
-Close Picotron, then open **Settings and projects → Projects and backups**:
+You can open **Settings and projects → Projects and backups** while Picotron runs.
+**Import cartridge (queue)** in the floating drawer opens the same document picker.
+Choose `.p64` or `.p64.png`; the checked copy waits outside the live home. Save and
+quit Picotron, then tap **Finish queued imports**. Reopen Your games after launching
+Picotron again. **Review queued imports** lets you keep/discard waiting copies or
+explicitly retry an interrupted application. Check your projects first: a copy may
+already have been imported. Discard affects only the queued copy. PICO-8 `.p8`
+files are unsupported; names may contain spaces, Unicode and mixed-case extensions.
 
-- Import a `.p64` or `.p64.png` cartridge through Android's document picker.
+Other transfers require a closed Picotron session:
+
+- Import/export a cartridge folder through the Android folder picker. Only
+  cartridges transfer; loose assets are skipped. Nested names remain intact in
+  a new, uniquely named folder, with no overwrites. Limits are 4096 entries,
+  32 directory levels and 128 MiB. Import cancellation activates nothing;
+  export cancellation may retain completed files. Read the result and any
+  incomplete-export warning before retrying.
 - Export a saved cartridge to a folder you choose.
 - Back up the whole Picotron home to ZIP.
 - Restore a backup into a **new, separate Restored folder** on Picotron Drive.
@@ -121,6 +144,10 @@ restore that backup and copy your projects from Restored. Keep the old app until
 you have checked the copied projects. No automatic or destructive migration runs.
 
 ## Help and privacy
+
+**Help and community** links to the AbyssTail website, its maintained Discord
+community entry and GitHub reporting. Opening an external app does not request
+Picotron shutdown; use Android Back to return.
 
 **About and diagnostics** shows the app version, bundled notices and an **Export
 diagnostic report** button. Reports contain the device model, Android/app versions

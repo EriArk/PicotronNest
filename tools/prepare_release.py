@@ -1,4 +1,5 @@
 """Prepare local release attachments from a reviewed candidate. Never publish or tag."""
+import argparse
 import hashlib
 import json
 from pathlib import Path
@@ -28,12 +29,15 @@ def pinned(item, cache):
 
 
 def main():
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--candidate-dir',type=Path,help='Reviewed candidate directory; preserves earlier candidates')
+    args=parser.parse_args()
     if subprocess.check_output(['git','status','--porcelain'],cwd=ROOT).strip():
         raise SystemExit('Commit and review the worktree before preparing release attachments.')
     checked=audit()
     if checked['findings']:
         raise SystemExit(json.dumps(checked,indent=2))
-    candidate=ROOT/'.local/release/candidate'
+    candidate=args.candidate_dir.resolve() if args.candidate_dir else ROOT/'.local/release/candidate'
     metadata=json.loads((candidate/'build.json').read_text())
     product=json.loads((ROOT/'packaging/candidate.json').read_text())
     if metadata.get('candidate')!=product or metadata.get('debuggable') is not False:

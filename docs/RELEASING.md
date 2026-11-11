@@ -10,6 +10,10 @@ attachment digests and the anonymous public APK download were verified. Its
 scoped evidence is tracked in [ONBOARDING](ONBOARDING.md) and
 [AUDIO_AND_LIBRARY](AUDIO_AND_LIBRARY.md).
 
+The next package configuration is **0.1.0-beta.4**, code **1004**. Its notes record
+pending fresh hardware acceptance; publication follows the owner's 2026-11-11
+request to release the accumulated work as a new beta.
+
 ## Build on Linux
 
 The product and owned native fixture now support Linux x86-64 with explicit SDK/JDK
@@ -75,11 +79,13 @@ before auditing; do not rewrite shared history without first reviewing findings.
 After review, commit the exact build sources and docs on `main`, then run:
 
 ```powershell
-py -3 -B tools/prepare_release.py
+py -3 -B tools/prepare_release.py --candidate-dir .local/beta4/candidate
 ```
 
-The command requires a clean worktree and matching candidate source hashes.
-It prepares `.local/release/0.1.0-beta.3/` with the APK, source ZIP, exact
+The command requires a clean worktree and matching candidate source hashes. Use
+a clean isolated checkout of the reviewed main commit if the owner working tree
+contains unrelated edits. `--candidate-dir` preserves earlier build artifacts.
+It prepares `.local/release/0.1.0-beta.4/` with the APK, source ZIP, exact
 dependency-source ZIP, original-screenshot ZIP, notices, build manifest, audit report
 and `SHA256SUMS`. The screenshot ZIP contains only the tracked gallery at that commit.
 It checks that no known proprietary runtime payload appears inside the APK.
@@ -101,7 +107,7 @@ Before a public prerelease:
    exact attachment list; never upload `.local` wholesale.
 3. Obtain the owner's explicit approval to publish. Preparation and source pushes
    do not create that approval.
-4. On approval, tag the reviewed commit `v0.1.0-beta.3`, publish as a **prerelease**,
+4. On approval, tag the reviewed commit `v0.1.0-beta.4`, publish as a **prerelease**,
    and use the prepared release notes. Change README's download status only after
    verifying the actual release URL and attachments.
 

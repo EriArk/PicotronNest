@@ -1,12 +1,35 @@
 # Beta tester checklist
 
-Published prerelease: **0.1.0-beta.3**, ARM64, package `art.picotronnest`, target API 36.
+Target of this checklist: **0.1.0-beta.4**, ARM64, package `art.picotronnest`, target API 36.
 Import: your own compatible **Linux / Raspberry Pi 64-bit ARM64 ZIP**. Device
 checks used Picotron **0.3.0d2**; other versions need individual validation.
 Retroid Pocket Classic / Android 14 has scoped development evidence; this is
 not a promise of compatibility with other Android execution policies.
 
-## Beta 3 setup and upgrade
+## Beta 4: transfers, controls and recovery
+
+Beta 4 has version code 1004 and the same product signing identity. Save and quit
+Picotron fully before installing over beta 3. Do not uninstall or clear data.
+A fresh beta-4 hardware upgrade/session/recovery cycle is still unverified.
+
+- Open settings from the running session and return. Rotate input settings with
+  unsaved edits; confirm they remain drafts until Save is pressed.
+- Queue a cartridge while running, cancel another selection, and return. Save and
+  quit, then finish imports explicitly. Confirm the original projects remain.
+- Use mixed-case extensions, spaces and Unicode; PICO-8 files should explain the
+  format mismatch. After interrupted application, review before retrying.
+- Import/export a small nested collection. Verify counts, separate destinations,
+  cancellation and retained completed files. Loose assets are intentionally skipped.
+- Save a screenshot, cancel the next picker and capture again. Check PNG pixels,
+  orientation and that overlays are absent.
+- Save work before Restart Picotron. Confirm one runtime after a normal restart;
+  do not test hung-session failure with valuable unsaved edits.
+- Open Help/community, return and confirm the original session is usable.
+- If Resume safely appears after an interruption/update, export diagnostics and
+  use recovery. Record whether the saved project reopens and normal quit completes.
+  A disappearing native PID alone does not prove completed host teardown.
+
+## Setup and upgrade regression checks
 
 Beta 3 has version code 1003. Use the session checks below and also check:
 

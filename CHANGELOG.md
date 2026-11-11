@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.0-beta.4 - 2026-11-11 prerelease
 
 Unsaved input settings now survive Android Activity recreation, including pointer
 mode, axes, raw numeric edits and button bindings. Saving remains explicit.
@@ -50,6 +50,14 @@ do not restart. [Checks and limits](docs/IN_SESSION_RESTART.md).
 Cartridge import and discovery preserve mixed-case Picotron extensions. PICO-8
 imports explain the format mismatch; the library explains skipped PICO-8 and
 unindexable cached cartridges. [Checks and limits](docs/CARTRIDGE_DISCOVERY.md).
+
+See [beta 4 release notes](docs/releases/0.1.0-beta.4.md) for scoped validation and
+remaining hardware acceptance.
+
+## 0.1.0-beta.3 - 2026-11-02 prerelease
+
+Guided setup, version-flexible ARM64 runtime import, a cartridge cover-grid launcher
+and sound buffering preferences. See [release notes](docs/releases/0.1.0-beta.3.md).
 
 ## 0.1.0-beta.2 - 2026-11-02 prerelease
 
